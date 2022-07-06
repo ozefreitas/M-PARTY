@@ -1,0 +1,12 @@
+hmmsearch_out_type: out
+input_file: lit_sequences.fasta
+out_table_format: excel
+output_directory: /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/results/PlastEDMA_results
+seqids:
+- A0A1H6AD45
+- G9BY57
+- O22443
+- Q02567
+- Q9HTK9
+threads: 1
+workflow: annotation
