@@ -1,8 +1,8 @@
 # IDE generated files #
 ############
-.code-workspace
-.idea/
-.vscode/
+*.code-workspace
+*.idea/
+*.vscode/
 
 # Packages #
 ############
