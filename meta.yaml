@@ -1,0 +1,54 @@
+{% set name = "PlastEDMA" %}
+{% set version = "0.1.0" %}
+{% set sha256 = "e90e1b06a7e34714548fcf47f07e25c8bc87f9722f0c383420b5f1d59a70a308" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/pg42872/PDETool/archive/refs/tags/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  noarch: python
+  number: 0
+  script: > 
+    mkdir -p $PREFIX/share && cp workflow/plastedma.py $PREFIX/share && cp -R workflow/*/ $PREFIX/share 
+    && chmod +x $PREFIX/share/plastedma.py
+    && ln -s $PREFIX/share/plastedma.py $PREFIX/bin/plastedma
+
+requirements:
+  run:
+    - pyyaml
+    - hmmer
+    - t-coffee
+    - cd-hit
+    - pandas
+    - openpyxl
+
+test:
+  commands:
+    - plastedma.py -h
+
+about:
+  home: https://github.com/pg42872/PDETool
+  license: MIT license
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Plastic Enzymes Degrading in Metagenomic databases Analysis'
+  description: |
+    PlastEDMA takes an input FASTA file with a variable number of aminoacidic
+    sequences and performes a search against an considerable amount of Hidden 
+    Markov Models, previously built and trained from state of the art plastic 
+    (PE - polyethylene) degrading enzymes. This process relies on the hmmsearch 
+    function from HMMER to perform the structural annotation. Output deduces 
+    about the potential presence of plastic degradring enzymes in the inputed
+    sequences, and is composed by 3 distinct files, in order to help the user 
+    to have an easier time to read and conclude about the results.
+  doc_url: https://github.com/pg42872/PDETool/blob/main/README.md
+  dev_url: https://github.com/pg42872/PDETool 
+
+extra:
+  recipe-maintainers:
+    - pg42872

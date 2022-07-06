@@ -1,0 +1,30 @@
+# IDE generated files #
+############
+.code-workspace
+.idea/
+.vscode/
+
+# Packages #
+############
+*.zip
+*.tar
+*.rar
+
+# Databases #
+############
+**/Databases
+
+# UPIMAPI results #
+############
+workflow/Alignments/BLAST/upimapi_results/*.blast
+
+# Pypl dependencies #
+############
+*/__pycache__
+**/__pycache__
+
+# snakemake logs #
+logs/**
+*/.snakemake/log/
+.snakemake
+.snakemake/**
