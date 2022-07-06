@@ -1,0 +1,35 @@
+#                                                                 --- full sequence ---- --- best 1 domain ---- --- domain number estimation ----
+# target name          accession  query name           accession    E-value  score  bias   E-value  score  bias   exp reg clu  ov env dom rep inc description of target
+#  ------------------- ---------- -------------------- ---------- --------- ------ ----- --------- ------ -----   --- --- --- --- --- --- --- --- ---------------------
+tr|O22443|O22443_SOYBN -          1                    -           1.8e-234  768.9  14.2  2.1e-234  768.8  14.2   1.0   1   0   0   1   1   1   1 Peroxidase OS=Glycine max OX=3847 GN=Ep PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          10                   -           1.9e-225  736.2   3.4  2.2e-225  736.0   3.4   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          11                   -           5.1e-224  731.4   3.8  5.7e-224  731.3   3.8   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          12                   -           7.7e-228  744.1   3.5  9.1e-228  743.8   3.5   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          13                   -           3.8e-232  758.2   5.1  4.3e-232  758.0   5.1   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          15                   -           1.8e-225  736.3   4.3  2.2e-225  736.0   4.3   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          16                   -           4.8e-231  754.7   5.8  5.4e-231  754.6   5.8   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          22                   -             8e-222  724.1  10.5  8.9e-222  724.0  10.5   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          23                   -           1.6e-226  739.7  11.4  1.8e-226  739.5  11.4   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          24                   -           7.7e-225  734.1   8.9  8.6e-225  733.9   8.9   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          26                   -             3e-232  758.5  13.3  3.4e-232  758.3  13.3   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          27                   -           1.7e-218  713.3   7.8  1.9e-218  713.1   7.8   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          28                   -           7.4e-228  744.1  10.0  8.3e-228  743.9  10.0   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          29                   -           9.4e-223  727.1   9.9    1e-222  726.9   9.9   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          3                    -           7.6e-232  757.3   5.3  8.5e-232  757.2   5.3   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          30                   -           6.8e-223  727.8  11.9  7.6e-223  727.6  11.9   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          32                   -           7.9e-218  711.0  11.7  8.8e-218  710.9  11.7   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          34                   -             1e-219  717.4  11.2  1.2e-219  717.2  11.2   1.0   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          4                    -           5.7e-230  751.2   3.6  6.8e-230  750.9   3.6   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          41                   -           3.5e-120  387.6   5.1  4.9e-120  387.1   5.1   1.2   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q02567|PEM1_PHACH -          44                   -           1.8e-105  339.0   2.8    3e-105  338.2   2.8   1.4   1   0   0   1   1   1   1 Manganese peroxidase 1 OS=Phanerodontia chrysosporium OX=2822231 GN=MNP1 PE=1 SV=1
+sp|Q9HTK9|RURE_PSEAE -          8                    -           6.2e-228  744.5   4.0  7.3e-228  744.3   4.0   1.0   1   0   0   1   1   1   1 Rubredoxin-NAD(+) reductase OS=Pseudomonas aeruginosa (strain ATCC 15692 / DSM 22644 / CIP 104116 / JCM 14847 / LMG 12228 / 1C / PRS 101 / PAO1) OX=208964 GN=alkT PE=1 SV=1
+#
+# Program:         hmmsearch
+# Version:         3.3.2 (Nov 2020)
+# Pipeline mode:   SEARCH
+# Query file:      /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/After_tcoffee_UPI/80-85.hmm
+# Target file:     Data/FASTA/literature_seq/lit_sequences.fasta
+# Option settings: hmmsearch --tblout /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/HMMsearch_results/search_lit_sequences.fasta_80-85.hmm.tsv /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/After_tcoffee_UPI/80-85.hmm Data/FASTA/literature_seq/lit_sequences.fasta 
+# Current dir:     /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow
+# Date:            Tue Jun 28 10:56:02 2022
+# [ok]
