@@ -23,7 +23,7 @@ jobs:
           context: .
           file: ./Dockerfile
           tags: plastedma:latest
-          outputs: type=docker,dest=/tmp/plastedma.tar
+          outputs: type=docker, dest=/tmp/plastedma.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
@@ -46,11 +46,11 @@ jobs:
 
       - name: Load Docker image
         run: |
-          docker load --input /tmp/upimapi.tar
+          docker load --input /tmp/plastedma.tar
           docker image ls -a
 
       - name: Check base entrypoint
         run: docker run plastedma /bash -c "ls"
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run plastedma /bash -c "plastedma -i UPIMAPI/ci/ids.csv -rd resources_directory --no-annotation"
+        run: docker run plastedma /bash -c "plastedma -i PlastEDMA/ci/sequences-fasta -o output_results -rt --output_type excel"
