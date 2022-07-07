@@ -16,7 +16,7 @@
 
 # UPIMAPI results #
 ############
-workflow/Alignments/BLAST/upimapi_results/*.blast
+resources/Alignments/BLAST/upimapi_results/*.blast
 
 # Pypl dependencies #
 ############
