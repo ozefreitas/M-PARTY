@@ -15,18 +15,18 @@ from collections import Counter
 import glob
 # import snakemake
 
-from scripts.hmmsearch_run import run_hmmsearch
-from scripts.hmm_process import *
+from workflow.scripts.hmmsearch_run import run_hmmsearch
+from workflow.scripts.hmm_process import *
 
 
 version = "0.1.0"
 
-
+ 
 strat = "/".join(sys.path[0].split("/")[:-1])
-snakefile_path = sys.path[0].replace("\\", "/")+"/Snakefile"
+snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
-config_path = "/".join(sys.path[0].split("/")[:-1])+"/config/"  # for Linux
-hmm_database_path = "/".join(sys.path[0].split("/")[:-1])+"/resources/Data/HMMs/After_tcoffee_UPI/"
+config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux~
+hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
 
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
@@ -134,7 +134,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
                 "hmmsearch_out_type": args.hmms_output_type,
                 "threads": args.threads,
                 "workflow": args.workflow}
-    caminho = "/".join(config_path.split("/")[:-1]) + "/" + config_filename
+    caminho = config_path + "/" + config_filename
     with open(caminho, "w") as file:
         document = yaml.dump(dict_file, file)
     return document
@@ -323,7 +323,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, "test.yaml")
 config, config_format = read_config_yaml(config_path + "test.yaml")
 
-hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/Data/HMMs/HMMsearch_results/"
+hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HMMsearch_results/"
 
 
 st = time.time()

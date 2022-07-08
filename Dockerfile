@@ -7,4 +7,4 @@ RUN conda update -n base -c defaults -y conda \
 && bash PlastEDMA/ci/ci_build.sh \
 && conda clean --all -y
 
-CMD [ "python", "bin/workflow/plastedma.py" ]
+CMD [ "python", "bin/plastedma.py" ]
