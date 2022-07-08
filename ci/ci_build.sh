@@ -6,4 +6,4 @@ cp -r PlastEDMA/workflow/scripts "${PREFIX}/bin/workflow"
 cp -r PlastEDMA/resources "${PREFIX}/bin"
 cp -r PlastEDMA/results "${PREFIX}/bin"
 cp -r PlastEDMA/config "${PREFIX}/bin"
-chmod +x /opt/conda/bin//workflow/plastedma.py
+chmod +x /opt/conda/bin/workflow/plastedma.py
