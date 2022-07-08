@@ -52,5 +52,8 @@ jobs:
       - name: Check base entrypoint
         run: docker run plastedma bin/bash -c "ls"
 
+      - name: Check copied directories
+        run: docker run plastedma bin/bash -c "ls bin/"
+
       - name: Annotation workflow by FASTA input, report text creation and excel table format
         run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/sequences-fasta -o output_results -rt --output_type excel"
