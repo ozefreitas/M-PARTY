@@ -29,7 +29,7 @@ requirements:
 
 test:
   commands:
-    - plastedma -h
+    - plastedma.py -h
 
 about:
   home: https://github.com/ozefreitas/PlastEDMA
