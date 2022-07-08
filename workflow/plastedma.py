@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# run tool main script without indicating python
 
 import argparse
 import sys
@@ -34,7 +35,7 @@ parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "nam
 parser.add_argument("--output_type", default = "tsv", help = "chose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
                     txt format with easy to read information")
-parser.add_argument("--hmms_output_type", default = "out", help = "chose output type from 'out', 'tsv' ou 'pfam' format. Defaults to 'out'")
+parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output type of hmmsearch run from 'out', 'tsv' ou 'pfam' format. Defaults to 'out'")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
 parser.add_argument("-db", "--database", help = "path to a user defined database. Default use of in-built database")
@@ -331,8 +332,8 @@ if args.workflow == "annotation":
     print("Annotation workflow with hmmsearch started...")
     for hmm_file in file_generator(hmm_database_path, full_path = True):
         run_hmmsearch(args.input, hmm_file, 
-                    hmmsearch_results_path + "search_" + config["input_file"].split(".")[0] + "_" + hmm_file.split(".")[0] + "." + args.output_type,
-                    out_type = args.output_type)
+                    hmmsearch_results_path + "search_" + config["input_file"].split(".")[0] + "_" + hmm_file.split(".")[0] + "." + args.hmms_output_type,
+                    out_type = args.hmms_output_type)
     lista_dataframes = []
     for file in file_generator(hmmsearch_results_path):
         # print(f'File {file} detected \n')
