@@ -7,7 +7,7 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/pg42872/PDETool/archive/refs/tags/{{ version }}.tar.gz
+  url: https://github.com/ozefreitas/PlastEDMA/archive/refs/tags/{{ version }}.tar.gz
   sha256: {{ sha256 }}
 
 build:
@@ -29,10 +29,10 @@ requirements:
 
 test:
   commands:
-    - plastedma.py -h
+    - plastedma -h
 
 about:
-  home: https://github.com/pg42872/PDETool
+  home: https://github.com/ozefreitas/PlastEDMA
   license: MIT license
   license_family: MIT
   license_file: LICENSE
@@ -46,9 +46,9 @@ about:
     about the potential presence of plastic degradring enzymes in the inputed
     sequences, and is composed by 3 distinct files, in order to help the user 
     to have an easier time to read and conclude about the results.
-  doc_url: https://github.com/pg42872/PDETool/blob/main/README.md
-  dev_url: https://github.com/pg42872/PDETool 
+  doc_url: https://github.com/ozefreitas/PlastEDMA/blob/main/README.md
+  dev_url: https://github.com/ozefreitas/PlastEDMA 
 
 extra:
   recipe-maintainers:
-    - pg42872
+    - ozefreitas

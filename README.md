@@ -2,8 +2,18 @@
 #### Version 0.1.0 <p>
 <br>
 
-## Introduction 
+## Index
+
+1. [Introduction](https://github.com/ozefreitas/PlastEDMA#introduction)
+2. [Installation](https://github.com/ozefreitas/PlastEDMA#installation)
+3. [Usage](https://github.com/ozefreitas/PlastEDMA#usage)
+4. [Output](https://github.com/ozefreitas/PlastEDMA#output)
+5. [Additional arguments](https://github.com/ozefreitas/PlastEDMA#additional-arguments)
+
 <br>
+
+## Introduction 
+
 PlastEDMA is a free to use, open source user friendly CLI implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models, that allows the user to freely interacte with the tool in-built databases and backbone. <p>
 PlastEDMA compreends a extensive HMM database, built with state of the art checked enzymatic sequences able to degrade plastic polymers, which is used to carry the structural annotation of given sequences. <p>
 First version of PlastEDMA is only available for mining PE (polyethylene), as latter version will compreend a more vast list of plastics to analyse. <p>
@@ -21,12 +31,13 @@ Also, PlastEDMA is meant to analyse metagenomic sequences, but version 0.1.0 onl
 <br>
 
 ## Installation
-<br>
+
 PlastEDMA is, for know, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:<p>
 
 ```
-git clone https://github.com/pg42872/PDETool.git  
-#in a command propmt 
+cd path/to/desired/dir
+git clone https://github.com/ozefreitas/PlastEDMA.git  
+# in a command propmt 
 cd workdflow/ 
 ```
 
@@ -42,26 +53,30 @@ cd ..
 PlastEDMA is also planned to be available as a conda package from bioconda. Simply open an Anaconda prompt:
 
 ```
-conda install plastedma 
+conda install -c bioconda plastedma
 ```
 
 and you will be good to go.
 <p>
 
 ## Usage
-<br>
+
 The main and most basic use for PlastEDMA is:<p>
 
 ```
-python PDETool.pt -i path/to/input_file -o output_folder -rt --output_type excel 
+python plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel 
 ```
 
-as the input file must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. Output folder can be a pre-existing folder or any name for a fodler that will be created anyways. The `-rt` option flag instructs the tool to include in the output the report in text format, for an easier interpretations of the annotation results and conclusion taking. Also, `--output_type` is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded. <p>
-PlastEDMA
+where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded. <p>
+
 
 ## Aditional arguments
 
+PlastEDMA is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution.
+
 ```
+PlastEDMA's main script
+
 optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
@@ -88,15 +103,15 @@ optional arguments:
   -s SNAKEFILE, --snakefile SNAKEFILE
                         user defined snakemake worflow Snakefile. Defaults to
                         /mnt/c/Users/jpsfr/OneDrive/Ambiente de
-                        Trabalho/TOOL/PDETool/workflow/Snakefile
+                        Trabalho/PlastEDMA/workflow/Snakefile
   -t THREADS, --threads THREADS
                         number of threads for Snakemake to use. Defaults to 1
   -hm HMM_MODELS, --hmm_models HMM_MODELS
                         path to a directory containing HMM models previously
                         created by the user. By default PDETool uses the
                         built-in HMMs from database in
-                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/
-                        PDETool/workflow/Data/HMMs/After_tcoffee_UPI/
+                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/Plast
+                        EDMA/workflow/Data/HMMs/After_tcoffee_UPI/
   --concat_hmm_models   concatenate HMM models into a single file
   --unlock              could be required after forced workflow termination
   -w WORKFLOW, --workflow WORKFLOW
@@ -108,7 +123,7 @@ optional arguments:
                         user defined config file. Only recommended for
                         advanced users. Defaults to
                         /mnt/c/Users/jpsfr/OneDrive/Ambiente de
-                        Trabalho/TOOL/PDETool/config/. If given, overrides
-                        config file construction from input
+                        Trabalho/PlastEDMA/config/. If given, overrides config
+                        file construction from input
   -v, --version         show program's version number and exit
 ```

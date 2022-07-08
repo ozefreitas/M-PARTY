@@ -2,9 +2,8 @@
 
 import argparse
 import sys
-
-from numpy import outer
 print(sys.path)
+
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -21,10 +20,12 @@ from scripts.hmm_process import *
 
 version = "0.1.0"
 
+
+strat = "/".join(sys.path[0].split("/")[:-1])
 snakefile_path = sys.path[0].replace("\\", "/")+"/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = "/".join(sys.path[0].split("/")[:-1])+"/config/"  # for Linux
-hmm_database_path = sys.path[0].replace("\\", "/")+"/Data/HMMs/After_tcoffee_UPI/"
+hmm_database_path = "/".join(sys.path[0].split("/")[:-1])+"/resources/Data/HMMs/After_tcoffee_UPI/"
 
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
@@ -37,8 +38,8 @@ parser.add_argument("--hmms_output_type", default = "out", help = "chose output 
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
 parser.add_argument("-db", "--database", help = "path to a user defined database. Default use of in-built database")
-parser.add_argument("-s", "--snakefile", help = f"user defined snakemake worflow Snakefile. Defaults to {snakefile_path}",
-                    default = snakefile_path)
+parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow Snakefile. Defaults to '/Snakefile",
+                    default = "/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
@@ -48,9 +49,9 @@ parser.add_argument("--unlock", action = "store_true", default = False, help = "
 parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
                     between "annotation", "database_construction" and "both". Latter keyword makes the database construction\
                     first and posterior annotation. Defaults to "annotation"')
-parser.add_argument("-c", "--config_file", help = f"user defined config file. Only recommended for\
-                    advanced users. Defaults to {config_path}. If given, overrides config file construction\
-                    from input", default = config_path)
+parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
+                    advanced users. Defaults to '/config/config.yaml'. If given, overrides config file construction\
+                    from input", default = "./config/config.yaml")
 parser.add_argument("-v", "--version", action = "version", version = "PDETool {}".format(version))
 args = parser.parse_args()
 print(vars(args))

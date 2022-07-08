@@ -50,7 +50,7 @@ jobs:
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run plastedma /bash -c "ls"
+        run: docker run plastedma bin/bash -c "ls"
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run plastedma /bash -c "plastedma -i PlastEDMA/ci/sequences-fasta -o output_results -rt --output_type excel"
+        run: docker run plastedma bin/bash -c "plastedma -i PlastEDMA/ci/sequences-fasta -o output_results -rt --output_type excel"
