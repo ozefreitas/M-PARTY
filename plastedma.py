@@ -108,8 +108,9 @@ def get_results_directory() -> str:
         str: Path for the output folder
     """
     p = Path(sys.path[0])
-    return str(p.parents[0] / "results/")
+    return str(p / "results/")
 
+print(get_results_directory())
 
 def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
@@ -311,13 +312,13 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
         hit_IDs_list (list): list of Uniprot IDs that hit.
         inputed_seqs (str): name of the initial input file.
     """
-    out_fodler = get_results_directory() + "/" + args.output + "/"
-    if not os.path.exists(out_fodler):
-        os.mkdir(out_fodler)
-    table_report(dataframe, out_fodler, args.output_type)
+    out_folder = get_results_directory() + "/" + args.output + "/"
+    if not os.path.exists(out_folder):
+        os.mkdir(out_folder)
+    table_report(dataframe, out_folder, args.output_type)
     if args.report_text:
-        text_report(dataframe, out_fodler, hmm_database_path, bit_threshold, eval_threshold)
-    get_aligned_seqs(hit_IDs_list, out_fodler, inputed_seqs)
+        text_report(dataframe, out_folder, hmm_database_path, bit_threshold, eval_threshold)
+    get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs)
 
 
 doc = write_config(args.input, args.output, "test.yaml")
