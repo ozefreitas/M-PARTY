@@ -1,6 +1,6 @@
 {% set name = "PlastEDMA" %}
 {% set version = "0.1.0" %}
-{% set sha256 = "e90e1b06a7e34714548fcf47f07e25c8bc87f9722f0c383420b5f1d59a70a308" %}
+{% set sha256 = "900c94b35c0743b3e157125d497e5baf5b1e6809bf3fe3b008913fe67e9f431f" %}
 
 package:
   name: {{ name|lower }}
@@ -14,9 +14,12 @@ build:
   noarch: python
   number: 0
   script: > 
-    mkdir -p $PREFIX/share && cp workflow/plastedma.py $PREFIX/share && cp -R workflow/*/ $PREFIX/share 
+    mkdir -p $PREFIX/share && cp plastedma.py $PREFIX/share && cp -R workflow/ $PREFIX/share 
+    && cp -R resources/ $PREFIX/share 
+    && cp -R results/ $PREFIX/share
+    && cp -R config/ $PREFIX/share  
     && chmod +x $PREFIX/share/plastedma.py
-    && ln -s $PREFIX/share/plastedma.py $PREFIX/bin/plastedma.py
+    && ln -s $PREFIX/share/plastedma.py $PREFIX/bin/
 
 requirements:
   run:

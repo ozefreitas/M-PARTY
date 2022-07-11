@@ -71,11 +71,13 @@ def read_config_yaml(filename: str) -> tuple:
     return config_file, config_type
 
 
-def parse_fasta(filename: str, remove_excess_ID = True) -> list:
+def parse_fasta(filename: str, remove_excess_ID: bool = True) -> list:
     """Given a FASTA file, returns the IDs from all sequences in that file.
+    If file not present, program will be quited and TypeError message raised.
 
     Args:
         filename (str): Name of FASTA file
+        remove_excess_ID (bool, optional). Decide wether to remove the excess part of UniProt IDs. Defaults to True.
 
     Returns:
         list: A list containing IDs from all sequences
@@ -101,8 +103,8 @@ def parse_fasta(filename: str, remove_excess_ID = True) -> list:
 
 
 def get_results_directory() -> str:
-    """Automatically return the path where output should appear. It must climb up one folder till PDETool folder, 
-    and go back to results
+    """Automatically return the path where output should appear. It must climb up one folder till PlastEDMA folder, 
+    and go back to results.
 
     Returns:
         str: Path for the output folder
@@ -110,7 +112,6 @@ def get_results_directory() -> str:
     p = Path(sys.path[0])
     return str(p / "results/")
 
-print(get_results_directory())
 
 def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
@@ -217,9 +218,9 @@ def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold:
     with open(path + "test_report.txt", "w") as f:
         f.write(f"PlastEDMA hits report:\n \
                 \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                "for the final report. \nFiltering process was performed considering the values from bit score and E-value from the HMM search run,"
+                "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
                 f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)} "
+                f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
                 f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
         f.close
 

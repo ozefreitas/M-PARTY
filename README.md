@@ -1,5 +1,10 @@
 # PlastEDMA - Plastic Enzymes Degrading for Metagenomic databases Analysis
-#### Version 0.1.0 <p>
+#### Version 0.1.0
+
+
+<br>
+PlastEDMA is a free to use, open source user friendly CLI (early release) implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models.
+<p>
 <br>
 
 ## Index
@@ -36,18 +41,16 @@ PlastEDMA is, for know, avaliable for Linux platforms though GitHub repository c
 
 ```
 cd path/to/desired/dir
-git clone https://github.com/ozefreitas/PlastEDMA.git  
-# in a command propmt 
-cd workdflow/ 
+git clone https://github.com/ozefreitas/PlastEDMA.git 
 ```
 
 We highly recommed users to create an appropriate conda environment with the required dependencies so PlastEDMA executes smoothly, with:
 
 ```
-cd envs/ 
-conda env create -n \<name of env> -f plastedma.yaml 
-conda activate \<name of env> 
-cd ..
+cd workflow/envs/ 
+conda env create -n <name of env> -f plastedma.yaml 
+conda activate <name of env> 
+cd ../..
 ```
 
 PlastEDMA is also planned to be available as a conda package from bioconda. Simply open an Anaconda prompt:
@@ -56,9 +59,8 @@ PlastEDMA is also planned to be available as a conda package from bioconda. Simp
 conda install -c bioconda plastedma
 ```
 
-and you will be good to go.
-<p>
-
+and you will be good to go. <p>
+<br>
 ## Usage
 
 The main and most basic use for PlastEDMA is:<p>
@@ -68,8 +70,11 @@ python plastedma.py -i path/to/input_file -o output_folder -rt --output_type exc
 ```
 
 where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded. <p>
+<br>
+## Output
 
-
+PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA). <p>
+<br>
 ## Aditional arguments
 
 PlastEDMA is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution.
