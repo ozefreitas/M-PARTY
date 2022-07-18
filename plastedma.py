@@ -2,6 +2,7 @@
 # run tool main script without indicating python
 
 import argparse
+from curses import meta
 import sys
 print(sys.path)
 
@@ -31,6 +32,8 @@ hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
                     a list of protein sequences to be analysed")
+parser.add_argument("-ip", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
+                    'protein', 'nucleic' or 'metagenome'")
 parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "name for the output directory. Defaults to 'PlastEDMA_results'")
 parser.add_argument("--output_type", default = "tsv", help = "chose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
@@ -67,17 +70,19 @@ def read_config_yaml(filename: str) -> tuple:
             except yaml.YAMLError as exc:
                 print(exc)
     else:
-        quit("Config file must be in .yaml format.")
+        quit("Config file must be in .yaml format! Get an example config file from config/ folder.")
     return config_file, config_type
 
 
-def parse_fasta(filename: str, remove_excess_ID: bool = True) -> list:
+def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = False) -> list:
     """Given a FASTA file, returns the IDs from all sequences in that file.
     If file not present, program will be quited and TypeError message raised.
 
     Args:
-        filename (str): Name of FASTA file
-        remove_excess_ID (bool, optional). Decide wether to remove the excess part of UniProt IDs. Defaults to True.
+        filename (str): Name of FASTA file.
+        remove_excess_ID (bool, optional): Decide wether to remove the excess part of UniProt IDs. Defaults to True.
+        meta_gen(bool, optional): Set to True if input file is from a metagenomic sample. Defaults to False. Metagenomic samples
+        usually have mix IDs
 
     Returns:
         list: A list containing IDs from all sequences
@@ -89,12 +94,23 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True) -> list:
                 Lines = f.readlines()
                 for line in Lines:
                     if line.startswith(">"):
-                        if not remove_excess_ID:
-                            unip_IDS.append(line.split(" ")[0][1:])
+                        if meta_gen:
+                            if not remove_excess_ID:
+                                unip_IDS.append(line.split(" ")[0][1:])
+                            else:
+                                try:
+                                    identi = re.findall("\|.*\|", line)
+                                    identi = re.sub("\|", "", identi[0])
+                                    unip_IDS.append(identi)
+                                except:
+                                    unip_IDS.append(line.split(" ")[0])
                         else:
-                            identi = re.findall("\|.*\|", line)
-                            identi = re.sub("\|", "", identi[0])
-                            unip_IDS.append(identi)
+                            if not remove_excess_ID:
+                                unip_IDS.append(line.split(" ")[0][1:])
+                            else:
+                                identi = re.findall("\|.*\|", line)
+                                identi = re.sub("\|", "", identi[0])
+                                unip_IDS.append(identi)
             except:
                 quit("File must be in FASTA format.")
     except TypeError:
@@ -125,12 +141,14 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     Returns:
         yaml: Returns a .yaml format config file, with the given arguments though the CLI
     """
-    seq_IDS = parse_fasta(input_file)
+    seq_IDS = parse_fasta(input_file, meta_gen = True if args.input_type == "metagenome" else False)
     results_dir = get_results_directory()
     results_dir += "/" + out_dir
     results_dir = results_dir.replace("\\", "/")
     dict_file = {"seqids": seq_IDS,
                 "input_file": args.input.split("/")[-1],
+                "input_type": args.input_type,
+                "metagenomic": True if args.input_type == "metagenome" else False,
                 "output_directory": results_dir,
                 "out_table_format": args.output_type,
                 "hmmsearch_out_type": args.hmms_output_type,
@@ -214,7 +232,7 @@ def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold:
     number_hits_perseq = get_number_hits_perseq(query_names)
     # get the unique sequences
     unique_seqs = get_unique_hits(query_names)
-    inputed_seqs = parse_fasta(args.input)
+    inputed_seqs = parse_fasta(args.input, meta_gen = config["metagenomic"])
     with open(path + "test_report.txt", "w") as f:
         f.write(f"PlastEDMA hits report:\n \
                 \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
@@ -266,8 +284,8 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str):
         inputed_seqs (str): name of the initial input file.
     """
     with open(path + "aligned.fasta", "w") as wf:
-        # returns list of IDs from inputed FASTA sequences (only what is between | |)
-        input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False)
+        # returns list of IDs from inputed FASTA sequences (entire ID)
+        input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False, meta_gen = config["metagenomic"])
         # print("Sequencias que vieram do input file", input_IDs)
         # returns a list the sequences that hit against the models (only one entry)
         unique_IDS = get_unique_hits(hit_IDs_list)
