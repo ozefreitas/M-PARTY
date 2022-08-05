@@ -5,7 +5,7 @@ import argparse
 from curses import meta
 import sys
 print(sys.path)
-
+sys.path.append(f'{sys.path[0]}/workflow/scripts')
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -20,7 +20,7 @@ from hmmsearch_run import run_hmmsearch
 from hmm_process import *
 
 
-version = "0.1.0"
+version = "0.1.1"
 
  
 strat = "/".join(sys.path[0].split("/")[:-1])

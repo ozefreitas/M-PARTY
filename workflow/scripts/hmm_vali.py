@@ -5,13 +5,13 @@ import pandas as pd
 sequences_by_cluster_path = "resources/Data/FASTA/CDHIT/"
 
 def read_clustered_seqs(file: str) -> list:
-    """_summary_
+    """Given a Fasta file, processes the sequences returning a list of all the sequences
 
     Args:
-        file (str): _description_
+        file (str): Fasta filename
 
     Returns:
-        list: _description_
+        list: List containing all and only the sequences from the file
     """
     with open(file, "r") as f:
         Lines = [line.strip("\n") for line in f.readlines()]
@@ -30,21 +30,21 @@ def read_clustered_seqs(file: str) -> list:
 
 
 def leave_one_out(seq_list: list) -> list:
-    """_summary_
+    """Receiving a list of sequences, yield another list of all sequences but one, iteratively 
+    to all sequences
 
     Args:
-        seq_list (list): _description_
-
-    Returns:
-        list: _description_
+        seq_list (list): A list of sequences
 
     Yields:
-        Iterator[list]: _description_
+        Iterator[list]: List with one less sequence, for all sequences
     """
     for i in range(len(seq_list)):
         lista_seqs_redut = copy(seq_list)
         seq_out = lista_seqs_redut.pop(i)
         yield lista_seqs_redut, seq_out
+    
+
     
 
 clustered_seqs = read_clustered_seqs(sequences_by_cluster_path + "60-65/1.fasta")
