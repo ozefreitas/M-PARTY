@@ -16,8 +16,8 @@ from collections import Counter
 import glob
 # import snakemake
 
-from workflow.scripts.hmmsearch_run import run_hmmsearch
-from workflow.scripts.hmm_process import *
+from hmmsearch_run import run_hmmsearch
+from hmm_process import *
 
 
 version = "0.1.0"
