@@ -1,5 +1,5 @@
 # PlastEDMA - Plastic Enzymes Degrading for Metagenomic databases Analysis
-#### Version 0.1.0
+#### Version 0.1.1
 
 
 <br>
@@ -87,6 +87,9 @@ optional arguments:
   -i INPUT, --input INPUT
                         input FASTA file containing a list of protein
                         sequences to be analysed
+  -ip INPUT_TYPE, --input_type INPUT_TYPE
+                        specifies the nature of the sequences in the input
+                        file between 'protein', 'nucleic' or 'metagenome'
   -o OUTPUT, --output OUTPUT
                         name for the output directory. Defaults to
                         'PlastEDMA_results'
@@ -96,8 +99,8 @@ optional arguments:
   -rt, --report_text    decides wether to produce or not a friendly report in
                         txt format with easy to read information
   --hmms_output_type HMMS_OUTPUT_TYPE
-                        chose output type from 'out', 'tsv' ou 'pfam' format.
-                        Defaults to 'out'
+                        chose output type of hmmsearch run from 'out', 'tsv'
+                        ou 'pfam' format. Defaults to 'out'
   -p, --produce_inter_tables
                         call if user wants to save intermediate tables as
                         parseale .csv files (tables from hmmsearch results
@@ -107,16 +110,15 @@ optional arguments:
                         built database
   -s SNAKEFILE, --snakefile SNAKEFILE
                         user defined snakemake worflow Snakefile. Defaults to
-                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de
-                        Trabalho/PlastEDMA/workflow/Snakefile
+                        '/Snakefile
   -t THREADS, --threads THREADS
                         number of threads for Snakemake to use. Defaults to 1
   -hm HMM_MODELS, --hmm_models HMM_MODELS
                         path to a directory containing HMM models previously
                         created by the user. By default PDETool uses the
                         built-in HMMs from database in
-                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/Plast
-                        EDMA/workflow/Data/HMMs/After_tcoffee_UPI/
+                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/plast
+                        edma/resources/Data/HMMs/After_tcoffee_UPI/
   --concat_hmm_models   concatenate HMM models into a single file
   --unlock              could be required after forced workflow termination
   -w WORKFLOW, --workflow WORKFLOW
@@ -126,9 +128,7 @@ optional arguments:
                         annotation. Defaults to "annotation"
   -c CONFIG_FILE, --config_file CONFIG_FILE
                         user defined config file. Only recommended for
-                        advanced users. Defaults to
-                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de
-                        Trabalho/PlastEDMA/config/. If given, overrides config
-                        file construction from input
+                        advanced users. Defaults to '/config/config.yaml'. If
+                        given, overrides config file construction from input
   -v, --version         show program's version number and exit
 ```

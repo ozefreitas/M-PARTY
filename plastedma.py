@@ -2,10 +2,9 @@
 # run tool main script without indicating python
 
 import argparse
-from curses import meta
 import sys
-print(sys.path)
 sys.path.append(f'{sys.path[0]}/workflow/scripts')
+print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -18,9 +17,10 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
+from hmm_vali import file_generator
 
 
-version = "0.1.1"
+version = "0.1.2"
 
  
 strat = "/".join(sys.path[0].split("/")[:-1])
@@ -42,8 +42,8 @@ parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output 
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
 parser.add_argument("-db", "--database", help = "path to a user defined database. Default use of in-built database")
-parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow Snakefile. Defaults to '/Snakefile",
-                    default = "/Snakefile")
+parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow Snakefile. Defaults to '/workflow/Snakefile",
+                    default = "/workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
