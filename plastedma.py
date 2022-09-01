@@ -17,7 +17,7 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import file_generator
+from hmm_vali import file_generator, exec
 
 
 version = "0.1.2"
@@ -39,6 +39,8 @@ parser.add_argument("--output_type", default = "tsv", help = "chose report table
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
                     txt format with easy to read information")
 parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output type of hmmsearch run from 'out', 'tsv' ou 'pfam' format. Defaults to 'out'")
+parser.add_argument("-v", "--validation", default = False, action = "store_true", help = "decides wether to performe models validation and filtration with \
+                    the 'leave-one-out' cross validation methods. Call to set to True. Defaults to False")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
 parser.add_argument("-db", "--database", help = "path to a user defined database. Default use of in-built database")
@@ -149,6 +151,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
                 "input_file": args.input.split("/")[-1],
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
+                "validation": args.validation,
                 "output_directory": results_dir,
                 "out_table_format": args.output_type,
                 "hmmsearch_out_type": args.hmms_output_type,
@@ -348,8 +351,11 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 
 st = time.time()
 
+# if args.validation:
+#     exec()
 if args.workflow == "annotation":
     print("Annotation workflow with hmmsearch started...")
+    time.sleep(2)
     for hmm_file in file_generator(hmm_database_path, full_path = True):
         run_hmmsearch(args.input, hmm_file, 
                     hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
@@ -369,10 +375,12 @@ if args.workflow == "annotation":
 
 elif args.workflow == "database_construction":
     print("This feature will be available soon!")
+    time.sleep(2)
     quit("Exiting PlastEDMA's program execution...")
 
 elif args.workflow == "both":
     print("Feature still waiting to be implemented into the workflow. Thank you for your patience!")
+    time.sleep(2)
     quit("Exiting PlastEDMA's program execution...")
 
 else:

@@ -2,19 +2,19 @@ configfile: "config/config.yaml"
 
 # rule all:
 # 	input:
-# 		["workflow/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out".format(threshold=config["thresholds"][x], 
+# 		["resources/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
-		expand("workflow/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
+		expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
 
 
 rule UPIMAPI_search:
 	input:
-		query="workflow/Data/FASTA/DataBases/familiesDB.fasta",
-		upi_database="workflow/Data/FASTA/literature_seq/lit_sequences.fasta"
+		query="resources/Data/FASTA/DataBases/familiesDB.fasta",
+		upi_database="resources/Data/FASTA/literature_seq/lit_sequences.fasta"
 	output:
-		"workflow/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
+		"resources/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
 	params:
-		outdir="workflow/Alignments/BLAST/upimapi_results"
+		outdir="resources/Alignments/BLAST/upimapi_results"
 	threads: 8
 	log:
 		"logs/UPIMAPI_search.log"
@@ -26,9 +26,9 @@ rule UPIMAPI_search:
 
 rule UPIMAPI_parse:
 	input:
-		"workflow/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
+		"resources/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
 	output:
-		"workflow/Data/Tables/UPIMAPI_results_per_sim.tsv"
+		"resources/Data/Tables/UPIMAPI_results_per_sim.tsv"
 	conda:
 		"envs/pandas.yaml"
 	script:
@@ -43,16 +43,16 @@ wildcard_constraints:
 rule seq_download:
 # esta fica dependente da proxima regra, ou seja, so corre quando se pede a initial_cdhit_per_threshold
 	input:
-		"workflow/Data/Tables/UPIMAPI_results_per_sim.tsv"
+		"resources/Data/Tables/UPIMAPI_results_per_sim.tsv"
 	output:
-		"workflow/Data/FASTA/UPIMAPI/{threshold}.fasta"  # terá que fazer os ficheiros para todos os thresholds de uma só vez
+		"resources/Data/FASTA/UPIMAPI/{threshold}.fasta"  # terá que fazer os ficheiros para todos os thresholds de uma só vez
 	script:
 		"scripts/seq_download.py"
 
 
 # rule mockup:
 # 	input:
-# 		expand("workflow/Data/FASTA/UPIMAPI/{threshold}.fasta", threshold=config["thresholds"])
+# 		expand("resources/Data/FASTA/UPIMAPI/{threshold}.fasta", threshold=config["thresholds"])
 # 	output:
 # 		"mockup.out"
 # 	run:
@@ -62,16 +62,16 @@ rule seq_download:
 
 rule initial_cdhit_per_threshold:
 	input:
-		"workflow/Data/FASTA/UPIMAPI/{threshold}.fasta"  # é o output da regra anterior com wildcards
+		"resources/Data/FASTA/UPIMAPI/{threshold}.fasta"  # é o output da regra anterior com wildcards
 	output:
-		"workflow/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta",  # after upimapi!
+		"resources/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta",  # after upimapi!
 	shell:
 		"cd-hit -i {input} -o {output} -c 0.9 -n 5 -M 16000 -d 0 -T 8"
 
 
 # rule mockup:
 # 	input:
-# 		expand("workflow/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta", threshold=config["thresholds"])
+# 		expand("resources/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta", threshold=config["thresholds"])
 # 	output:
 # 		"mockup.out"
 # 	run:
@@ -81,16 +81,16 @@ rule initial_cdhit_per_threshold:
 
 rule cdhit_parse:
 	input:
-		"workflow/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta.clstr"
+		"resources/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta.clstr"
 	output:
-		"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv"  # talvez meter numa pasta so para isto
+		"resources/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv"  # talvez meter numa pasta so para isto
 	script:
 		"scripts/CDHIT_parser.py"
 
 
 # rule mockup:
 # 	input:
-# 		expand("workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv", threshold=config["thresholds"])
+# 		expand("resources/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv", threshold=config["thresholds"])
 # 	output:
 # 		"mockup.out"
 # 	run:
@@ -101,7 +101,7 @@ rule cdhit_parse:
 from scripts.snakemake_util import get_clusters
 from glob import glob
 # vai buscar aos .tsv criados antes, e não fica dependente dos fasta que vão ser criados
-files = {threshold: glob(f"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in config["thresholds"]}
+files = {threshold: glob(f"resources/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in config["thresholds"]}
 threshold2clusters = {}
 for thresh, path in files.items():
 	threshold2clusters[thresh] = get_clusters(path[0])
@@ -112,20 +112,20 @@ big_list_clusters = [v for k, v in threshold2clusters.items()]
 
 rule seq_download_cdhit:
 	input:
-		"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv"
+		"resources/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv"
 	output:
 		# um ficheiro por cada cluster, por threshold, com as sequencias
-		"workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta"
-		# expand("workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta", filtered_product, threshold=config["thresholds"], cluster=all_clusters)
+		"resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta"
+		# expand("resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta", filtered_product, threshold=config["thresholds"], cluster=all_clusters)
 	script:
 		"scripts/CDHIT_seq_download.py" # from_cdhit
 
 
 # rule mockup:
 # 	input:
-# 		# expand("workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta", threshold=config["thresholds"], 
+# 		# expand("resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta", threshold=config["thresholds"], 
 # 		# cluster=(threshold2clusters[threshold][clt] for threshold in config["thresholds"] for clt in range(len(threshold2clusters[threshold]))))
-# 		["workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta".format(threshold=config["thresholds"][x], 
+# 		["resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
 # 	output:
 # 		"mockup.out"
@@ -136,19 +136,19 @@ rule seq_download_cdhit:
 
 rule t_coffee:
 	input:
-		# ["workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta".format(threshold=config["thresholds"][x], 
+		# ["resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta".format(threshold=config["thresholds"][x], 
 		# cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
-		"workflow/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta"
+		"resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta"
 	output:
-		"workflow/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
-		# expand("workflow/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln", threshold=config["thresholds"], cluster=threshold2clusters[threshold])
+		"resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
+		# expand("resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln", threshold=config["thresholds"], cluster=threshold2clusters[threshold])
 	script:
 		"scripts/t_coffee_run.py"
 
 
 # rule mockup:
 #  	input:
-#  		["workflow/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln".format(threshold=config["thresholds"][x], 
+#  		["resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
 #  	output:
 #  		"mockup.out"
@@ -159,16 +159,16 @@ rule t_coffee:
 
 rule hmmbuild:
 	input:
-		"workflow/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
+		"resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
 	output:
-		"workflow/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm"
+		"resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm"
 	shell:
 		"hmmbuild {output} {input}"
 
 
 # rule mockup:
 #  	input:
-#  		["workflow/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm".format(threshold=config["thresholds"][x], 
+#  		["resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
 #  	output:
 #  		"mockup.out"
@@ -177,7 +177,7 @@ rule hmmbuild:
 #  			f.write("sucess!")
 
 
-files = {threshold: glob(f"workflow/Data/FASTA/CDHIT/{threshold}/*.fasta") for threshold in config["thresholds"]}
+files = {threshold: glob(f"resources/Data/FASTA/CDHIT/{threshold}/*.fasta") for threshold in config["thresholds"]}
 threshold2clusters = {k : [v.split("/")[-1].split("\\")[-1].split('.f')[0] for v in values] for k, values in files.items()}
 
 from scripts.snakemake_util import cat_hmms_input
@@ -186,14 +186,14 @@ rule cat_hmms:
 	input:
 	    lambda wildcards: cat_hmms_input(wildcards.threshold)
 	output:
-		"workflow/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm"
+		"resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm"
 	shell:
 		"cat {input} > {output}"
 
 
 rule mockup:
 	input:
-		expand("workflow/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
+		expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
 	output:
 		"mockup.out"
 	run:
@@ -203,9 +203,9 @@ rule mockup:
 
 # rule hmmsearch:
 # 	input:
-# 		hmms = "workflow/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm",
-# 		database = "workflow/Data/FASTA/Databases/familiesDB.fasta"
+# 		hmms = "resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm",
+# 		database = "resources/Data/FASTA/Databases/familiesDB.fasta"
 # 	output:
-# 		"workflow/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out"
+# 		"resources/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out"
 # 	shell:
 # 		"hmmsearch {input.hmms} {input.database} > {output}"

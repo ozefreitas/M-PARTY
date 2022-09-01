@@ -7,7 +7,7 @@ hmmsearch_out_folder = "/".join(sys.path[0].replace("\\", "/").split("/"))+"/Dat
 # hmmsearch_out_folder = "/".join(sys.path[0].replace("\\", "/").split("/")[:-1])+"/Data/HMMs/HMMsearch_results/"
 
 def read_hmmsearch_table(path: str, format: str = "tblout", save_as_csv: bool = False) -> pd.DataFrame:
-    """Function receives the path for a paseable tabular (space-delimited) file from hmmsearch execution, and processed to its conversion
+    """Function receives the path for a paseable tabular (space-delimited) file from hmmsearch execution, and proceeds to its conversion
     to a pandas Dataframe object.
 
     Args:
