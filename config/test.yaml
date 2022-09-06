@@ -1,7 +1,10 @@
 hmmsearch_out_type: tsv
-input_file: lit_sequences.fasta
+input_file: sequences.fasta
+input_file_db_const: null
+input_type: protein
+metagenomic: false
 out_table_format: excel
-output_directory: /mnt/c/Users/Ze/Desktop/results/PlastEDMA_results
+output_directory: /mnt/c/Users/Ze/Desktop/PlastEDMA/results/output_results
 seqids:
 - A0A1H6AD45
 - G9BY57
@@ -9,4 +12,5 @@ seqids:
 - Q02567
 - Q9HTK9
 threads: 1
+validation: false
 workflow: annotation

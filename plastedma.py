@@ -17,7 +17,7 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import file_generator, exec
+from hmm_vali import file_generator, exec_testing, hmm_filtration
 
 
 version = "0.1.2"
@@ -32,6 +32,8 @@ hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
                     a list of protein sequences to be analysed")
+parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
+                    wants to create the HMM database from scratch")
 parser.add_argument("-ip", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
                     'protein', 'nucleic' or 'metagenome'")
 parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "name for the output directory. Defaults to 'PlastEDMA_results'")
@@ -39,7 +41,7 @@ parser.add_argument("--output_type", default = "tsv", help = "chose report table
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
                     txt format with easy to read information")
 parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output type of hmmsearch run from 'out', 'tsv' ou 'pfam' format. Defaults to 'out'")
-parser.add_argument("-v", "--validation", default = False, action = "store_true", help = "decides wether to performe models validation and filtration with \
+parser.add_argument("--validation", default = False, action = "store_true", help = "decides wether to performe models validation and filtration with \
                     the 'leave-one-out' cross validation methods. Call to set to True. Defaults to False")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
@@ -58,7 +60,7 @@ parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines 
 parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                     advanced users. Defaults to '/config/config.yaml'. If given, overrides config file construction\
                     from input", default = "./config/config.yaml")
-parser.add_argument("-v", "--version", action = "version", version = "PDETool {}".format(version))
+parser.add_argument("-v", "--version", action = "version", version = "PlastEDMA {}".format(version))
 args = parser.parse_args()
 print(vars(args))
 
@@ -116,7 +118,7 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
             except:
                 quit("File must be in FASTA format.")
     except TypeError:
-        quit("Missing input file! Make sure -i option is filled")
+        raise TypeError("Missing input file! Make sure -i option is filled")
     return unip_IDS
 
 
@@ -149,9 +151,12 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     results_dir = results_dir.replace("\\", "/")
     dict_file = {"seqids": seq_IDS,
                 "input_file": args.input.split("/")[-1],
+                "input_file_db_const": args.input_seqs_db_const,
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
-                "validation": args.validation,
+                "validation": True if args.workflow == "database_construction" or 
+                args.workflow == "both" or 
+                args.validation else False,
                 "output_directory": results_dir,
                 "out_table_format": args.output_type,
                 "hmmsearch_out_type": args.hmms_output_type,
@@ -352,7 +357,8 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 st = time.time()
 
 # if args.validation:
-#     exec()
+#     exec_testing()
+#     hmm_filtration()
 if args.workflow == "annotation":
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
@@ -375,7 +381,12 @@ if args.workflow == "annotation":
 
 elif args.workflow == "database_construction":
     print("This feature will be available soon!")
+    # print("Database construction workflow with snakemake started...")
     time.sleep(2)
+
+    # snakemake.main(
+    #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
+    #     f'{" --unlock" if args.unlock else ""}')
     quit("Exiting PlastEDMA's program execution...")
 
 elif args.workflow == "both":

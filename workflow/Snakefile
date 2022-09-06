@@ -11,11 +11,12 @@ rule UPIMAPI_search:
 	input:
 		query="resources/Data/FASTA/DataBases/familiesDB.fasta",
 		upi_database="resources/Data/FASTA/literature_seq/lit_sequences.fasta"
+		# upi_database=configfile["input_file_db_const"]
 	output:
 		"resources/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
 	params:
 		outdir="resources/Alignments/BLAST/upimapi_results"
-	threads: 8
+	threads: configfile["threads"]
 	log:
 		"logs/UPIMAPI_search.log"
 	conda:

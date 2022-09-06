@@ -1,6 +1,4 @@
-from ast import Raise
 from copy import copy
-from msilib.schema import Error
 import pandas as pd
 from docker_run import run_command, docker_run_tcoffee
 from hmmsearch_run import run_hmmsearch
@@ -34,7 +32,6 @@ def file_generator(path: str, full_path: bool = False) -> str:
     Yields:
         str: Yield the name of each file inside the given directory.
     """
-
     for file in os.listdir(path):
         if os.path.isfile(os.path.join(path, file)):
             if full_path:
@@ -170,7 +167,7 @@ def check_eval(dataframe: pd.DataFrame) -> int:
     """
     eval = get_e_values(dataframe, to_list = True)[0]
     if int(float(eval)) < 10:
-        return int(float(eval))
+        return eval
     else:
         return None
 
@@ -178,7 +175,7 @@ def check_eval(dataframe: pd.DataFrame) -> int:
 def check_min_eval(dataframe: pd.DataFrame) -> int:
     """Given a Dataframe from the conversion of the hmmsearch results, reads the e-values from that
     dataframe and decides wether is acceptable to proced. Returns the minimum e-value from the list.
-    If e-value from the tsv is not available because not found any, returns a abnormally large number.
+    If e-value from the tsv is not available because no value was found, returns an abnormally large number.
 
     Args:
         dataframe (pd.DataFrame): A Dataframe from the conversion of the hmmsearch results txt file to pandas.
@@ -220,14 +217,14 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         return filename
     else:
         p = os.listdir(sequences_by_cluster_path)
-        for i in p:
+        for thresh in p:
             if not os.path.exists(hmmsearch_other_seqs_dir):
                 os.mkdir(hmmsearch_other_seqs_dir)
-            if not os.path.exists(hmmsearch_other_seqs_dir + i):
-                os.mkdir(hmmsearch_other_seqs_dir + i)
+            if not os.path.exists(hmmsearch_other_seqs_dir + thresh):
+                os.mkdir(hmmsearch_other_seqs_dir + thresh)
         with open(filename, 'w') as wf:
-            for i in p:
-                path = os.path.join(sequences_by_cluster_path, i)
+            for thresh in p:
+                path = os.path.join(sequences_by_cluster_path, thresh)
                 if os.path.isdir(path):
                     for file in file_generator(path, full_path = True):
                         if file == fasta_out:
@@ -245,18 +242,18 @@ def leave_one_out():
     only the hmmsearch results.
     """
     p = os.listdir(sequences_by_cluster_path)
-    for i in p:
-        if not os.path.exists(vali_directory + i):
-            os.mkdir(vali_directory + i)
-        if not os.path.exists(alignments_test_dir + i):
-            os.mkdir(alignments_test_dir + i)
-        if not os.path.exists(hmm_recon_dir + i):
-            os.mkdir(hmm_recon_dir + i)
-        if not os.path.exists(hmmsearch_results_dir + i):
-            os.mkdir(hmmsearch_results_dir + i)
-        if not os.path.exists(eliminated_seqs_dir + i):
-            os.mkdir(eliminated_seqs_dir + i)
-        path = os.path.join(sequences_by_cluster_path, i)
+    for thresh in p:
+        if not os.path.exists(vali_directory + thresh):
+            os.mkdir(vali_directory + thresh)
+        if not os.path.exists(alignments_test_dir + thresh):
+            os.mkdir(alignments_test_dir + thresh)
+        if not os.path.exists(hmm_recon_dir + thresh):
+            os.mkdir(hmm_recon_dir + thresh)
+        if not os.path.exists(hmmsearch_results_dir + thresh):
+            os.mkdir(hmmsearch_results_dir + thresh)
+        if not os.path.exists(eliminated_seqs_dir + thresh):
+            os.mkdir(eliminated_seqs_dir + thresh)
+        path = os.path.join(sequences_by_cluster_path, thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 clust_seqs = read_clustered_seqs(path + "/" + file)
@@ -265,30 +262,31 @@ def leave_one_out():
                 for set_prot, out_seq in removing_one(clust_seqs):
                     inter =  f'{file.split(".")[0]}_oneless_{run}.fasta'
                     out = f'{file.split(".")[0]}_outseq_{run}.fasta'
-                    if os.path.exists(f'{hmm_recon_dir + i + "/" + inter.split(".")[0]}.hmm'):
+                    if os.path.exists(f'{hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm'):
                         run += 1
                         continue
-                    write_interfile(vali_directory + i + "/" + inter, set_prot)
-                    write_interfile(eliminated_seqs_dir + i + "/" + out, out_seq, out_sequence = True)
+                    write_interfile(vali_directory + thresh + "/" + inter, set_prot)
+                    write_interfile(eliminated_seqs_dir + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
                         docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
-                                            vali_directory + i + "/" + inter, 
+                                            vali_directory + thresh + "/" + inter, 
                                             "clustal_aln", 
-                                            alignments_test_dir + i + "/" + f'{inter.split(".")[0]}')
-                        run_command(f'hmmbuild {hmm_recon_dir + i + "/" + inter.split(".")[0]}.hmm {alignments_test_dir + i + "/" + inter.split(".")[0]}.clustal_aln')
-                        run_hmmsearch(eliminated_seqs_dir + i + "/" + out,
-                                        f'{hmm_recon_dir + i + "/" + inter.split(".")[0]}.hmm', 
-                                        f'{hmmsearch_results_dir + i + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv', 
+                                            alignments_test_dir + thresh + "/" + f'{inter.split(".")[0]}')
+                        run_command(f'hmmbuild {hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm {alignments_test_dir + thresh + "/" + inter.split(".")[0]}.clustal_aln')
+                        run_hmmsearch(eliminated_seqs_dir + thresh + "/" + out,
+                                        f'{hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm', 
+                                        f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv', 
                                         out_type = "tsv")
                     except:
                         run += 1
                         continue
-                    df = read_hmmsearch_table(f'{hmmsearch_results_dir + i + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
+                    df = read_hmmsearch_table(f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
                     df = check_eval(df)
                     if df is not None:
                         passed += 1
                     run += 1
-                hmm_recall = calc_recall(passed, get_number_seqs(f'{hmm_recon_dir + i + "/" + inter.split(".")[0]}.hmm'))
+                # recall divide pelo numero total de sequencias no hmm original (sem leave-one-out)
+                hmm_recall = calc_recall(passed, get_number_seqs(f'{HMM_directory + thresh + "/" + file.split(".")[0]}.hmm'))
 
 
 def negative_control():
@@ -299,15 +297,15 @@ def negative_control():
     """
     controlo = "resources/Data/FASTA/human_gut_metagenome.fasta"
     p = os.listdir(sequences_by_cluster_path)
-    for i in p:
-        if not os.path.exists(neg_control_dir + i):
-            os.mkdir(neg_control_dir + i)
-        path = os.path.join(hmm_recon_dir + i)
+    for thresh in p:
+        if not os.path.exists(neg_control_dir + thresh):
+            os.mkdir(neg_control_dir + thresh)
+        path = os.path.join(hmm_recon_dir + thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 run_hmmsearch(controlo,
                                 path + "/" + hmm, 
-                                f'{neg_control_dir + i}/search_{hmm.split(".")[0]}_human_gut_metagenome.tsv', 
+                                f'{neg_control_dir + thresh}/search_{hmm.split(".")[0]}_human_gut_metagenome.tsv', 
                                 out_type = "tsv")
 
 
@@ -317,22 +315,24 @@ def search_other_seqs():
     removes all intermediate fasta files created.
     """
     p = os.listdir(hmm_recon_dir)
-    for i in p:
-        path = os.path.join(hmm_recon_dir + i)
+    for thresh in p:
+        path = os.path.join(hmm_recon_dir + thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 hmm_num = hmm.split("_")[0]
-                target = concat_fasta(hmm_num, i)
+                target = concat_fasta(hmm_num, thresh)
+                # nome será search_oneless_{sequencia que esta de fora}_clustout{numero do hmm (que é o mesmo do cluster que
+                # lhe deu origem e por isso é também a sequencia que ficará de fora)}
                 run_hmmsearch(target,
                                 path + "/" + hmm, 
-                                f'{hmmsearch_other_seqs_dir + i}/search_{"_".join(hmm.split("_")[1:])}_clustout{hmm_num}.tsv', 
+                                f'{hmmsearch_other_seqs_dir + thresh}/search_{"_".join(hmm.split("_")[1:]).split(".")[0]}_clustout_{hmm_num}.tsv', 
                                 out_type = "tsv")
-            for item in os.listdir(hmmsearch_other_seqs_dir + i):
+            for item in os.listdir(hmmsearch_other_seqs_dir + thresh):
                 if item.endswith(".fasta"):
-                    delete_inter_files(os.path.join(hmmsearch_other_seqs_dir + i, item))
+                    delete_inter_files(os.path.join(hmmsearch_other_seqs_dir + thresh, item))
 
 
-def exec():
+def exec_testing():
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
     """
@@ -342,8 +342,80 @@ def exec():
 
 
 def hmm_filtration():
-    
-    pass
+    """Function that will evaluate the results of all three steps of validation - "leave-one-out", "negative
+    control" and "search other seqs" and decide which models pass. For this to happen, each reconstructed hmm
+    with one less sequence must: all evalues from the recalled sequences must be lower than the minimun evalue 
+    from all the other tests (negative control and search agaisnt other sequences).
+    Function must differentiate between each hmm in terms of the sequences left out. 
+
+    Returns:
+        false_positives (list): A list containing the number of the models (and respective threshold) which did 
+        not passed the validations check.
+    """
+    # guardar e-values da primeira etapa "leave-one-out"
+    p = os.listdir(hmmsearch_results_dir)
+    # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
+    eval_per_hmms = {}
+    for thresh in p:
+        path = os.path.join(hmmsearch_results_dir + thresh)
+        if os.path.isdir(path):
+            for file in file_generator(path):
+                hmm_num = file.split("_")[1]
+                if f'{thresh}_{hmm_num}' not in eval_per_hmms:
+                    eval_per_hmms[f'{thresh}_{hmm_num}'] = []
+                df = read_hmmsearch_table(path + "/" + file)
+                ev = check_eval(df)
+                if ev is not None:
+                    eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
+
+    # guardar e-values da etapa do controlo neagtivo
+    p = os.listdir(neg_control_dir)
+    # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
+    cont_neg_eval_per_hmms = {}
+    for thresh in p:
+        path = os.path.join(neg_control_dir + thresh)
+        if os.path.isdir(path):
+            for file in file_generator(path):
+                hmm_num = file.split("_")[1]
+                if f'{thresh}_{hmm_num}' not in cont_neg_eval_per_hmms:
+                    cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'] = []
+                df = read_hmmsearch_table(path + "/" + file)
+                ev = check_min_eval(df)
+                if ev is not None:
+                    cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
+
+    # guardar e-values da etape da procura contra todas as outras seqs
+    p = os.listdir(hmmsearch_other_seqs_dir)
+    # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
+    other_seqs_eval_per_hmms = {}
+    for thresh in p:
+        path = os.path.join(hmmsearch_other_seqs_dir + thresh)
+        if os.path.isdir(path):
+            for file in file_generator(path):
+                hmm_num = file.split("_")[-1].split(".")[0]
+                if f'{thresh}_{hmm_num}' not in other_seqs_eval_per_hmms:
+                    other_seqs_eval_per_hmms[f'{thresh}_{hmm_num}'] = []
+                df = read_hmmsearch_table(path + "/" + file)
+                ev = check_min_eval(df)
+                if ev is not None:
+                    other_seqs_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
+
+    # lista de modelos que não passaram a validação
+    false_positives = []
+    # comparar e-values da primeira etapa com os correspondestes das etapas de validação
+    for hmm in eval_per_hmms.keys():
+        strict_passed = 0
+        for eval in eval_per_hmms[hmm]:
+            if eval < cont_neg_eval_per_hmms[hmm][0] and eval < other_seqs_eval_per_hmms[hmm][0]:
+                strict_passed += 1
+            else:
+                continue
+        hmm_strict_recall = calc_recall(strict_passed, get_number_seqs(f'{HMM_directory + thresh + "/" + hmm.split("_")[1]}.hmm'))
+        if hmm_strict_recall > 80:
+            continue
+        else:
+            false_positives.append(hmm)
+    return false_positives
 
 
 # clustered_seqs = read_clustered_seqs(sequences_by_cluster_path + "60-65/1.fasta")
@@ -365,3 +437,4 @@ def hmm_filtration():
 # negative_control()
 # search_other_seqs()
 # exec()
+# hmm_filtration()

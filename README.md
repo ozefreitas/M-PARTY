@@ -53,13 +53,19 @@ conda activate <name of env>
 cd ../..
 ```
 
-PlastEDMA is also planned to be available as a conda package from bioconda. Simply open an Anaconda prompt:
+PlastEDMA is available as a conda package from bioconda. Simply open an Anaconda prompt or a command line interface with Anaconda or Miniconda distributions installed and:
 
 ```
-conda install -c bioconda plastedma
+conda install -c conda-forge -c bioconda plastedma
 ```
 
 and you will be good to go. <p>
+
+If somethig goes wrong, I sugest you to first create a conda environment with:
+
+```
+conda create -n <name of env> -c conda-forge -c bioconda plastedma
+```
 <br>
 ## Usage
 
