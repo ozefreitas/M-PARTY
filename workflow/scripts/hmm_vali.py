@@ -11,7 +11,6 @@ import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
 
 
-# passar para dicionario!!
 sequences_by_cluster_path = "resources/Data/FASTA/CDHIT/"
 HMM_directory = "resources/Data/HMMs/After_tcoffee_UPI/"
 vali_directory = "resources/Data/FASTA/HMM_oneout/"
@@ -377,7 +376,7 @@ def hmm_filtration():
                 if ev is not None:
                     eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
-    # guardar e-values da etapa do controlo neagtivo
+    # guardar e-values da etapa do controlo negativo
     p = os.listdir(neg_control_dir)
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     cont_neg_eval_per_hmms = {}
@@ -393,7 +392,7 @@ def hmm_filtration():
                 if ev is not None:
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
-    # guardar e-values da etape da procura contra todas as outras seqs
+    # guardar e-values da etapa da procura contra todas as outras seqs
     p = os.listdir(hmmsearch_other_seqs_dir)
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     other_seqs_eval_per_hmms = {}
@@ -434,8 +433,12 @@ def remove_fp_models(list_fp: list):
         list_fp (list): A list containing the number of the models (and respective threshold) which did 
         not passed the validations check.
     """
+    if not os.path.exists(validated_models_dir):
+        os.mkdir(validated_models_dir)
     p = os.listdir(HMM_directory)
     for thresh in p:
+        if not os.path.exists(validated_models_dir + thresh):
+            os.mkdir(validated_models_dir + thresh)
         path = os.path.join(HMM_directory + thresh)
         if os.path.isdir(path):
             for file in file_generator(path):

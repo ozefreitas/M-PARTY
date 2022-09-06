@@ -1,5 +1,5 @@
 # PlastEDMA - Plastic Enzymes Degrading for Metagenomic databases Analysis
-#### Version 0.1.1
+#### Version 0.2.0
 
 
 <br>

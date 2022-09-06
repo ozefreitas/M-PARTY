@@ -2,8 +2,9 @@ configfile: "config/config.yaml"
 
 # rule all:
 # 	input:
-# 		["resources/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out".format(threshold=config["thresholds"][x], 
+# 		["resources/Data/HMMs/HMMsearch_results/search_lit_sequences_{threshold}.tsv".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
+# só para obter a base de dados final de HMM, os resultados do hmmsearch não são precisos
 # 		expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
 
 
@@ -30,6 +31,9 @@ rule UPIMAPI_parse:
 		"resources/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
 	output:
 		"resources/Data/Tables/UPIMAPI_results_per_sim.tsv"
+	threads: config["threads"]
+	log:
+		"logs/UPIMAPI_parse.log"
 	conda:
 		"envs/pandas.yaml"
 	script:
@@ -47,6 +51,9 @@ rule seq_download:
 		"resources/Data/Tables/UPIMAPI_results_per_sim.tsv"
 	output:
 		"resources/Data/FASTA/UPIMAPI/{threshold}.fasta"  # terá que fazer os ficheiros para todos os thresholds de uma só vez
+	threads: config["threads"]
+	log:
+		"logs/seq_download.log"
 	script:
 		"scripts/seq_download.py"
 
@@ -66,6 +73,9 @@ rule initial_cdhit_per_threshold:
 		"resources/Data/FASTA/UPIMAPI/{threshold}.fasta"  # é o output da regra anterior com wildcards
 	output:
 		"resources/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta",  # after upimapi!
+	threads: config["threads"]
+	log:
+		"logs/initial_cdhit_per_threshold.log"
 	shell:
 		"cd-hit -i {input} -o {output} -c 0.9 -n 5 -M 16000 -d 0 -T 8"
 
@@ -85,6 +95,9 @@ rule cdhit_parse:
 		"resources/Data/FASTA/UPIMAPI/cd-hit90_after_diamond_{threshold}.fasta.clstr"
 	output:
 		"resources/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv"  # talvez meter numa pasta so para isto
+	threads: config["threads"]
+	log:
+		"logs/cdhit_parse.log"
 	script:
 		"scripts/CDHIT_parser.py"
 
@@ -118,6 +131,9 @@ rule seq_download_cdhit:
 		# um ficheiro por cada cluster, por threshold, com as sequencias
 		"resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta"
 		# expand("resources/Data/FASTA/CDHIT/{threshold}/{cluster}.fasta", filtered_product, threshold=config["thresholds"], cluster=all_clusters)
+	threads: config["threads"]
+	log:
+		"logs/seq_download_cdhit.log"
 	script:
 		"scripts/CDHIT_seq_download.py" # from_cdhit
 
@@ -143,6 +159,9 @@ rule t_coffee:
 	output:
 		"resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
 		# expand("resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln", threshold=config["thresholds"], cluster=threshold2clusters[threshold])
+	threads: config["threads"]
+	log:
+		"logs/t_coffee.log"~
 	script:
 		"scripts/t_coffee_run.py"
 
@@ -163,6 +182,9 @@ rule hmmbuild:
 		"resources/Alignments/MultipleSequencesAlign/T_Coffee_UPI/{threshold}/{cluster}.clustal_aln"
 	output:
 		"resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm"
+	threads: config["threads"]
+	log:
+		"logs/hmmbuild.log"
 	shell:
 		"hmmbuild {output} {input}"
 
@@ -188,6 +210,9 @@ rule cat_hmms:
 	    lambda wildcards: cat_hmms_input(wildcards.threshold)
 	output:
 		"resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm"
+	threads: config["threads"]
+	log:
+		"logs/cat_hmms.log"
 	shell:
 		"cat {input} > {output}"
 
@@ -204,9 +229,12 @@ rule mockup:
 
 # rule hmmsearch:
 # 	input:
-# 		hmms = "resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm",
+# 		hmms = "resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm",
 # 		database = "resources/Data/FASTA/Databases/familiesDB.fasta"
 # 	output:
-# 		"resources/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out"
+# 		"resources/Data/HMMs/HMMsearch_results/search_lit_sequences_{threshold}.tsv"
+#	threads: config["threads"]
+#	log:
+#		"logs/hmmsearch.log"
 # 	shell:
-# 		"hmmsearch {input.hmms} {input.database} > {output}"
+# 		"hmmsearch --tblout {output} {input.hmms} {input.database}"

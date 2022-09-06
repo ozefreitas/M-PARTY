@@ -20,7 +20,7 @@ from hmm_process import *
 from hmm_vali import file_generator, exec_testing, hmm_filtration, remove_fp_models
 
 
-version = "0.1.2"
+version = "0.2.0"
 
  
 strat = "/".join(sys.path[0].split("/")[:-1])
@@ -46,13 +46,13 @@ parser.add_argument("--validation", default = False, action = "store_true", help
                     the 'leave-one-out' cross validation methods. Call to set to True. Defaults to False")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
-parser.add_argument("-db", "--database", help = "path to a user defined database. Default use of in-built database")
+parser.add_argument("-db", "--database", help = "path to a user defined negative control database. Default use of human gut microbiome")
 parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow Snakefile. Defaults to '/workflow/Snakefile",
                     default = "/workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
-                    PDETool uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
+                    PlastEDMA uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
 parser.add_argument("--concat_hmm_models", action = "store_true", default = False, help = "concatenate HMM models into a single file")
 parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
 parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
@@ -151,6 +151,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     results_dir += "/" + out_dir
     results_dir = results_dir.replace("\\", "/")
     dict_file = {"seqids": seq_IDS,
+                "database": args.database,
                 "input_file": args.input.split("/")[-1],
                 "input_file_db_const": args.input_seqs_db_const,
                 "input_type": args.input_type,
@@ -371,7 +372,7 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 st = time.time()
 
 # if args.validation:
-#     exec_testing()
+#     exec_testing(database = args.database)
 #     to_remove = hmm_filtration()
 #     remove_fp_models(to_remove)
 
@@ -414,6 +415,12 @@ elif args.workflow == "database_construction":
     # snakemake.main(
     #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
     #     f'{" --unlock" if args.unlock else ""}')
+
+#     if args.validation:
+#     exec_testing()
+#     to_remove = hmm_filtration()
+#     remove_fp_models(to_remove)
+
     quit("Exiting PlastEDMA's program execution...")
 
 elif args.workflow == "both":
