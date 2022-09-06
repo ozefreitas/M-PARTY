@@ -37,14 +37,14 @@ Also, PlastEDMA is meant to analyse metagenomic sequences, but version 0.1.0 onl
 
 ## Installation
 
-PlastEDMA is, for know, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:<p>
+PlastEDMA is, for now, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:
 
 ```
 cd path/to/desired/dir
 git clone https://github.com/ozefreitas/PlastEDMA.git 
 ```
 
-We highly recommed users to create an appropriate conda environment with the required dependencies so PlastEDMA executes smoothly, with:
+I highly recommed users to create an appropriate conda environment with the required dependencies so PlastEDMA executes smoothly, with:
 
 ```
 cd workflow/envs/ 
@@ -66,7 +66,10 @@ If somethig goes wrong, I sugest you to first create a conda environment with:
 ```
 conda create -n <name of env> -c conda-forge -c bioconda plastedma
 ```
+due to possible compatibility issues that may occur.
+
 <br>
+
 ## Usage
 
 The main and most basic use for PlastEDMA is:<p>
@@ -75,17 +78,29 @@ The main and most basic use for PlastEDMA is:<p>
 python plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel 
 ```
 
-where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded. <p>
+where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded.
+
 <br>
+
 ## Output
 
-PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA). <p>
+PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA).
+
 <br>
+
 ## Aditional arguments
 
-PlastEDMA is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution.
+PlastEDMA is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution, so I highly recommend you to follow the steps in the [usage](https://github.com/ozefreitas/PlastEDMA#usage) section.
 
 ```
+usage: plastedma.py [-h] [-i INPUT]
+                    [--input_seqs_db_const INPUT_SEQS_DB_CONST]
+                    [-ip INPUT_TYPE] [-o OUTPUT] [--output_type OUTPUT_TYPE]
+                    [-rt] [--hmms_output_type HMMS_OUTPUT_TYPE] [--validation]
+                    [-p] [-db DATABASE] [-s SNAKEFILE] [-t THREADS]
+                    [-hm HMM_MODELS] [--concat_hmm_models] [--unlock]
+                    [-w WORKFLOW] [-c CONFIG_FILE] [-v]
+
 PlastEDMA's main script
 
 optional arguments:
@@ -93,6 +108,9 @@ optional arguments:
   -i INPUT, --input INPUT
                         input FASTA file containing a list of protein
                         sequences to be analysed
+  --input_seqs_db_const INPUT_SEQS_DB_CONST
+                        input a FASTA file with a set of sequences from which
+                        the user wants to create the HMM database from scratch
   -ip INPUT_TYPE, --input_type INPUT_TYPE
                         specifies the nature of the sequences in the input
                         file between 'protein', 'nucleic' or 'metagenome'
@@ -107,6 +125,9 @@ optional arguments:
   --hmms_output_type HMMS_OUTPUT_TYPE
                         chose output type of hmmsearch run from 'out', 'tsv'
                         ou 'pfam' format. Defaults to 'out'
+  --validation          decides wether to performe models validation and
+                        filtration with the 'leave-one-out' cross validation
+                        methods. Call to set to True. Defaults to False
   -p, --produce_inter_tables
                         call if user wants to save intermediate tables as
                         parseale .csv files (tables from hmmsearch results
@@ -116,15 +137,14 @@ optional arguments:
                         built database
   -s SNAKEFILE, --snakefile SNAKEFILE
                         user defined snakemake worflow Snakefile. Defaults to
-                        '/Snakefile
+                        '/workflow/Snakefile
   -t THREADS, --threads THREADS
                         number of threads for Snakemake to use. Defaults to 1
   -hm HMM_MODELS, --hmm_models HMM_MODELS
                         path to a directory containing HMM models previously
                         created by the user. By default PDETool uses the
-                        built-in HMMs from database in
-                        /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/plast
-                        edma/resources/Data/HMMs/After_tcoffee_UPI/
+                        built-in HMMs from database in 'resources/Data/HMMs/
+                        After_tcoffee_UPI/'
   --concat_hmm_models   concatenate HMM models into a single file
   --unlock              could be required after forced workflow termination
   -w WORKFLOW, --workflow WORKFLOW

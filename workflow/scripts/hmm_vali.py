@@ -7,6 +7,7 @@ import re
 import os
 import sys
 import subprocess
+import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
 
 
@@ -20,6 +21,7 @@ hmm_recon_dir = "resources/Data/HMMs/HMM_reconstructed/"
 hmmsearch_results_dir = "resources/Data/HMMs/reconstructed_HMMsearch_results/"
 neg_control_dir = "resources/Data/HMMs/negative_cont_HMMsearch_results/"
 hmmsearch_other_seqs_dir = "resources/Data/HMMs/other_seqs_HMMsearch_results/"
+validated_models_dir = "resources/Data/HMMs/validated_HMM/"
 
 
 def file_generator(path: str, full_path: bool = False) -> str:
@@ -289,13 +291,20 @@ def leave_one_out():
                 hmm_recall = calc_recall(passed, get_number_seqs(f'{HMM_directory + thresh + "/" + file.split(".")[0]}.hmm'))
 
 
-def negative_control():
+def negative_control(database: str = None):
     """Function that executes all the steps for the HMM validation for the negative control
     sequences, in this case, with gut metagenome protein from human. 
     Only performs the steps against the previously built models with one less sequence. Does not return anything, 
     only the hmmsearch results.
+
+    Args:
+        database (str, optional): A fasta filename with a set of protein sequences to serve as negative control.
+    Defaults to None. Only for testing purposes.
     """
-    controlo = "resources/Data/FASTA/human_gut_metagenome.fasta"
+    if database:
+        controlo = database
+    else:
+        controlo = "resources/Data/FASTA/human_gut_metagenome.fasta"
     p = os.listdir(sequences_by_cluster_path)
     for thresh in p:
         if not os.path.exists(neg_control_dir + thresh):
@@ -332,12 +341,12 @@ def search_other_seqs():
                     delete_inter_files(os.path.join(hmmsearch_other_seqs_dir + thresh, item))
 
 
-def exec_testing():
+def exec_testing(database: str = None):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
     """
     leave_one_out()
-    negative_control()
+    negative_control(database)
     search_other_seqs()
 
 
@@ -418,6 +427,22 @@ def hmm_filtration():
     return false_positives
 
 
+def remove_fp_models(list_fp: list):
+    """Function that will copy the models checked by validtion to a final folder.
+
+    Args:
+        list_fp (list): A list containing the number of the models (and respective threshold) which did 
+        not passed the validations check.
+    """
+    p = os.listdir(HMM_directory)
+    for thresh in p:
+        path = os.path.join(HMM_directory + thresh)
+        if os.path.isdir(path):
+            for file in file_generator(path):
+                if f'{thresh}_{file}' not in list_fp:
+                    shutil.copy(path + "/" + file, validated_models_dir)
+
+
 # clustered_seqs = read_clustered_seqs(sequences_by_cluster_path + "60-65/1.fasta")
 # # # print(clustered_seqs)
 # run = 0
@@ -434,7 +459,9 @@ def hmm_filtration():
 # delete_inter_files("resources/Data/HMMs/other_seqs_HMMsearch_results/60-65/1out.fasta")
 
 # leave_one_out()
-# negative_control()
+# negative_control(database = "resources/Data/FASTA/polymerase_DB.fasta")
 # search_other_seqs()
-# exec()
-# hmm_filtration()
+# exec_testing(database = "resources/Data/FASTA/polymerase_DB.fasta")
+# a_sair = hmm_filtration()
+# print(a_sair)
+# remove_fp_models(a_sair)

@@ -4,7 +4,7 @@ configfile: "config/config.yaml"
 # 	input:
 # 		["resources/Data/HMMs/HMMsearch_results/After_UPI/{threshold}/{cluster}.out".format(threshold=config["thresholds"][x], 
 # 		cluster=big_list_clusters[x][y]) for x in range(len(config["thresholds"])) for y in range(len(big_list_clusters[x]))]
-		expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
+# 		expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"])
 
 
 rule UPIMAPI_search:
@@ -16,7 +16,7 @@ rule UPIMAPI_search:
 		"resources/Alignments/BLAST/upimapi_results/UPIMAPI_results.tsv"
 	params:
 		outdir="resources/Alignments/BLAST/upimapi_results"
-	threads: configfile["threads"]
+	threads: config["threads"]
 	log:
 		"logs/UPIMAPI_search.log"
 	conda:

@@ -58,5 +58,18 @@ jobs:
       - name: Annotation workflow by FASTA input, report text creation and excel table format
         run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/sequences.fasta -o output_results -rt --output_type excel"
 
-      - name: Annotation workflow with gut metagenome proteins, generate same outputs
+      - name: Annotation workflow with gut metagenome proteins (negative dataset), generate same outputs
         run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -ip metagenome -o output_results -rt --output_type excel"
+      
+      # - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
+      #   run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -ip metagenome -o output_results -rt --output_type excel --validation"
+      
+      # - name: Database construction workflow with small FASTA protein file, WITHOUT model validation script
+      #   run: docker run plastedma bin/bash -c "plastedma.py -w database_construction -i PlastEDMA/ci/sequences.fasta"
+      
+      # - name: Database construction workflow with small FASTA protein file, WITH model validation script
+      #   run: docker run plastedma bin/bash -c "plastedma.py -w database_construction -i PlastEDMA/ci/sequences.fasta --validation"
+      
+      # - name: Full PlastEDMA workflow execution
+      #   run: docker run plastedma bin/bash -c "plastedma.py -w both -i PlastEDMA/ci/sequences.fasta -o output_results -rt --output_type excel --validation"
+      

@@ -17,7 +17,7 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import file_generator, exec_testing, hmm_filtration
+from hmm_vali import file_generator, exec_testing, hmm_filtration, remove_fp_models
 
 
 version = "0.1.2"
@@ -28,6 +28,7 @@ snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux~
 hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
+validated_hmm_dir = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/validated_HMM/"
 
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
@@ -51,7 +52,7 @@ parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow 
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
-                    PDETool uses the built-in HMMs from database in {hmm_database_path}")
+                    PDETool uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
 parser.add_argument("--concat_hmm_models", action = "store_true", default = False, help = "concatenate HMM models into a single file")
 parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
 parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
@@ -241,14 +242,24 @@ def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold:
     # get the unique sequences
     unique_seqs = get_unique_hits(query_names)
     inputed_seqs = parse_fasta(args.input, meta_gen = config["metagenomic"])
-    with open(path + "test_report.txt", "w") as f:
-        f.write(f"PlastEDMA hits report:\n \
-                \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
-                f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
-                f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
-        f.close
+    if config["validation"] == True:
+        with open(path + "test_report.txt", "w") as f:
+            f.write(f"PlastEDMA hits report:\n \
+                    \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
+                    "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
+                    f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
+                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
+                    f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
+            f.close
+    else:
+        with open(path + "test_report.txt", "w") as f:
+            f.write(f"PlastEDMA hits report:\n \
+                    \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
+                    "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
+                    f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
+                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
+                    f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
+            f.close
 
 
 def get_number_hits_perseq(hit_IDs_list: list) -> dict:
@@ -344,7 +355,10 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
         os.mkdir(out_folder)
     table_report(dataframe, out_folder, args.output_type)
     if args.report_text:
-        text_report(dataframe, out_folder, hmm_database_path, bit_threshold, eval_threshold)
+        if args.validation:
+            text_report(dataframe, out_folder, validated_hmm_dir, bit_threshold, eval_threshold)
+        else:
+            text_report(dataframe, out_folder, hmm_database_path, bit_threshold, eval_threshold)
     get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs)
 
 
@@ -358,15 +372,27 @@ st = time.time()
 
 # if args.validation:
 #     exec_testing()
-#     hmm_filtration()
+#     to_remove = hmm_filtration()
+#     remove_fp_models(to_remove)
+
 if args.workflow == "annotation":
+
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
-    for hmm_file in file_generator(hmm_database_path, full_path = True):
-        run_hmmsearch(args.input, hmm_file, 
-                    hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                    "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-                    out_type = args.hmms_output_type)
+
+    if args.validation:
+        for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+            run_hmmsearch(args.input, hmm_file, 
+                        hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        out_type = args.hmms_output_type)    
+    else:
+        for hmm_file in file_generator(hmm_database_path, full_path = True):
+            run_hmmsearch(args.input, hmm_file, 
+                        hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        out_type = args.hmms_output_type)
+
     lista_dataframes = []
     for file in file_generator(hmmsearch_results_path):
         # print(f'File {file} detected \n')
@@ -381,6 +407,7 @@ if args.workflow == "annotation":
 
 elif args.workflow == "database_construction":
     print("This feature will be available soon!")
+
     # print("Database construction workflow with snakemake started...")
     time.sleep(2)
 
@@ -391,7 +418,36 @@ elif args.workflow == "database_construction":
 
 elif args.workflow == "both":
     print("Feature still waiting to be implemented into the workflow. Thank you for your patience!")
+
+    # print("Database construction workflow with snakemake started...")
     time.sleep(2)
+
+    # snakemake.main(
+    #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
+    #     f'{" --unlock" if args.unlock else ""}')
+
+    # print("Database construction workflow with snakemake has been completed")
+    # time.sleep(2)
+    # print("Annotation workflow with hmmsearch started...")
+    # time.sleep(2)
+
+    # for hmm_file in file_generator(hmm_database_path, full_path = True):
+    #     run_hmmsearch(args.input, hmm_file, 
+    #                 hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+    #                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+    #                 out_type = args.hmms_output_type)
+    # lista_dataframes = []
+    # for file in file_generator(hmmsearch_results_path):
+    #     # print(f'File {file} detected \n')
+    #     lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
+    # final_df = concat_df_byrow(list_df = lista_dataframes)
+    # rel_df = relevant_info_df(final_df)
+    # # print(rel_df)
+    # quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+    # hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+    # # print(hited_seqs)
+    # generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+
     quit("Exiting PlastEDMA's program execution...")
 
 else:
@@ -402,4 +458,4 @@ et = time.time()
 elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
 print(f'Execution time: {elapsed_time:.4f} milliseconds')
-print("PlastEDMA has stoped running!")
+print("PlastEDMA has stoped running! Results are displayed in the results folder :)")
