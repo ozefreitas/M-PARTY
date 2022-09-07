@@ -1,4 +1,5 @@
 from copy import copy
+from genericpath import isdir
 import pandas as pd
 from docker_run import run_command, docker_run_tcoffee
 from hmmsearch_run import run_hmmsearch
@@ -9,7 +10,7 @@ import sys
 import subprocess
 import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
-
+print(sys.path)
 
 sequences_by_cluster_path = "resources/Data/FASTA/CDHIT/"
 HMM_directory = "resources/Data/HMMs/After_tcoffee_UPI/"
@@ -297,7 +298,7 @@ def negative_control(database: str = None):
     only the hmmsearch results.
 
     Args:
-        database (str, optional): A fasta filename with a set of protein sequences to serve as negative control.
+        database (str, optional): A path for a fasta file with a set of protein sequences to serve as negative control.
     Defaults to None. Only for testing purposes.
     """
     if database:
@@ -313,7 +314,7 @@ def negative_control(database: str = None):
             for hmm in file_generator(path):
                 run_hmmsearch(controlo,
                                 path + "/" + hmm, 
-                                f'{neg_control_dir + thresh}/search_{hmm.split(".")[0]}_human_gut_metagenome.tsv', 
+                                f'{neg_control_dir + thresh}/search_{hmm.split(".")[0]}_{controlo.split(".")[0].split("/")[-1]}.tsv', 
                                 out_type = "tsv")
 
 
@@ -388,6 +389,7 @@ def hmm_filtration():
                 if f'{thresh}_{hmm_num}' not in cont_neg_eval_per_hmms:
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'] = []
                 df = read_hmmsearch_table(path + "/" + file)
+                # print(df)
                 ev = check_min_eval(df)
                 if ev is not None:
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
@@ -411,14 +413,20 @@ def hmm_filtration():
     # lista de modelos que não passaram a validação
     false_positives = []
     # comparar e-values da primeira etapa com os correspondestes das etapas de validação
+    # print(eval_per_hmms)
+    # print(cont_neg_eval_per_hmms)
+    # print(other_seqs_eval_per_hmms)
     for hmm in eval_per_hmms.keys():
+        # print(hmm)
         strict_passed = 0
         for eval in eval_per_hmms[hmm]:
-            if eval < cont_neg_eval_per_hmms[hmm][0] and eval < other_seqs_eval_per_hmms[hmm][0]:
+            # print(eval_per_hmms[hmm])
+            if float(eval) < float(cont_neg_eval_per_hmms[hmm][0]) and float(eval) < float(other_seqs_eval_per_hmms[hmm][0]):
                 strict_passed += 1
             else:
                 continue
-        hmm_strict_recall = calc_recall(strict_passed, get_number_seqs(f'{HMM_directory + thresh + "/" + hmm.split("_")[1]}.hmm'))
+        # print(hmm)
+        hmm_strict_recall = calc_recall(strict_passed, get_number_seqs(f'{HMM_directory + hmm.split("_")[0] + "/" + hmm.split("_")[1]}.hmm'))
         if hmm_strict_recall > 80:
             continue
         else:
@@ -437,13 +445,13 @@ def remove_fp_models(list_fp: list):
         os.mkdir(validated_models_dir)
     p = os.listdir(HMM_directory)
     for thresh in p:
-        if not os.path.exists(validated_models_dir + thresh):
-            os.mkdir(validated_models_dir + thresh)
-        path = os.path.join(HMM_directory + thresh)
+        path = os.path.join(HMM_directory, thresh)
         if os.path.isdir(path):
+            if not os.path.exists(validated_models_dir + thresh):
+                os.mkdir(validated_models_dir + thresh)
             for file in file_generator(path):
                 if f'{thresh}_{file}' not in list_fp:
-                    shutil.copy(path + "/" + file, validated_models_dir)
+                    shutil.copy(path + "/" + file, validated_models_dir + thresh + "/")
 
 
 # clustered_seqs = read_clustered_seqs(sequences_by_cluster_path + "60-65/1.fasta")
@@ -465,6 +473,6 @@ def remove_fp_models(list_fp: list):
 # negative_control(database = "resources/Data/FASTA/polymerase_DB.fasta")
 # search_other_seqs()
 # exec_testing(database = "resources/Data/FASTA/polymerase_DB.fasta")
-# a_sair = hmm_filtration()
+a_sair = hmm_filtration()
 # print(a_sair)
-# remove_fp_models(a_sair)
+remove_fp_models(a_sair)

@@ -1,5 +1,6 @@
 import pandas as pd
 import sys 
+import numpy as np
 
 
 hmmsearch_out_folder = "/".join(sys.path[0].replace("\\", "/").split("/"))+"/Data/HMMs/HMMsearch_results/"
@@ -57,6 +58,10 @@ def read_hmmsearch_table(path: str, format: str = "tblout", save_as_csv: bool = 
     for i in range(len(first_header)):
         mapa = column_generator(first_header[i], second_header[i])
         colunas += mapa
+    # print(colunas)
+    if dados == []:
+        dados = [[1] * (index + 1)] 
+    # print(dados)
     df = pd.DataFrame(dados)
     df.columns = pd.MultiIndex.from_tuples(colunas)
     if save_as_csv:
