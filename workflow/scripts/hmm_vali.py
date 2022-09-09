@@ -220,9 +220,9 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         return filename
     else:
         p = os.listdir(sequences_by_cluster_path)
+        if not os.path.exists(hmmsearch_other_seqs_dir):
+            os.mkdir(hmmsearch_other_seqs_dir)
         for thresh in p:
-            if not os.path.exists(hmmsearch_other_seqs_dir):
-                os.mkdir(hmmsearch_other_seqs_dir)
             if not os.path.exists(hmmsearch_other_seqs_dir + thresh):
                 os.mkdir(hmmsearch_other_seqs_dir + thresh)
         with open(filename, 'w') as wf:
@@ -244,7 +244,17 @@ def leave_one_out():
     validation. Only performs the steps with the removed sequences from the models. Does not return anything,
     only the hmmsearch results.
     """
-    p = os.listdir(sequences_by_cluster_path)
+    p = os.listdir(sequences_by_cluster_path) 
+    if not os.path.exists(vali_directory):
+        os.mkdir(vali_directory)
+    if not os.path.exists(alignments_test_dir):
+        os.mkdir(alignments_test_dir)
+    if not os.path.exists(hmm_recon_dir):
+        os.mkdir(hmm_recon_dir)
+    if not os.path.exists(hmmsearch_results_dir):
+        os.mkdir(hmmsearch_results_dir)
+    if not os.path.exists(eliminated_seqs_dir):
+        os.mkdir(eliminated_seqs_dir)
     for thresh in p:
         if not os.path.exists(vali_directory + thresh):
             os.mkdir(vali_directory + thresh)
