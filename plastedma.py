@@ -17,7 +17,7 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import file_generator, exec_testing, hmm_filtration, remove_fp_models
+from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
 
 
 version = "0.2.0"
@@ -371,10 +371,15 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 
 st = time.time()
 
-# if args.validation:
-#     exec_testing(database = args.database)
-#     to_remove = hmm_filtration()
-#     remove_fp_models(to_remove)
+if args.validation:
+
+    print("Starting validation procedures...")
+    time.sleep(2)
+
+    exec_testing(database = args.database)
+    to_remove = hmm_filtration()
+    remove_fp_models(to_remove)
+    concat_final_model()
 
 if args.workflow == "annotation":
 
@@ -396,6 +401,7 @@ if args.workflow == "annotation":
 
     lista_dataframes = []
     for file in file_generator(hmmsearch_results_path):
+            # if config["input_file"] in file:
         # print(f'File {file} detected \n')
         lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
     final_df = concat_df_byrow(list_df = lista_dataframes)

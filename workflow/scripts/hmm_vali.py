@@ -10,7 +10,7 @@ import sys
 import subprocess
 import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
-print(sys.path)
+
 
 sequences_by_cluster_path = "resources/Data/FASTA/CDHIT/"
 HMM_directory = "resources/Data/HMMs/After_tcoffee_UPI/"
@@ -281,6 +281,7 @@ def leave_one_out():
                                         out_type = "tsv")
                     except:
                         run += 1
+                        print("Docker must be initialized! Please install t-coffee docker image from pegi3s. Program will continue")
                         continue
                     df = read_hmmsearch_table(f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
                     df = check_eval(df)
@@ -306,6 +307,8 @@ def negative_control(database: str = None):
     else:
         controlo = "resources/Data/FASTA/human_gut_metagenome.fasta"
     p = os.listdir(sequences_by_cluster_path)
+    if not os.path.exists(neg_control_dir):
+        os.mkdir(neg_control_dir)
     for thresh in p:
         if not os.path.exists(neg_control_dir + thresh):
             os.mkdir(neg_control_dir + thresh)
@@ -369,6 +372,7 @@ def hmm_filtration():
         path = os.path.join(hmmsearch_results_dir + thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
+                # print(path + file)
                 hmm_num = file.split("_")[1]
                 if f'{thresh}_{hmm_num}' not in eval_per_hmms:
                     eval_per_hmms[f'{thresh}_{hmm_num}'] = []
@@ -385,6 +389,7 @@ def hmm_filtration():
         path = os.path.join(neg_control_dir + thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
+                # print(path + file)
                 hmm_num = file.split("_")[1]
                 if f'{thresh}_{hmm_num}' not in cont_neg_eval_per_hmms:
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'] = []
@@ -402,6 +407,7 @@ def hmm_filtration():
         path = os.path.join(hmmsearch_other_seqs_dir + thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
+                # print(path + file)
                 hmm_num = file.split("_")[-1].split(".")[0]
                 if f'{thresh}_{hmm_num}' not in other_seqs_eval_per_hmms:
                     other_seqs_eval_per_hmms[f'{thresh}_{hmm_num}'] = []
@@ -413,15 +419,16 @@ def hmm_filtration():
     # lista de modelos que não passaram a validação
     false_positives = []
     # comparar e-values da primeira etapa com os correspondestes das etapas de validação
-    # print(eval_per_hmms)
+    print(eval_per_hmms)
     # print(cont_neg_eval_per_hmms)
-    # print(other_seqs_eval_per_hmms)
+    print(other_seqs_eval_per_hmms)
     for hmm in eval_per_hmms.keys():
         # print(hmm)
         strict_passed = 0
-        for eval in eval_per_hmms[hmm]:
+        for eval in range(len(eval_per_hmms[hmm])):
             # print(eval_per_hmms[hmm])
-            if float(eval) < float(cont_neg_eval_per_hmms[hmm][0]) and float(eval) < float(other_seqs_eval_per_hmms[hmm][0]):
+            if float(eval_per_hmms[hmm][eval]) < float(cont_neg_eval_per_hmms[hmm][eval]) and \
+            float(eval_per_hmms[hmm][eval]) < float(other_seqs_eval_per_hmms[hmm][eval]):
                 strict_passed += 1
             else:
                 continue
@@ -450,8 +457,25 @@ def remove_fp_models(list_fp: list):
             if not os.path.exists(validated_models_dir + thresh):
                 os.mkdir(validated_models_dir + thresh)
             for file in file_generator(path):
-                if f'{thresh}_{file}' not in list_fp:
+                if f'{thresh}_{file.split(".")[0]}' not in list_fp:
                     shutil.copy(path + "/" + file, validated_models_dir + thresh + "/")
+
+
+def concat_final_model():
+    """_summary_
+    """
+    p = os.listdir(validated_models_dir)
+    for thresh in p:
+        path = os.path.join(validated_models_dir, thresh)
+        if os.path.isdir(path):
+            with open(validated_models_dir + thresh + ".hmm", "w") as wf:
+                for file in file_generator(path):
+                    with open(validated_models_dir + thresh + "/" + file, "r") as f:
+                        Lines = f.readlines()
+                        for line in Lines:
+                            wf.write(line)
+                    f.close()
+            wf.close()
 
 
 # clustered_seqs = read_clustered_seqs(sequences_by_cluster_path + "60-65/1.fasta")
@@ -473,6 +497,7 @@ def remove_fp_models(list_fp: list):
 # negative_control(database = "resources/Data/FASTA/polymerase_DB.fasta")
 # search_other_seqs()
 # exec_testing(database = "resources/Data/FASTA/polymerase_DB.fasta")
-a_sair = hmm_filtration()
+# a_sair = hmm_filtration()
 # print(a_sair)
-remove_fp_models(a_sair)
+# remove_fp_models(a_sair)
+# concat_final_model()
