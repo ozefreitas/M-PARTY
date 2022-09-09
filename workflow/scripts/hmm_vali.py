@@ -12,16 +12,17 @@ import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
 
 
-sequences_by_cluster_path = "resources/Data/FASTA/CDHIT/"
-HMM_directory = "resources/Data/HMMs/After_tcoffee_UPI/"
-vali_directory = "resources/Data/FASTA/HMM_oneout/"
-eliminated_seqs_dir = "resources/Data/FASTA/HMM_outseqs/"
-alignments_test_dir = "resources/Alignments/MultipleSequencesAlign/T_Coffee_HMMVal/"
-hmm_recon_dir = "resources/Data/HMMs/HMM_reconstructed/"
-hmmsearch_results_dir = "resources/Data/HMMs/reconstructed_HMMsearch_results/"
-neg_control_dir = "resources/Data/HMMs/negative_cont_HMMsearch_results/"
-hmmsearch_other_seqs_dir = "resources/Data/HMMs/other_seqs_HMMsearch_results/"
-validated_models_dir = "resources/Data/HMMs/validated_HMM/"
+caminho0 = sys.path [0]
+sequences_by_cluster_path = caminho0 + "/resources/Data/FASTA/CDHIT/"
+HMM_directory = caminho0 + "/resources/Data/HMMs/After_tcoffee_UPI/"
+vali_directory = caminho0 + "/resources/Data/FASTA/HMM_oneout/"
+eliminated_seqs_dir = caminho0 + "/resources/Data/FASTA/HMM_outseqs/"
+alignments_test_dir = caminho0 + "/resources/Alignments/MultipleSequencesAlign/T_Coffee_HMMVal/"
+hmm_recon_dir = caminho0 + "/resources/Data/HMMs/HMM_reconstructed/"
+hmmsearch_results_dir = caminho0 + "/resources/Data/HMMs/reconstructed_HMMsearch_results/"
+neg_control_dir = caminho0 + "/resources/Data/HMMs/negative_cont_HMMsearch_results/"
+hmmsearch_other_seqs_dir = caminho0 + "/resources/Data/HMMs/other_seqs_HMMsearch_results/"
+validated_models_dir = caminho0 + "/resources/Data/HMMs/validated_HMM/"
 
 
 def file_generator(path: str, full_path: bool = False) -> str:

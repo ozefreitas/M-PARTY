@@ -4,7 +4,7 @@
 import argparse
 import sys
 sys.path.append(f'{sys.path[0]}/workflow/scripts')
-sys.path.append(f'{sys.path[0]}/PlastEDMA')
+# sys.path.append(f'{sys.path[0]}/PlastEDMA')
 print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
