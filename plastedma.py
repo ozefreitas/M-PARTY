@@ -109,8 +109,10 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
                                     identi = re.sub("\|", "", identi[0])
                                     unip_IDS.append(identi)
                                 except:
-                                    unip_IDS.append(line.split(" ")[0])
-                        else:
+                                    identi = line.split(" ")[0]
+                                    identi = re.sub(">", "", identi)
+                                    unip_IDS.append(identi)
+                        else:   
                             if not remove_excess_ID:
                                 unip_IDS.append(line.split(" ")[0][1:])
                             else:
@@ -364,8 +366,8 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
     get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs)
 
 
-doc = write_config(args.input, args.output, "test.yaml")
-config, config_format = read_config_yaml(config_path + "test.yaml")
+doc = write_config(args.input, args.output, "config.yaml")
+config, config_format = read_config_yaml(config_path + "config.yaml")
 
 hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HMMsearch_results/"
 
