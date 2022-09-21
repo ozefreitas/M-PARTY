@@ -1,13 +1,15 @@
-from scripts.tsv_parser import UPIMAPI_parser, UPIMAPI_iter_per_sim
-from scripts.tsv_parser import diamond_parser, iter_per_sim, above_60, devide_by_query
-from scripts.uniprot_retriever import fasta_retriever, fasta_retriever_from_cdhit
-from scripts.docker_run import docker_run_tcoffee, docker_run_hmmbuild, docker_run_hmmsearch
-from scripts.CDHIT_parser import cdhit_parser, counter, save_as_tsv
-from scripts.CDHIT_parser import get_clusters
+# from scripts.tsv_parser import UPIMAPI_parser, UPIMAPI_iter_per_sim
+# from scripts.tsv_parser import diamond_parser, iter_per_sim, above_60, devide_by_query
+# from scripts.uniprot_retriever import fasta_retriever, fasta_retriever_from_cdhit
+# from scripts.docker_run import docker_run_tcoffee, docker_run_hmmbuild, docker_run_hmmsearch
+# from scripts.CDHIT_parser import cdhit_parser, counter, save_as_tsv
+# from scripts.CDHIT_parser import get_clusters
 from glob import glob
 import os
 import re
+import sys
 from itertools import product
+from pathlib import Path
 
 
 # df = diamond_parser("C:/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/src/PDEFinder/Alignments/Diamond/diamond_out.tsv")
@@ -60,17 +62,17 @@ from itertools import product
 
 thresholds =  ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"]
 
-files = {threshold: glob(f"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in thresholds}
-threshold2clusters = {}
-for thresh, path in files.items():
-	threshold2clusters[thresh] = get_clusters(path[0])
-print(files)
+# files = {threshold: glob(f"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in thresholds}
+# threshold2clusters = {}
+# for thresh, path in files.items():
+# 	threshold2clusters[thresh] = get_clusters(path[0])
+# print(files)
 
-# fazer uma lista de listas com todos os clusters, por ordem de threshold
-big_list_clusters = [v for k, v in threshold2clusters.items()]
-max_clusters = max([max(x) for x in big_list_clusters])
-all_clusters = [str(i) for i in range(0, max_clusters+1)]
-# print(all_clusters)
+# # fazer uma lista de listas com todos os clusters, por ordem de threshold
+# big_list_clusters = [v for k, v in threshold2clusters.items()]
+# max_clusters = max([max(x) for x in big_list_clusters])
+# all_clusters = [str(i) for i in range(0, max_clusters+1)]
+# # print(all_clusters)
 
 # função vai fazer todas as combinações entre thresholds e clusters correspondentes
 def util(lista_thresholds, lista_de_listas_clusters):

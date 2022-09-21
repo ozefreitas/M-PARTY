@@ -13,6 +13,8 @@ cp plastedma.py $INSTALL_FOLDER/
 #ls -lt $INSTALL_FOLDER/workflow
 
 cp $INSTALL_FOLDER/scripts/* $BIN_FOLDER
+cp $INSTALL_FOLDER/resources/Data/FASTA/literature_seq/lit_sequences.fasta $BIN_FOLDER
+cp -r $INSTALL_FOLDER/resources/Data/HMMs/After_tcoffee_UPI $BIN_FOLDER
 ls -l $BIN_FOLDER
 ln -s $INSTALL_FOLDER/plastedma.py $BIN_FOLDER/
 # ln -s $INSTALL_FOLDER/workflow $BIN_FOLDER/

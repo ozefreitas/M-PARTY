@@ -1,9 +1,9 @@
 from copy import copy
 from genericpath import isdir
 import pandas as pd
-from EDMA_util.docker_run import run_command, docker_run_tcoffee
-from EDMA_util.hmmsearch_run import run_hmmsearch
-from annotation.hmm_process import read_hmmsearch_table, get_e_values
+from docker_run import run_command, docker_run_tcoffee
+from hmmsearch_run import run_hmmsearch
+from hmm_process import read_hmmsearch_table, get_e_values
 import re
 import os
 import sys

@@ -23,10 +23,12 @@ requirements:
     - cd-hit
     - pandas
     - openpyxl
+    - snakemake
 
 test:
   commands:
     - plastedma.py -h
+    - plastedma.py -i lit_sequences.fasta -o output_results -rt --output_type excel
 
 about:
   home: https://github.com/ozefreitas/PlastEDMA

@@ -47,7 +47,6 @@ jobs:
       - name: Load Docker image
         run: |
           docker load --input /tmp/plastedma.tar
-          docker pull pegi3s/tcoffee
           docker image ls -a
 
       - name: Check base entrypoint

@@ -51,9 +51,9 @@ sp|Q02567|PEM1_PHACH -          99                   -            4.7e-57  180.2
 # Program:         hmmsearch
 # Version:         3.3.2 (Nov 2020)
 # Pipeline mode:   SEARCH
-# Query file:      /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/After_tcoffee_UPI/65-70.hmm
-# Target file:     Data/FASTA/literature_seq/lit_sequences.fasta
-# Option settings: hmmsearch --tblout /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/HMMsearch_results/search_lit_sequences.fasta_65-70.hmm.tsv /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/HMMs/After_tcoffee_UPI/65-70.hmm Data/FASTA/literature_seq/lit_sequences.fasta 
-# Current dir:     /mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow
-# Date:            Tue Jun 28 10:56:02 2022
+# Query file:      /mnt/c/Users/Ze/Desktop/PlastEDMA/resources/Data/HMMs/After_tcoffee_UPI/65-70.hmm
+# Target file:     /mnt/c/Users/Ze/Desktop/PlastEDMA/ci/sequences.fasta
+# Option settings: hmmsearch --tblout /mnt/c/Users/Ze/Desktop/PlastEDMA/resources/Data/HMMs/HMMsearch_results/search_sequences_65-70.tsv /mnt/c/Users/Ze/Desktop/PlastEDMA/resources/Data/HMMs/After_tcoffee_UPI/65-70.hmm /mnt/c/Users/Ze/Desktop/PlastEDMA/ci/sequences.fasta 
+# Current dir:     /home/josepedro
+# Date:            Wed Sep 21 15:53:29 2022
 # [ok]

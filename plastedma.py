@@ -16,18 +16,18 @@ from collections import Counter
 import glob
 # import snakemake
 
-from hmmsearch_run import run_hmmsearch
-from hmm_process import *
-from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
+from EDMA_util.hmmsearch_run import run_hmmsearch
+from annotation.hmm_process import *
+from validation.hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
 
 
 version = "0.2.0"
 
- 
+
 strat = "/".join(sys.path[0].split("/")[:-1])
 snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
-config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux~
+config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
 hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
 validated_hmm_dir = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/validated_HMM/"
 
@@ -37,7 +37,7 @@ parser.add_argument("-i", "--input", help = "input FASTA file containing\
 parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
                     wants to create the HMM database from scratch")
 parser.add_argument("-ip", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
-                    'protein', 'nucleic' or 'metagenome'")
+                    'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
 parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "name for the output directory. Defaults to 'PlastEDMA_results'")
 parser.add_argument("--output_type", default = "tsv", help = "chose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
@@ -126,15 +126,15 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
     return unip_IDS
 
 
-def get_results_directory() -> str:
-    """Automatically return the path where output should appear. It must climb up one folder till PlastEDMA folder, 
-    and go back to results.
-
+def check_results_directory(output: str) -> str:
+    """Automatically creats the path where output should appear. Checks if folder already exists or not in the 
+    execution path
+    Args:
+        output (str): Name for the output folder
     Returns:
         str: Path for the output folder
     """
-    p = Path(sys.path[0])
-    return str(p / "results/")
+    Path(output).mkdir(exist_ok=True, parents=True)
 
 
 def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
@@ -150,9 +150,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
         yaml: Returns a .yaml format config file, with the given arguments though the CLI
     """
     seq_IDS = parse_fasta(input_file, meta_gen = True if args.input_type == "metagenome" else False)
-    results_dir = get_results_directory()
-    results_dir += "/" + out_dir
-    results_dir = results_dir.replace("\\", "/")
+    check_results_directory(out_dir)
     dict_file = {"seqids": seq_IDS,
                 "database": args.database,
                 "input_file": args.input.split("/")[-1],
@@ -162,11 +160,13 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
                 "validation": True if args.workflow == "database_construction" or 
                 args.workflow == "both" or 
                 args.validation else False,
-                "output_directory": results_dir,
+                "output_directory": out_dir,
                 "out_table_format": args.output_type,
                 "hmmsearch_out_type": args.hmms_output_type,
                 "threads": args.threads,
-                "workflow": args.workflow}
+                "workflow": args.workflow,
+                "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"]}
+    Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
     with open(caminho, "w") as file:
         document = yaml.dump(dict_file, file)
@@ -354,9 +354,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
         hit_IDs_list (list): list of Uniprot IDs that hit.
         inputed_seqs (str): name of the initial input file.
     """
-    out_folder = get_results_directory() + "/" + args.output + "/"
-    if not os.path.exists(out_folder):
-        os.mkdir(out_folder)
+    out_folder = args.output + "/"
     table_report(dataframe, out_folder, args.output_type)
     if args.report_text:
         if args.validation:
@@ -374,7 +372,8 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 
 st = time.time()
 
-if args.validation:
+# first only runs for if user flags --validation
+if args.validation and args.workflow != "database_construction" and args.workflow != "both":
 
     print("Starting validation procedures...")
     time.sleep(2)
@@ -388,13 +387,14 @@ if args.workflow == "annotation":
 
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
-
+    
+    Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.validation:
         for hmm_file in file_generator(validated_hmm_dir, full_path = True):
             run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-                        out_type = args.hmms_output_type)    
+                        out_type = args.hmms_output_type)
     else:
         for hmm_file in file_generator(hmm_database_path, full_path = True):
             run_hmmsearch(args.input, hmm_file, 
@@ -424,11 +424,15 @@ elif args.workflow == "database_construction":
     # snakemake.main(
     #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
     #     f'{" --unlock" if args.unlock else ""}')
+    
+    # print("Starting validation procedures...")
+    # time.sleep(2)
 
 #     if args.validation:
 #     exec_testing()
 #     to_remove = hmm_filtration()
 #     remove_fp_models(to_remove)
+#     concat_final_model()
 
     quit("Exiting PlastEDMA's program execution...")
 
@@ -444,25 +448,40 @@ elif args.workflow == "both":
 
     # print("Database construction workflow with snakemake has been completed")
     # time.sleep(2)
+
+#     if args.validation:
+        # print("Starting validation procedures...")
+        # time.sleep(2)
+        # exec_testing()
+        # to_remove = hmm_filtration()
+        # remove_fp_models(to_remove)
+        # concat_final_model()
+
     # print("Annotation workflow with hmmsearch started...")
     # time.sleep(2)
-
-    # for hmm_file in file_generator(hmm_database_path, full_path = True):
-    #     run_hmmsearch(args.input, hmm_file, 
-    #                 hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-    #                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-    #                 out_type = args.hmms_output_type)
-    # lista_dataframes = []
-    # for file in file_generator(hmmsearch_results_path):
-    #     # print(f'File {file} detected \n')
-    #     lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
-    # final_df = concat_df_byrow(list_df = lista_dataframes)
-    # rel_df = relevant_info_df(final_df)
-    # # print(rel_df)
-    # quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-    # hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
-    # # print(hited_seqs)
-    # generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+    # if args.validation:
+    #     for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+    #         run_hmmsearch(args.input, hmm_file, 
+    #                     hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+    #                     "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+    #                     out_type = args.hmms_output_type)
+    # else:
+    #     for hmm_file in file_generator(hmm_database_path, full_path = True):
+    #         run_hmmsearch(args.input, hmm_file, 
+    #                     hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+    #                     "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+    #                     out_type = args.hmms_output_type)
+    #     lista_dataframes = []
+    #     for file in file_generator(hmmsearch_results_path):
+    #         # print(f'File {file} detected \n')
+    #         lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
+    #     final_df = concat_df_byrow(list_df = lista_dataframes)
+    #     rel_df = relevant_info_df(final_df)
+    #     # print(rel_df)
+    #     quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+    #     hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+    #     # print(hited_seqs)
+    #     generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
     quit("Exiting PlastEDMA's program execution...")
 
@@ -473,5 +492,6 @@ else:
 et = time.time()
 elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
-print(f'Execution time: {elapsed_time:.4f} milliseconds')
+print(f'Execution time: {elapsed_time:.4f} milliseconds!')
 print("PlastEDMA has stoped running! Results are displayed in the results folder :)")
+
