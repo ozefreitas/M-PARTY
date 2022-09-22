@@ -397,7 +397,9 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     to_remove = hmm_filtration()
     remove_fp_models(to_remove)
     concat_final_model()
-
+    time.sleep(2)
+    print("PlastEDMA has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
+    
 # runs if input sequences are given
 if args.workflow == "annotation" and args.input is not None:
 
@@ -504,7 +506,7 @@ elif args.workflow == "both":
 
     quit("Exiting PlastEDMA's program execution...")
 
-else:
+elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
     raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
 
 

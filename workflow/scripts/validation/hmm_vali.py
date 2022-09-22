@@ -321,7 +321,7 @@ def negative_control(database: str = None):
     for thresh in p:
         if not os.path.exists(neg_control_dir + thresh):
             os.mkdir(neg_control_dir + thresh)
-        path = os.path.join(hmm_recon_dir + thresh)
+        path = os.path.join(hmm_recon_dir, thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 run_hmmsearch(controlo,
@@ -337,7 +337,7 @@ def search_other_seqs():
     """
     p = os.listdir(hmm_recon_dir)
     for thresh in p:
-        path = os.path.join(hmm_recon_dir + thresh)
+        path = os.path.join(hmm_recon_dir, thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 hmm_num = hmm.split("_")[0]
@@ -432,9 +432,9 @@ def hmm_filtration():
     # lista de modelos que não passaram a validação
     false_positives = []
     # comparar e-values da primeira etapa com os correspondestes das etapas de validação
-    print(eval_per_hmms)
+    # print(eval_per_hmms)
     # print(cont_neg_eval_per_hmms)
-    print(other_seqs_eval_per_hmms)
+    # print(other_seqs_eval_per_hmms)
     for hmm in eval_per_hmms.keys():
         # print(hmm)
         strict_passed = 0
