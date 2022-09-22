@@ -37,7 +37,7 @@ Also, PlastEDMA is meant to analyse metagenomic sequences, but version 0.1.0 onl
 
 ## Installation
 
-PlastEDMA is, for now, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:
+PlastEDMA is, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:
 
 ```
 cd path/to/desired/dir
@@ -52,6 +52,8 @@ conda env create -n <name of env> -f plastedma.yaml
 conda activate <name of env> 
 cd ../..
 ```
+
+Clonning though GitHub is only recommended in last case scenario, as this as deprecated in detriment of bioconda distribution aplication.
 
 PlastEDMA is available as a conda package from bioconda. Simply open an Anaconda prompt or a command line interface with Anaconda or Miniconda distributions installed and:
 

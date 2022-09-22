@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # run tool main script without indicating python
+
 """
 PlastEDMA - Plastic Enzymes Degrading for Metagenomic Analysis
 
@@ -161,7 +162,10 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
         yaml: Returns a .yaml format config file, with the given arguments though the CLI
     """
     seq_IDS = parse_fasta(input_file, meta_gen = True if args.input_type == "metagenome" else False)
-    check_results_directory(out_dir)
+    if args.validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
+        out_dir = None
+    else:
+        check_results_directory(out_dir)
     dict_file = {"seqids": seq_IDS,
                 "database": args.database,
                 "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
