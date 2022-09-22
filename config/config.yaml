@@ -1,17 +1,12 @@
 database: null
 hmmsearch_out_type: tsv
-input_file: sequences.fasta
+input_file: null
 input_file_db_const: null
 input_type: protein
 metagenomic: false
 out_table_format: excel
 output_directory: output_results
-seqids:
-- A0A1H6AD45
-- G9BY57
-- O22443
-- Q02567
-- Q9HTK9
+seqids: []
 threads: 1
 thresholds:
 - 60-65

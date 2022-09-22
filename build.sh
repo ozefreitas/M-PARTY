@@ -19,7 +19,7 @@ cp plastedma.py $INSTALL_FOLDER/
 cp $INSTALL_FOLDER/scripts/* $BIN_FOLDER
 # for testing
 cp $INSTALL_FOLDER/resources/Data/FASTA/literature_seq/lit_sequences.fasta $BIN_FOLDER
-# for validation
+# for negative control validation
 cp $INSTALL_FOLDER/resources/Data/FASTA/human_gut_metagenome.fasta $BIN_FOLDER
 # in built models must be present in tool backbone
 cp -r $INSTALL_FOLDER/resources/Data/HMMs/After_tcoffee_UPI/* $DATA_FOLDER/HMMs/After_tcoffee_UPI

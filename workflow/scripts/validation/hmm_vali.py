@@ -278,7 +278,7 @@ def leave_one_out(thresholds: list):
                     write_interfile(vali_directory + thresh + "/" + inter, set_prot)
                     write_interfile(eliminated_seqs_dir + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
-                        run_command(f't_coffee`{vali_directory.replace(" ", "\ ") + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{alignments_test_dir.replace(" ", "\ ") + thresh + "/" + inter.split(".")[0]}',
+                        run_command(f't_coffee`{vali_directory + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{alignments_test_dir + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN',
                                     sep = "`")
                         # docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
                         #                     vali_directory + thresh + "/" + inter, 
@@ -356,6 +356,10 @@ def search_other_seqs():
 def exec_testing(thresholds: list, database: str = None):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
+
+    Args:
+        thresholds (list): the list of thresholds for the leave-one-out
+        database (str, optional): a fasta filename with the sequence database for negative control validation
     """
     leave_one_out(thresholds)
     negative_control(database)
@@ -470,7 +474,7 @@ def remove_fp_models(list_fp: list):
 
 
 def concat_final_model():
-    """_summary_
+    """Function that will cancatenate the models from each threshold in a single hmm file
     """
     p = os.listdir(validated_models_dir)
     for thresh in p:

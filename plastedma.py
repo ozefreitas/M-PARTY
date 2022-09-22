@@ -1,5 +1,12 @@
 #!/usr/bin/env python
 # run tool main script without indicating python
+"""
+PlastEDMA - Plastic Enzymes Degrading for Metagenomic Analysis
+
+by José Freitas
+
+Oct 2022
+"""
 
 import argparse
 import sys
@@ -94,36 +101,40 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
         list: A list containing IDs from all sequences
     """
     unip_IDS = []
-    try:
-        with open(filename, "r") as f:
-            try:
-                Lines = f.readlines()
-                for line in Lines:
-                    if line.startswith(">"):
-                        if meta_gen:
-                            if not remove_excess_ID:
-                                unip_IDS.append(line.split(" ")[0][1:])
-                            else:
-                                try:
+    # if only validation, input sequences are not needed
+    if args.validation == True and args.workflow == "annotation":
+        return unip_IDS
+    else:
+        try:
+            with open(filename, "r") as f:
+                try:
+                    Lines = f.readlines()
+                    for line in Lines:
+                        if line.startswith(">"):
+                            if meta_gen:
+                                if not remove_excess_ID:
+                                    unip_IDS.append(line.split(" ")[0][1:])
+                                else:
+                                    try:
+                                        identi = re.findall("\|.*\|", line)
+                                        identi = re.sub("\|", "", identi[0])
+                                        unip_IDS.append(identi)
+                                    except:
+                                        identi = line.split(" ")[0]
+                                        identi = re.sub(">", "", identi)
+                                        unip_IDS.append(identi)
+                            else:   
+                                if not remove_excess_ID:
+                                    unip_IDS.append(line.split(" ")[0][1:])
+                                else:
                                     identi = re.findall("\|.*\|", line)
                                     identi = re.sub("\|", "", identi[0])
                                     unip_IDS.append(identi)
-                                except:
-                                    identi = line.split(" ")[0]
-                                    identi = re.sub(">", "", identi)
-                                    unip_IDS.append(identi)
-                        else:   
-                            if not remove_excess_ID:
-                                unip_IDS.append(line.split(" ")[0][1:])
-                            else:
-                                identi = re.findall("\|.*\|", line)
-                                identi = re.sub("\|", "", identi[0])
-                                unip_IDS.append(identi)
-            except:
-                quit("File must be in FASTA format.")
-    except TypeError:
-        raise TypeError("Missing input file! Make sure -i option is filled")
-    return unip_IDS
+                except:
+                    quit("File must be in FASTA format.")
+        except TypeError:
+            raise TypeError("Missing input file! Make sure -i option is filled")
+        return unip_IDS
 
 
 def check_results_directory(output: str) -> str:
@@ -153,7 +164,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
     check_results_directory(out_dir)
     dict_file = {"seqids": seq_IDS,
                 "database": args.database,
-                "input_file": args.input.split("/")[-1],
+                "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
                 "input_file_db_const": args.input_seqs_db_const,
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
@@ -372,8 +383,8 @@ hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HM
 
 st = time.time()
 
-# first only runs for if user flags --validation
-if args.validation and args.workflow != "database_construction" and args.workflow != "both":
+# first only runs for if user flags --validation alone without input sequences, will validate the models inside database only
+if args.validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
 
     print("Starting validation procedures...")
     time.sleep(2)
@@ -383,7 +394,8 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     remove_fp_models(to_remove)
     concat_final_model()
 
-if args.workflow == "annotation":
+# runs if input sequences are given
+if args.workflow == "annotation" and args.input is not None:
 
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
@@ -417,6 +429,9 @@ if args.workflow == "annotation":
 
 elif args.workflow == "database_construction":
     print("This feature will be available soon!")
+
+    # NAO É MELHOR AO COMEÇAR ESTE WORKFLOW, APAGAR OU "ESCONDER" A BASE DE DADOS QUE JA VEM COM A
+    # FERRAMENTA PARA DEPOIS NAO INTERFERIR????
 
     # print("Database construction workflow with snakemake started...")
     time.sleep(2)
