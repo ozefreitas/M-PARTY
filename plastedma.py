@@ -378,7 +378,7 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     print("Starting validation procedures...")
     time.sleep(2)
 
-    exec_testing(database = args.database)
+    exec_testing(thresholds = config["thresholds"], database = args.database)
     to_remove = hmm_filtration()
     remove_fp_models(to_remove)
     concat_final_model()

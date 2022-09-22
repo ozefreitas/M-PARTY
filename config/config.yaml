@@ -20,5 +20,5 @@ thresholds:
 - 75-80
 - 80-85
 - 85-90
-validation: false
+validation: true
 workflow: annotation

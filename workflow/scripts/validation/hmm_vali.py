@@ -1,12 +1,12 @@
 from copy import copy
-from genericpath import isdir
 import pandas as pd
-from docker_run import run_command, docker_run_tcoffee
-from hmmsearch_run import run_hmmsearch
-from hmm_process import read_hmmsearch_table, get_e_values
+from EDMA_util.docker_run import run_command, docker_run_tcoffee
+from EDMA_util.hmmsearch_run import run_hmmsearch
+from annotation.hmm_process import read_hmmsearch_table, get_e_values
 import re
 import os
 import sys
+from pathlib import Path
 import subprocess
 import shutil
 sys.path.append("/".join(sys.path[0].split("/")[:-2]))
@@ -220,8 +220,7 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         return filename
     else:
         p = os.listdir(sequences_by_cluster_path)
-        if not os.path.exists(hmmsearch_other_seqs_dir):
-            os.mkdir(hmmsearch_other_seqs_dir)
+        Path(hmmsearch_other_seqs_dir).mkdir(parents = True, exist_ok = True)
         for thresh in p:
             if not os.path.exists(hmmsearch_other_seqs_dir + thresh):
                 os.mkdir(hmmsearch_other_seqs_dir + thresh)
@@ -239,23 +238,21 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         return filename
 
 
-def leave_one_out():
+def leave_one_out(thresholds: list):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Only performs the steps with the removed sequences from the models. Does not return anything,
     only the hmmsearch results.
+
+    Args:
+        thresholds (list): A list of the thresholds used for similarity separation after UPIMAPI in order to 
+    create the correspondent subdirectories
     """
-    p = os.listdir(sequences_by_cluster_path) 
-    if not os.path.exists(vali_directory):
-        os.mkdir(vali_directory)
-    if not os.path.exists(alignments_test_dir):
-        os.mkdir(alignments_test_dir)
-    if not os.path.exists(hmm_recon_dir):
-        os.mkdir(hmm_recon_dir)
-    if not os.path.exists(hmmsearch_results_dir):
-        os.mkdir(hmmsearch_results_dir)
-    if not os.path.exists(eliminated_seqs_dir):
-        os.mkdir(eliminated_seqs_dir)
-    for thresh in p:
+    Path(vali_directory).mkdir(parents = True, exist_ok = True)
+    Path(alignments_test_dir).mkdir(parents = True, exist_ok = True)
+    Path(hmm_recon_dir).mkdir(parents = True, exist_ok = True)
+    Path(hmmsearch_results_dir).mkdir(parents = True, exist_ok = True)
+    Path(eliminated_seqs_dir).mkdir(parents = True, exist_ok = True)
+    for thresh in thresholds:
         if not os.path.exists(vali_directory + thresh):
             os.mkdir(vali_directory + thresh)
         if not os.path.exists(alignments_test_dir + thresh):
@@ -281,10 +278,12 @@ def leave_one_out():
                     write_interfile(vali_directory + thresh + "/" + inter, set_prot)
                     write_interfile(eliminated_seqs_dir + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
-                        docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
-                                            vali_directory + thresh + "/" + inter, 
-                                            "clustal_aln", 
-                                            alignments_test_dir + thresh + "/" + f'{inter.split(".")[0]}')
+                        run_command(f't_coffee`{vali_directory.replace(" ", "\ ") + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{alignments_test_dir.replace(" ", "\ ") + thresh + "/" + inter.split(".")[0]}',
+                                    sep = "`")
+                        # docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
+                        #                     vali_directory + thresh + "/" + inter, 
+                        #                     "clustal_aln", 
+                        #                     alignments_test_dir + thresh + "/" + f'{inter.split(".")[0]}')
                         run_command(f'hmmbuild {hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm {alignments_test_dir + thresh + "/" + inter.split(".")[0]}.clustal_aln')
                         run_hmmsearch(eliminated_seqs_dir + thresh + "/" + out,
                                         f'{hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm', 
@@ -292,7 +291,7 @@ def leave_one_out():
                                         out_type = "tsv")
                     except:
                         run += 1
-                        print("Docker must be initialized! Please install t-coffee docker image from pegi3s. Program will continue")
+                        print("SOMETHING IS NOT WORKING!!!!!!!!!!")
                         continue
                     df = read_hmmsearch_table(f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
                     df = check_eval(df)
@@ -316,10 +315,9 @@ def negative_control(database: str = None):
     if database:
         controlo = database
     else:
-        controlo = "resources/Data/FASTA/human_gut_metagenome.fasta"
+        controlo = sys.path[0] + "/resources/Data/FASTA/human_gut_metagenome.fasta"
     p = os.listdir(sequences_by_cluster_path)
-    if not os.path.exists(neg_control_dir):
-        os.mkdir(neg_control_dir)
+    Path(neg_control_dir).mkdir(parents = True, exist_ok = True)
     for thresh in p:
         if not os.path.exists(neg_control_dir + thresh):
             os.mkdir(neg_control_dir + thresh)
@@ -355,11 +353,11 @@ def search_other_seqs():
                     delete_inter_files(os.path.join(hmmsearch_other_seqs_dir + thresh, item))
 
 
-def exec_testing(database: str = None):
+def exec_testing(thresholds: list, database: str = None):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
     """
-    leave_one_out()
+    leave_one_out(thresholds)
     negative_control(database)
     search_other_seqs()
 
@@ -380,7 +378,7 @@ def hmm_filtration():
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(hmmsearch_results_dir + thresh)
+        path = os.path.join(hmmsearch_results_dir, thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -397,7 +395,7 @@ def hmm_filtration():
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     cont_neg_eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(neg_control_dir + thresh)
+        path = os.path.join(neg_control_dir, thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -415,7 +413,7 @@ def hmm_filtration():
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     other_seqs_eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(hmmsearch_other_seqs_dir + thresh)
+        path = os.path.join(hmmsearch_other_seqs_dir, thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -459,8 +457,7 @@ def remove_fp_models(list_fp: list):
         list_fp (list): A list containing the number of the models (and respective threshold) which did 
         not passed the validations check.
     """
-    if not os.path.exists(validated_models_dir):
-        os.mkdir(validated_models_dir)
+    Path(validated_models_dir).mkdir(parents = True, exist_ok = True)
     p = os.listdir(HMM_directory)
     for thresh in p:
         path = os.path.join(HMM_directory, thresh)
