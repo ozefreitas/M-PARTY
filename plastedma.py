@@ -69,7 +69,7 @@ parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines 
                     first and posterior annotation. Defaults to "annotation"')
 parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                     advanced users. Defaults to '/config/config.yaml'. If given, overrides config file construction\
-                    from input", default = "./config/config.yaml")
+                    from input", default = "config/config.yaml")
 parser.add_argument("-v", "--version", action = "version", version = "PlastEDMA {}".format(version))
 args = parser.parse_args()
 print(vars(args))
@@ -399,7 +399,8 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     concat_final_model()
     time.sleep(2)
     print("PlastEDMA has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
-    
+
+
 # runs if input sequences are given
 if args.workflow == "annotation" and args.input is not None:
 
@@ -408,6 +409,15 @@ if args.workflow == "annotation" and args.input is not None:
     
     Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.validation:
+        if not os.path.exists(validated_hmm_dir):
+            print("Starting validation procedures...")
+            time.sleep(2)
+            exec_testing(thresholds = config["thresholds"], database = args.database)
+            to_remove = hmm_filtration()
+            remove_fp_models(to_remove)
+            concat_final_model()
+        else:
+            print("Validated HMM already up, proceding to annotation...")
         for hmm_file in file_generator(validated_hmm_dir, full_path = True):
             run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
