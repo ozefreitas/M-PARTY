@@ -103,7 +103,7 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
     """
     unip_IDS = []
     # if only validation, input sequences are not needed
-    if args.validation == True and args.workflow == "annotation":
+    if args.validation == True and args.workflow == "annotation" and args.input == None:
         return unip_IDS
     else:
         try:
@@ -382,7 +382,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, "config.yaml")
 config, config_format = read_config_yaml(config_path + "config.yaml")
 
-hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/resources/Data/HMMs/HMMsearch_results/"
+hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/results/HMMsearch_results/"
 
 
 st = time.time()
