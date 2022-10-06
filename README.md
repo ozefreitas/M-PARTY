@@ -1,5 +1,5 @@
 # PlastEDMA - Plastic Enzymes Degrading for Metagenomic databases Analysis
-#### Version 0.2.0
+#### Version 0.1.3
 
 
 <br>
@@ -77,16 +77,30 @@ due to possible compatibility issues that may occur.
 The main and most basic use for PlastEDMA is:<p>
 
 ```
-python plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel 
+plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel 
 ```
 
 where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded.
 
 <br>
 
+The HMM database PlastEDMA has from the start are not validated, has some can be false positive and give deceiving results. If your goal is to only validate a set a HMMs, than run:
+
+```
+plastedma.py --validation
+```
+
+<br>
+
+Now, if you want you can instantly run the annotation workflow from a set of proteins of your liking, and so performing the validation beforehand, with:
+
+```
+plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel --validation
+```
+
 ## Output
 
-PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA).
+PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user, depending on the given arguments. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA). 
 
 <br>
 

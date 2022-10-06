@@ -7,3 +7,4 @@ cp -r PlastEDMA/resources "${PREFIX}/bin"
 cp -r PlastEDMA/results "${PREFIX}/bin"
 cp -r PlastEDMA/config "${PREFIX}/bin"
 chmod +x /opt/conda/bin/plastedma.py
+alias plastedma = "plastedma.py"

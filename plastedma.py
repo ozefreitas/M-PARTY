@@ -18,18 +18,19 @@ import os
 from pathlib import Path, PureWindowsPath
 import time
 import yaml
+import json
 import re
 import pandas as pd
 from collections import Counter
 import glob
 # import snakemake
 
-from EDMA_util.hmmsearch_run import run_hmmsearch
-from annotation.hmm_process import *
-from validation.hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
+from hmmsearch_run import run_hmmsearch
+from hmm_process import *
+from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
 
 
-version = "0.2.0"
+version = "0.1.3"
 
 
 strat = "/".join(sys.path[0].split("/")[:-1])
@@ -44,19 +45,26 @@ parser.add_argument("-i", "--input", help = "input FASTA file containing\
                     a list of protein sequences to be analysed")
 parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
                     wants to create the HMM database from scratch")
-parser.add_argument("-ip", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
+parser.add_argument("-db", "--database", help = "FASTA database to run against the also user inputted sequences. DIAMOND \
+                    is performed in order to expand the data and build the models. PlastEDMA has no in-built database for this \
+                    matter. If flag is given, download of the default database will start and model built from that. Defaults to UniProt DataBase.",
+                    default = "UniProt")
+parser.add_argument("--hmm_db_name", help = "name to be assigned to the hmm database to be created. Its recomended to give a name that \
+                    that describes the family or other characteristic of the given sequences")
+parser.add_argument("-it", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
                     'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
 parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "name for the output directory. Defaults to 'PlastEDMA_results'")
-parser.add_argument("--output_type", default = "tsv", help = "chose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
-parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides wether to produce or not a friendly report in \
+parser.add_argument("--output_type", default = "tsv", help = "choose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
+parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides whether to produce or not a friendly report in \
                     txt format with easy to read information")
-parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output type of hmmsearch run from 'out', 'tsv' ou 'pfam' format. Defaults to 'out'")
-parser.add_argument("--validation", default = False, action = "store_true", help = "decides wether to performe models validation and filtration with \
+parser.add_argument("--hmms_output_type", default = "tsv", help = "chose output type of hmmsearch run from 'out', 'tsv' or 'pfam' format. Defaults to 'tsv'")
+parser.add_argument("--validation", default = False, action = "store_true", help = "decides whether to perform models validation and filtration with \
                     the 'leave-one-out' cross validation methods. Call to set to True. Defaults to False")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
-parser.add_argument("-db", "--database", help = "path to a user defined negative control database. Default use of human gut microbiome")
-parser.add_argument("-s", "--snakefile", help = "user defined snakemake worflow Snakefile. Defaults to '/workflow/Snakefile",
+parser.add_argument("--negative_db", help = "path to a user defined negative control database. Default use of human gut microbiome",
+                    default = "human_gut_metagenome")
+parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow Snakefile. Defaults to '/workflow/Snakefile",
                     default = "/workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
@@ -68,8 +76,10 @@ parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines 
                     between "annotation", "database_construction" and "both". Latter keyword makes the database construction\
                     first and posterior annotation. Defaults to "annotation"')
 parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
-                    advanced users. Defaults to '/config/config.yaml'. If given, overrides config file construction\
-                    from input", default = "config/config.yaml")
+                    advanced users. Defaults to 'config.yaml'. If given, overrides config file construction\
+                    from input", default = "config.yaml")
+parser.add_argument("--display_config", default = False, action = "store_true", 
+                    help = "declare to output the written config file together with results. Useful in case of debug")
 parser.add_argument("-v", "--version", action = "version", version = "PlastEDMA {}".format(version))
 args = parser.parse_args()
 print(vars(args))
@@ -83,8 +93,14 @@ def read_config_yaml(filename: str) -> tuple:
                 config_file = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
+    elif config_type == "json":
+        with open(filename) as stream:
+            try:
+                config_file == json.load(stream)    
+            except json.decoder.JSONDecodeError as exc:
+                print(exc)
     else:
-        quit("Config file must be in .yaml format! Get an example config file from config/ folder.")
+        quit("Config file must be in .yaml or .json format! Get an example config file from config/ folder.")
     return config_file, config_type
 
 
@@ -149,7 +165,7 @@ def check_results_directory(output: str) -> str:
     Path(output).mkdir(exist_ok=True, parents=True)
 
 
-def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
+def write_config(input_file: str, out_dir: str, config_filename: str, with_results: bool = False) -> yaml:
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
     accordingly to the given arguments
 
@@ -159,7 +175,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
         config_filename (str): Name to be given to the new config file
 
     Returns:
-        yaml: Returns a .yaml format config file, with the given arguments though the CLI
+        document: Returns a .yaml format config file, with the given arguments though the CLI
     """
     seq_IDS = parse_fasta(input_file, meta_gen = True if args.input_type == "metagenome" else False)
     if args.validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
@@ -183,8 +199,22 @@ def write_config(input_file: str, out_dir: str, config_filename: str) -> yaml:
                 "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"]}
     Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
-    with open(caminho, "w") as file:
-        document = yaml.dump(dict_file, file)
+    config_type = config_filename.split(".")[-1]
+    if config_type == "yaml":
+        with open(caminho, "w") as file:
+            document = yaml.dump(dict_file, file)
+    else:
+        with open(caminho, "w") as file:
+            document = json.dumps(dict_file)
+            file.write(document)
+    if with_results:
+        if config_type == "yaml":
+            with open(out_dir, "w") as file:
+                document = yaml.dump(dict_file, file)
+        else:
+            with open(out_dir, "w") as file:
+                document = json.dumps(dict_file)
+                file.write(document)
     return document
 
 
@@ -238,7 +268,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str):
         raise TypeError("Specified table format is not available. Read documentation for --output_type.")
 
 
-def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold: float, eval_threshold: float):
+def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_threshold: float, vali: bool = False):
     """Write the final report as .txt file, with a summary of the results from the annotation 
     performed with hmmsearch. Starts by calculating the number of in-built HMM profiles, and gives an insight of the 
     filtration thresholds.
@@ -249,11 +279,16 @@ def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold:
         path (str): output path.
     """
     # number of initial HMM profiles
-    number_init_hmms = 0
-    for dir in os.listdir(hmmpath):
-        if os.path.isdir(os.path.join(hmmpath, dir)):
-            for _ in os.listdir(os.path.join(hmmpath, dir)):
+    number_init_hmms, number_validated_hmms = 0, 0
+    for dir in os.listdir(hmm_database_path):
+        if os.path.isdir(os.path.join(hmm_database_path, dir)):
+            for _ in os.listdir(os.path.join(hmm_database_path, dir)):
                 number_init_hmms += 1
+    if vali:
+        for dir in os.listdir(validated_hmm_dir):
+            if os.path.isdir(os.path.join(validated_hmm_dir, dir)):
+                for _ in os.listdir(os.path.join(validated_hmm_dir, dir)):
+                    number_validated_hmms += 1
     # get the IDs from all hits after quality check
     query_names = get_match_IDS(dataframe, to_list = True, only_relevant = True)
     # get number of hits given for each sequence
@@ -262,16 +297,17 @@ def text_report(dataframe: pd.DataFrame, path: str, hmmpath: str, bit_threshold:
     unique_seqs = get_unique_hits(query_names)
     inputed_seqs = parse_fasta(args.input, meta_gen = config["metagenomic"])
     if config["validation"] == True:
-        with open(path + "test_report.txt", "w") as f:
+        with open(path + "text_report.txt", "w") as f:
             f.write(f"PlastEDMA hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                    "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
+                    f"for the final report.\n User defined validation to true with {args.negative_db} database, from which resulted"
+                    f"in {number_validated_hmms}. After annotation, another filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
                     f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
                     f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
             f.close
     else:
-        with open(path + "test_report.txt", "w") as f:
+        with open(path + "text_report.txt", "w") as f:
             f.write(f"PlastEDMA hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
                     "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
@@ -373,14 +409,15 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
     table_report(dataframe, out_folder, args.output_type)
     if args.report_text:
         if args.validation:
-            text_report(dataframe, out_folder, validated_hmm_dir, bit_threshold, eval_threshold)
+            text_report(dataframe, out_folder, bit_threshold, eval_threshold, vali = True)
         else:
-            text_report(dataframe, out_folder, hmm_database_path, bit_threshold, eval_threshold)
+            text_report(dataframe, out_folder, bit_threshold, eval_threshold)
     get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs)
+    if args.display_config:
+        write_config(args.input, args.output, args.config_file, with_results = True)
 
-
-doc = write_config(args.input, args.output, "config.yaml")
-config, config_format = read_config_yaml(config_path + "config.yaml")
+doc = write_config(args.input, args.output, args.config_file)
+config, config_format = read_config_yaml(config_path + args.config_file)
 
 hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/results/HMMsearch_results/"
 
@@ -393,7 +430,7 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     print("Starting validation procedures...")
     time.sleep(2)
 
-    exec_testing(thresholds = config["thresholds"], database = args.database)
+    exec_testing(thresholds = config["thresholds"], database = args.negative_db)
     to_remove = hmm_filtration()
     remove_fp_models(to_remove)
     concat_final_model()
@@ -412,7 +449,7 @@ if args.workflow == "annotation" and args.input is not None:
         if not os.path.exists(validated_hmm_dir):
             print("Starting validation procedures...")
             time.sleep(2)
-            exec_testing(thresholds = config["thresholds"], database = args.database)
+            exec_testing(thresholds = config["thresholds"], database = args.negative_db)
             to_remove = hmm_filtration()
             remove_fp_models(to_remove)
             concat_final_model()

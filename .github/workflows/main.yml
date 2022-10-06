@@ -113,7 +113,7 @@ jobs:
         run: docker run plastedma bin/bash -c "plastedma.py -h"
       
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -ip metagenome -o output_results -rt --output_type excel --validation"
+        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation"
 
   annotation_validation_swapdb:
     runs-on: ubuntu-latest
@@ -140,7 +140,7 @@ jobs:
         run: docker run plastedma bin/bash -c "plastedma.py -h"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -ip metagenome -o output_results -rt --output_type excel --validation -db PlastEDMA/ci/polymerase_DB.fasta"
+        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --negative_db PlastEDMA/ci/polymerase_DB.fasta"
 
   # db_construction:
   #   runs-on: ubuntu-latest
