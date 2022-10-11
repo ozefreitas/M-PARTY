@@ -9,20 +9,24 @@ import sys
 from pathlib import Path
 import subprocess
 import shutil
-sys.path.append("/".join(sys.path[0].split("/")[:-2]))
+sys.path.append("/".join(sys.path[1].split("/")[:-2]))
 
 
-caminho0 = sys.path [0]
-sequences_by_cluster_path = caminho0 + "/resources/Data/FASTA/CDHIT/"
-HMM_directory = caminho0 + "/resources/Data/HMMs/After_tcoffee_UPI/"
-vali_directory = caminho0 + "/resources/Data/FASTA/HMM_oneout/"
-eliminated_seqs_dir = caminho0 + "/resources/Data/FASTA/HMM_outseqs/"
-alignments_test_dir = caminho0 + "/resources/Alignments/MultipleSequencesAlign/T_Coffee_HMMVal/"
-hmm_recon_dir = caminho0 + "/resources/Data/HMMs/HMM_reconstructed/"
-hmmsearch_results_dir = caminho0 + "/resources/Data/HMMs/reconstructed_HMMsearch_results/"
-neg_control_dir = caminho0 + "/resources/Data/HMMs/negative_cont_HMMsearch_results/"
-hmmsearch_other_seqs_dir = caminho0 + "/resources/Data/HMMs/other_seqs_HMMsearch_results/"
-validated_models_dir = caminho0 + "/resources/Data/HMMs/validated_HMM/"
+def make_paths_dic(db_name:str) -> dict:
+    caminho0 = sys.path[1]
+    path_dict = {
+        "sequences_by_cluster_path": f'{caminho0}/resources/Data/FASTA/{db_name}/CDHIT/',
+        "HMM_directory": f'{caminho0}/resources/Data/HMMs/{db_name}/After_tcoffee_UPI/',
+        "vali_directory": f'{caminho0}/resources/Data/FASTA/{db_name}/HMM_oneout/',
+        "eliminated_seqs_dir": f'{caminho0}/resources/Data/FASTA/{db_name}/HMM_outseqs/',
+        "alignments_test_dir": f'{caminho0}/resources/Alignments/{db_name}/MultipleSequencesAlign/T_Coffee_HMMVal/',
+        "hmm_recon_dir": f'{caminho0}/resources/Data/HMMs/{db_name}/HMM_reconstructed/',
+        "hmmsearch_results_dir": f'{caminho0}/resources/Data/HMMs/{db_name}/reconstructed_HMMsearch_results/',
+        "neg_control_dir": f'{caminho0}/resources/Data/HMMs/{db_name}/negative_cont_HMMsearch_results/',
+        "hmmsearch_other_seqs_dir": f'{caminho0}/resources/Data/HMMs/{db_name}/other_seqs_HMMsearch_results/',
+        "validated_models_dir": f'{caminho0}/resources/Data/HMMs/{db_name}/validated_HMM/' 
+        }
+    return path_dict
 
 
 def file_generator(path: str, full_path: bool = False) -> str:
@@ -201,7 +205,7 @@ def calc_strict_recall(strictly_recalled: int, hmm_size: int) -> int:
     return (strictly_recalled/hmm_size) * 100
 
 
-def concat_fasta(hmm_number: str, threshold: str) -> str:
+def concat_fasta(hmm_number: str, threshold: str, path_dictionary: dict) -> str:
     """Function to concatenat fasta files, excluding a single file given by the threshold of similarity and 
     the cluster number, that also characterizes the hmm number, for the hmmsearch run of each reconstructed HMM
     against all the other sequences not belonging to that HMM
@@ -214,19 +218,19 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         filename (str): string for the created filename. If file already exists, only returns the name of the file,
         not recreating the file all over again
     """
-    filename = hmmsearch_other_seqs_dir + threshold + "/" + hmm_number + "_out.fasta"
-    fasta_out = sequences_by_cluster_path + threshold + "/" + hmm_number + ".fasta"
+    filename = path_dictionary["hmmsearch_other_seqs_dir"] + threshold + "/" + hmm_number + "_out.fasta"
+    fasta_out = path_dictionary["sequences_by_cluster_path"] + threshold + "/" + hmm_number + ".fasta"
     if os.path.exists(filename):
         return filename
     else:
-        p = os.listdir(sequences_by_cluster_path)
-        Path(hmmsearch_other_seqs_dir).mkdir(parents = True, exist_ok = True)
+        p = os.listdir(path_dictionary["sequences_by_cluster_path"])
+        Path(path_dictionary["hmmsearch_other_seqs_dir"]).mkdir(parents = True, exist_ok = True)
         for thresh in p:
-            if not os.path.exists(hmmsearch_other_seqs_dir + thresh):
-                os.mkdir(hmmsearch_other_seqs_dir + thresh)
+            if not os.path.exists(path_dictionary["hmmsearch_other_seqs_dir"] + thresh):
+                os.mkdir(path_dictionary["hmmsearch_other_seqs_dir"] + thresh)
         with open(filename, 'w') as wf:
             for thresh in p:
-                path = os.path.join(sequences_by_cluster_path, thresh)
+                path = os.path.join(path_dictionary["sequences_by_cluster_path"], thresh)
                 if os.path.isdir(path):
                     for file in file_generator(path, full_path = True):
                         if file == fasta_out:
@@ -238,7 +242,7 @@ def concat_fasta(hmm_number: str, threshold: str) -> str:
         return filename
 
 
-def leave_one_out(thresholds: list):
+def leave_one_out(thresholds: list, path_dictionary: dict):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Only performs the steps with the removed sequences from the models. Does not return anything,
     only the hmmsearch results.
@@ -247,23 +251,23 @@ def leave_one_out(thresholds: list):
         thresholds (list): A list of the thresholds used for similarity separation after UPIMAPI in order to 
     create the correspondent subdirectories
     """
-    Path(vali_directory).mkdir(parents = True, exist_ok = True)
-    Path(alignments_test_dir).mkdir(parents = True, exist_ok = True)
-    Path(hmm_recon_dir).mkdir(parents = True, exist_ok = True)
-    Path(hmmsearch_results_dir).mkdir(parents = True, exist_ok = True)
-    Path(eliminated_seqs_dir).mkdir(parents = True, exist_ok = True)
+    Path(path_dictionary["vali_directory"]).mkdir(parents = True, exist_ok = True)
+    Path(path_dictionary["alignments_test_dir"]).mkdir(parents = True, exist_ok = True)
+    Path(path_dictionary["hmm_recon_dir"]).mkdir(parents = True, exist_ok = True)
+    Path(path_dictionary["hmmsearch_results_dir"]).mkdir(parents = True, exist_ok = True)
+    Path(path_dictionary["eliminated_seqs_dir"]).mkdir(parents = True, exist_ok = True)
     for thresh in thresholds:
-        if not os.path.exists(vali_directory + thresh):
-            os.mkdir(vali_directory + thresh)
-        if not os.path.exists(alignments_test_dir + thresh):
-            os.mkdir(alignments_test_dir + thresh)
-        if not os.path.exists(hmm_recon_dir + thresh):
-            os.mkdir(hmm_recon_dir + thresh)
-        if not os.path.exists(hmmsearch_results_dir + thresh):
-            os.mkdir(hmmsearch_results_dir + thresh)
-        if not os.path.exists(eliminated_seqs_dir + thresh):
-            os.mkdir(eliminated_seqs_dir + thresh)
-        path = os.path.join(sequences_by_cluster_path, thresh)
+        if not os.path.exists(path_dictionary["vali_directory"] + thresh):
+            os.mkdir(path_dictionary["vali_directory"] + thresh)
+        if not os.path.exists(path_dictionary["alignments_test_dir"] + thresh):
+            os.mkdir(path_dictionary["alignments_test_dir"] + thresh)
+        if not os.path.exists(path_dictionary["hmm_recon_dir"] + thresh):
+            os.mkdir(path_dictionary["hmm_recon_dir"] + thresh)
+        if not os.path.exists(path_dictionary["hmmsearch_results_dir"] + thresh):
+            os.mkdir(path_dictionary["hmmsearch_results_dir"] + thresh)
+        if not os.path.exists(path_dictionary["eliminated_seqs_dir"] + thresh):
+            os.mkdir(path_dictionary["eliminated_seqs_dir"] + thresh)
+        path = os.path.join(path_dictionary["sequences_by_cluster_path"], thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 clust_seqs = read_clustered_seqs(path + "/" + file)
@@ -272,37 +276,37 @@ def leave_one_out(thresholds: list):
                 for set_prot, out_seq in removing_one(clust_seqs):
                     inter =  f'{file.split(".")[0]}_oneless_{run}.fasta'
                     out = f'{file.split(".")[0]}_outseq_{run}.fasta'
-                    if os.path.exists(f'{hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm'):
+                    if os.path.exists(f'{path_dictionary["hmm_recon_dir"] + thresh + "/" + inter.split(".")[0]}.hmm'):
                         run += 1
                         continue
-                    write_interfile(vali_directory + thresh + "/" + inter, set_prot)
-                    write_interfile(eliminated_seqs_dir + thresh + "/" + out, out_seq, out_sequence = True)
+                    write_interfile(path_dictionary["vali_directory"] + thresh + "/" + inter, set_prot)
+                    write_interfile(path_dictionary["eliminated_seqs_dir"] + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
-                        run_command(f't_coffee`{vali_directory + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{alignments_test_dir + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN',
+                        run_command(f't_coffee`{path_dictionary["vali_directory"] + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN',
                                     sep = "`")
                         # docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
                         #                     vali_directory + thresh + "/" + inter, 
                         #                     "clustal_aln", 
                         #                     alignments_test_dir + thresh + "/" + f'{inter.split(".")[0]}')
-                        run_command(f'hmmbuild {hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm {alignments_test_dir + thresh + "/" + inter.split(".")[0]}.clustal_aln')
-                        run_hmmsearch(eliminated_seqs_dir + thresh + "/" + out,
-                                        f'{hmm_recon_dir + thresh + "/" + inter.split(".")[0]}.hmm', 
-                                        f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv', 
+                        run_command(f'hmmbuild {path_dictionary["hmm_recon_dir"] + thresh + "/" + inter.split(".")[0]}.hmm {path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln')
+                        run_hmmsearch(path_dictionary["eliminated_seqs_dir"] + thresh + "/" + out,
+                                        f'{path_dictionary["hmm_recon_dir"] + thresh + "/" + inter.split(".")[0]}.hmm', 
+                                        f'{path_dictionary["hmmsearch_results_dir"] + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv', 
                                         out_type = "tsv")
                     except:
                         run += 1
                         print("SOMETHING IS NOT WORKING!!!!!!!!!!")
                         continue
-                    df = read_hmmsearch_table(f'{hmmsearch_results_dir + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
+                    df = read_hmmsearch_table(f'{path_dictionary["hmmsearch_results_dir"] + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
                     df = check_eval(df)
                     if df is not None:
                         passed += 1
                     run += 1
                 # recall divide pelo numero total de sequencias no hmm original (sem leave-one-out)
-                hmm_recall = calc_recall(passed, get_number_seqs(f'{HMM_directory + thresh + "/" + file.split(".")[0]}.hmm'))
+                hmm_recall = calc_recall(passed, get_number_seqs(f'{path_dictionary["HMM_directory"] + thresh + "/" + file.split(".")[0]}.hmm'))
 
 
-def negative_control(database: str = None):
+def negative_control(path_dictionary: dict, database: str = None):
     """Function that executes all the steps for the HMM validation for the negative control
     sequences, in this case, with gut metagenome protein from human. 
     Only performs the steps against the previously built models with one less sequence. Does not return anything, 
@@ -315,29 +319,29 @@ def negative_control(database: str = None):
     if database:
         controlo = database
     else:
-        controlo = sys.path[0] + "/resources/Data/FASTA/human_gut_metagenome.fasta"
-    p = os.listdir(sequences_by_cluster_path)
-    Path(neg_control_dir).mkdir(parents = True, exist_ok = True)
+        controlo = sys.path[1] + "/resources/Data/FASTA/human_gut_metagenome.fasta"
+    p = os.listdir(path_dictionary["sequences_by_cluster_path"])
+    Path(path_dictionary["neg_control_dir"]).mkdir(parents = True, exist_ok = True)
     for thresh in p:
-        if not os.path.exists(neg_control_dir + thresh):
-            os.mkdir(neg_control_dir + thresh)
-        path = os.path.join(hmm_recon_dir, thresh)
+        if not os.path.exists(path_dictionary["neg_control_dir"] + thresh):
+            os.mkdir(path_dictionary["neg_control_dir"] + thresh)
+        path = os.path.join(path_dictionary["hmm_recon_dir"], thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 run_hmmsearch(controlo,
                                 path + "/" + hmm, 
-                                f'{neg_control_dir + thresh}/search_{hmm.split(".")[0]}_{controlo.split(".")[0].split("/")[-1]}.tsv', 
+                                f'{path_dictionary["neg_control_dir"] + thresh}/search_{hmm.split(".")[0]}_{controlo.split(".")[0].split("/")[-1]}.tsv', 
                                 out_type = "tsv")
 
 
-def search_other_seqs():
+def search_other_seqs(path_dictionary: dict):
     """Function that executes all the steps for the HMM validation with the search against all sequences not included
     in the currently analysing HMM. Does not return anything, only the hmmsearch results. For each threshold full run,
     removes all intermediate fasta files created.
     """
-    p = os.listdir(hmm_recon_dir)
+    p = os.listdir(path_dictionary["hmm_recon_dir"])
     for thresh in p:
-        path = os.path.join(hmm_recon_dir, thresh)
+        path = os.path.join(path_dictionary["hmm_recon_dir"], thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 hmm_num = hmm.split("_")[0]
@@ -346,14 +350,14 @@ def search_other_seqs():
                 # lhe deu origem e por isso é também a sequencia que ficará de fora)}
                 run_hmmsearch(target,
                                 path + "/" + hmm, 
-                                f'{hmmsearch_other_seqs_dir + thresh}/search_{"_".join(hmm.split("_")[1:]).split(".")[0]}_clustout_{hmm_num}.tsv', 
+                                f'{path_dictionary["hmmsearch_other_seqs_dir"] + thresh}/search_{"_".join(hmm.split("_")[1:]).split(".")[0]}_clustout_{hmm_num}.tsv', 
                                 out_type = "tsv")
-            for item in os.listdir(hmmsearch_other_seqs_dir + thresh):
+            for item in os.listdir(path_dictionary["hmmsearch_other_seqs_dir"] + thresh):
                 if item.endswith(".fasta"):
-                    delete_inter_files(os.path.join(hmmsearch_other_seqs_dir + thresh, item))
+                    delete_inter_files(os.path.join(path_dictionary["hmmsearch_other_seqs_dir"] + thresh, item))
 
 
-def exec_testing(thresholds: list, database: str = None):
+def exec_testing(thresholds: list, path_dictionary: dict, database: str = None):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
 
@@ -361,12 +365,12 @@ def exec_testing(thresholds: list, database: str = None):
         thresholds (list): the list of thresholds for the leave-one-out
         database (str, optional): a fasta filename with the sequence database for negative control validation
     """
-    leave_one_out(thresholds)
-    negative_control(database)
-    search_other_seqs()
+    leave_one_out(thresholds, path_dictionary)
+    negative_control(path_dictionary, database)
+    search_other_seqs(path_dictionary)
 
 
-def hmm_filtration():
+def hmm_filtration(path_dictionary: dict):
     """Function that will evaluate the results of all three steps of validation - "leave-one-out", "negative
     control" and "search other seqs" and decide which models pass. For this to happen, each reconstructed hmm
     with one less sequence must: all evalues from the recalled sequences must be lower than the minimun evalue 
@@ -378,11 +382,11 @@ def hmm_filtration():
         not passed the validations check.
     """
     # guardar e-values da primeira etapa "leave-one-out"
-    p = os.listdir(hmmsearch_results_dir)
+    p = os.listdir(path_dictionary["hmmsearch_results_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(hmmsearch_results_dir, thresh)
+        path = os.path.join(path_dictionary["hmmsearch_results_dir"], thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -395,11 +399,11 @@ def hmm_filtration():
                     eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
     # guardar e-values da etapa do controlo negativo
-    p = os.listdir(neg_control_dir)
+    p = os.listdir(path_dictionary["neg_control_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     cont_neg_eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(neg_control_dir, thresh)
+        path = os.path.join(path_dictionary["neg_control_dir"], thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -413,11 +417,11 @@ def hmm_filtration():
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
     # guardar e-values da etapa da procura contra todas as outras seqs
-    p = os.listdir(hmmsearch_other_seqs_dir)
+    p = os.listdir(path_dictionary["hmmsearch_other_seqs_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     other_seqs_eval_per_hmms = {}
     for thresh in p:
-        path = os.path.join(hmmsearch_other_seqs_dir, thresh)
+        path = os.path.join(path_dictionary["hmmsearch_other_seqs_dir"], thresh)
         if os.path.isdir(path):
             for file in file_generator(path):
                 # print(path + file)
@@ -446,7 +450,7 @@ def hmm_filtration():
             else:
                 continue
         # print(hmm)
-        hmm_strict_recall = calc_recall(strict_passed, get_number_seqs(f'{HMM_directory + hmm.split("_")[0] + "/" + hmm.split("_")[1]}.hmm'))
+        hmm_strict_recall = calc_recall(strict_passed, get_number_seqs(f'{path_dictionary["HMM_directory"] + hmm.split("_")[0] + "/" + hmm.split("_")[1]}.hmm'))
         if hmm_strict_recall > 80:
             continue
         else:
@@ -454,35 +458,35 @@ def hmm_filtration():
     return false_positives
 
 
-def remove_fp_models(list_fp: list):
+def remove_fp_models(list_fp: list, path_dictionary: dict):
     """Function that will copy the models checked by validtion to a final folder.
 
     Args:
         list_fp (list): A list containing the number of the models (and respective threshold) which did 
         not passed the validations check.
     """
-    Path(validated_models_dir).mkdir(parents = True, exist_ok = True)
-    p = os.listdir(HMM_directory)
+    Path(path_dictionary["validated_models_dir"]).mkdir(parents = True, exist_ok = True)
+    p = os.listdir(path_dictionary["HMM_directory"])
     for thresh in p:
-        path = os.path.join(HMM_directory, thresh)
+        path = os.path.join(path_dictionary["HMM_directory"], thresh)
         if os.path.isdir(path):
-            if not os.path.exists(validated_models_dir + thresh):
-                os.mkdir(validated_models_dir + thresh)
+            if not os.path.exists(path_dictionary["validated_models_dir"] + thresh):
+                os.mkdir(path_dictionary["validated_models_dir"] + thresh)
             for file in file_generator(path):
                 if f'{thresh}_{file.split(".")[0]}' not in list_fp:
-                    shutil.copy(path + "/" + file, validated_models_dir + thresh + "/")
+                    shutil.copy(path + "/" + file, path_dictionary["validated_models_dir"] + thresh + "/")
 
 
-def concat_final_model():
+def concat_final_model(path_dictionary: dict):
     """Function that will cancatenate the models from each threshold in a single hmm file
     """
-    p = os.listdir(validated_models_dir)
+    p = os.listdir(path_dictionary["validated_models_dir"])
     for thresh in p:
-        path = os.path.join(validated_models_dir, thresh)
+        path = os.path.join(path_dictionary["validated_models_dir"], thresh)
         if os.path.isdir(path):
-            with open(validated_models_dir + thresh + ".hmm", "w") as wf:
+            with open(path_dictionary["validated_models_dir"] + thresh + ".hmm", "w") as wf:
                 for file in file_generator(path):
-                    with open(validated_models_dir + thresh + "/" + file, "r") as f:
+                    with open(path_dictionary["validated_models_dir"] + thresh + "/" + file, "r") as f:
                         Lines = f.readlines()
                         for line in Lines:
                             wf.write(line)

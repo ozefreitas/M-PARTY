@@ -65,5 +65,26 @@ def match_threshold_W_cluster(combinador, desired_combs) -> tuple:
 
 
 def cat_hmms_input(wildcards):
-	return expand("workflow/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm", threshold=wildcards, cluster=threshold2clusters[wildcards])
+	return expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm", threshold=wildcards, cluster=threshold2clusters[wildcards])
+
+
+def get_target_db(config):
+	return config["hmm_database_name"]
+
+
+def get_output_dir(path, config, hmm = False):
+	c = path.split("_")
+	if hmm:
+		ind = c.index("HMMs")
+	else:
+		try:
+			ind = c.index("FASTA")
+		except:
+			ind = c.index("Tables")
+	c.insert(ind + 1, config["hmm_database_name"])
+	return "/".join(c)
+
+
+def download_uniprot():
+	pass
 

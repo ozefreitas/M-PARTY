@@ -1,6 +1,6 @@
 {% set name = "PlastEDMA" %}
-{% set version = "0.1.3" %}
-{% set sha256 = "fa0f4a9742c3cbac8a768769d6a8891cfa92aaf3de7e8e0b1c1318c934067be3" %}
+{% set version = "0.2.1" %}
+{% set sha256 = "5336686ae082d8f2de2787356b718fefe41ee93e4b86051ec2a5b6ea719dee65" %}
 
 package:
   name: {{ name|lower }}
@@ -12,7 +12,7 @@ source:
 
 build:
   noarch: python
-  number: 0
+  number: 1
 
 requirements:
   run:
@@ -27,8 +27,8 @@ requirements:
 
 test:
   commands:
-    - plastedma.py -h
-    # - plastedma.py -i lit_sequences.fasta -o output_results -rt --output_type excel
+    - plastedma -h
+    # - plastedma.py -i $INSTALL_FOLDER/lit_sequences.fasta -o output_results -rt --output_type excel
 
 about:
   home: https://github.com/ozefreitas/PlastEDMA

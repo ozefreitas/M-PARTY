@@ -11,7 +11,8 @@ Oct 2022
 
 import argparse
 import sys
-sys.path.append(f'{sys.path[0]}/workflow/scripts')
+sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
+sys.path.append(f'{sys.path[1]}/workflow/scripts')
 # sys.path.append(f'{sys.path[0]}/PlastEDMA')
 print(sys.path)
 import os
@@ -27,18 +28,18 @@ import glob
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models
+from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic
 
 
-version = "0.1.3"
+version = "0.2.1"
 
 
 strat = "/".join(sys.path[0].split("/")[:-1])
-snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
+snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
-hmm_database_path = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
-validated_hmm_dir = "/".join(sys.path[0].split("/"))+"/resources/Data/HMMs/validated_HMM/"
+hmm_database_path = "/".join(sys.path[1].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
+validated_hmm_dir = "/".join(sys.path[1].split("/"))+"/resources/Data/HMMs/validated_HMM/"
 
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
@@ -62,8 +63,7 @@ parser.add_argument("--validation", default = False, action = "store_true", help
                     the 'leave-one-out' cross validation methods. Call to set to True. Defaults to False")
 parser.add_argument("-p", "--produce_inter_tables", default = False, action = "store_true", help = "call if user wants to save intermediate\
                     tables as parseale .csv files (tables from hmmsearch results processing)")
-parser.add_argument("--negative_db", help = "path to a user defined negative control database. Default use of human gut microbiome",
-                    default = "human_gut_metagenome")
+parser.add_argument("--negative_db", help = "path to a user defined negative control database. Default use of human gut microbiome")
 parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow Snakefile. Defaults to '/workflow/Snakefile",
                     default = "/workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
@@ -186,6 +186,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
                 "database": args.database,
                 "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
                 "input_file_db_const": args.input_seqs_db_const,
+                "hmm_database_name": args.hmm_db_name,
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
                 "validation": True if args.workflow == "database_construction" or 
@@ -235,7 +236,7 @@ def file_generator(path: str, full_path: bool = False) -> str:
                 yield file
 
 
-def table_report(dataframe: pd.DataFrame, path: str, type_format: str):
+def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: str):
     """Saves a table in a user specified format, with the processed and filtered information from the 
     hmmsearch execution with the HMMs against the query sequences.
 
@@ -244,18 +245,22 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str):
         for all hmm from all threshold ranges.
         path (str): output path.
         type_format (str): Specify the output format.
+        db_name(str): Name of the databases name.
 
     Raises:
         TypeError: Raises TypeError error if user gives an unsupported output format.
     """
-    pre_plastic = "PE_"
+    prefix_model = db_name + "_"
     summary_dic = {
+        "models": [prefix_model + model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
         "querys": get_match_IDS(dataframe, to_list = True, only_relevant = True),
-        "models": [pre_plastic + model for model in get_models_names(dataframe, to_list = True, only_relevant = True)],
         "bit_scores": get_bit_scores(dataframe, to_list = True, only_relevant = True),
         "e_values": get_e_values(dataframe, to_list = True, only_relevant = True)
         }
     # print(summary_dic)
+    indexes = dataframe.index.values.tolist()
+    for i in range(len(indexes)):
+        summary_dic["models"][i] = f'{indexes[i]}_{summary_dic["models"][i]}'
     df = pd.DataFrame.from_dict(summary_dic)
     table_name = "report_table." + type_format
     if type_format == "tsv":
@@ -263,7 +268,28 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str):
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
-        df.to_excel(path + "report_table.xlsx", sheet_name = "Table_Report", index = 0)
+        mother_seqs = f'resources/Data/FASTA/{db_name}/CDHIT/'
+        list_IDS_permodel = {}
+        for val in summary_dic["models"]:
+            thresh = val.split("_")[0]
+            model = val.split("_")[-1]
+            for folder in os.listdir(mother_seqs):
+                if os.path.isdir(os.path.join(mother_seqs, folder)) and folder == thresh:
+                    for file in os.listdir(os.path.join(mother_seqs, folder)):
+                        if file.endswith(".fasta") and model == file.split(".")[0]:
+                            key = thresh + "_" + model
+                            if key not in list_IDS_permodel:
+                                list_IDS_permodel[key] = parse_fasta(mother_seqs + folder + "/" + file, meta_gen = True if args.input_type == "metagenome" else False)
+                            # else:
+                            #     list_IDS_permodel[key].append(parse_fasta(mother_seqs + folder + "/" + file, meta_gen = True if args.input_type == "metagenome" else False))
+        # print(list_IDS_permodel)
+        writer = pd.ExcelWriter(path + "report_table.xlsx", engine = "openpyxl")
+        df.to_excel(writer, sheet_name = "Table_Report", index = 0)
+        df1 = pd.DataFrame.from_dict(list_IDS_permodel, orient = "index")
+        # df1 = df1.transpose()
+        df1.to_excel(writer, sheet_name = "Model_Sequences")
+        writer.save()
+        writer.close()
     else:
         raise TypeError("Specified table format is not available. Read documentation for --output_type.")
 
@@ -406,7 +432,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
         inputed_seqs (str): name of the initial input file.
     """
     out_folder = args.output + "/"
-    table_report(dataframe, out_folder, args.output_type)
+    table_report(dataframe, out_folder, args.output_type, args.hmm_db_name)
     if args.report_text:
         if args.validation:
             text_report(dataframe, out_folder, bit_threshold, eval_threshold, vali = True)
@@ -419,7 +445,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, args.config_file)
 config, config_format = read_config_yaml(config_path + args.config_file)
 
-hmmsearch_results_path = sys.path[0].replace("\\", "/")+"/results/HMMsearch_results/"
+hmmsearch_results_path = sys.path[1].replace("\\", "/")+"/results/HMMsearch_results/"
 
 
 st = time.time()
@@ -430,10 +456,14 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     print("Starting validation procedures...")
     time.sleep(2)
 
-    exec_testing(thresholds = config["thresholds"], database = args.negative_db)
-    to_remove = hmm_filtration()
-    remove_fp_models(to_remove)
-    concat_final_model()
+    if args.hmm_db_name is None:
+        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+    else:
+        pathing = make_paths_dic(args.hmm_db_name)
+    exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+    to_remove = hmm_filtration(pathing)
+    remove_fp_models(to_remove, pathing)
+    concat_final_model(pathing)
     time.sleep(2)
     print("PlastEDMA has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
 
@@ -449,12 +479,19 @@ if args.workflow == "annotation" and args.input is not None:
         if not os.path.exists(validated_hmm_dir):
             print("Starting validation procedures...")
             time.sleep(2)
-            exec_testing(thresholds = config["thresholds"], database = args.negative_db)
-            to_remove = hmm_filtration()
-            remove_fp_models(to_remove)
-            concat_final_model()
+
+            if args.hmm_db_name is None:
+                raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+            else:
+                pathing = make_paths_dic(args.hmm_db_name)
+            exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
+            to_remove = hmm_filtration(pathing)
+            remove_fp_models(to_remove, pathing)
+            concat_final_model(pathing)
         else:
             print("Validated HMM already up, proceding to annotation...")
+            time.spleep(2)
+
         for hmm_file in file_generator(validated_hmm_dir, full_path = True):
             run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
@@ -467,12 +504,13 @@ if args.workflow == "annotation" and args.input is not None:
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
 
-    lista_dataframes = []
+    lista_dataframes = dict.fromkeys(config["thresholds"])
     for file in file_generator(hmmsearch_results_path):
-            # if config["input_file"] in file:
-        # print(f'File {file} detected \n')
-        lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
-    final_df = concat_df_byrow(list_df = lista_dataframes)
+        # if config["input_file"] in file:
+            # print(f'File {file} detected \n')
+        thresh = file.split("_")[-1].split(".")[0]
+        lista_dataframes[thresh] = read_hmmsearch_table(hmmsearch_results_path + file)
+    final_df = concat_df_byrow(df_dict = lista_dataframes)
     rel_df = relevant_info_df(final_df)
     # print(rel_df)
     quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
@@ -492,15 +530,18 @@ elif args.workflow == "database_construction":
     # snakemake.main(
     #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
     #     f'{" --unlock" if args.unlock else ""}')
-    
-    # print("Starting validation procedures...")
-    # time.sleep(2)
 
-#     if args.validation:
-#     exec_testing()
-#     to_remove = hmm_filtration()
-#     remove_fp_models(to_remove)
-#     concat_final_model()
+    # if args.validation:
+        # print("Starting validation procedures...")
+        # time.sleep(2)
+        # if args.hmm_db_name is None:
+        #     raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        # else:
+        #     pathing = make_paths_dic(args.hmm_db_name)
+    #     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
+    #     to_remove = hmm_filtration(pathing)
+    #     remove_fp_models(to_remove, pathing)
+    #     concat_final_model(pathing)
 
     quit("Exiting PlastEDMA's program execution...")
 
@@ -520,10 +561,15 @@ elif args.workflow == "both":
 #     if args.validation:
         # print("Starting validation procedures...")
         # time.sleep(2)
-        # exec_testing()
-        # to_remove = hmm_filtration()
-        # remove_fp_models(to_remove)
-        # concat_final_model()
+
+        # if args.hmm_db_name is None:
+        #     raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        # else:
+        #     pathing = make_paths_dic(args.hmm_db_name)
+    #     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
+    #     to_remove = hmm_filtration(pathing)
+    #     remove_fp_models(to_remove, pathing)
+    #     concat_final_model(pathing)
 
     # print("Annotation workflow with hmmsearch started...")
     # time.sleep(2)

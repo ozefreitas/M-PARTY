@@ -3,9 +3,9 @@ import sys
 import numpy as np
 
 
-hmmsearch_out_folder = "/".join(sys.path[0].replace("\\", "/").split("/"))+"/Data/HMMs/HMMsearch_results/"
+hmmsearch_out_folder = "/".join(sys.path[1].replace("\\", "/").split("/"))+"/Data/HMMs/HMMsearch_results/"
 # Para testar em raw python
-# hmmsearch_out_folder = "/".join(sys.path[0].replace("\\", "/").split("/")[:-1])+"/Data/HMMs/HMMsearch_results/"
+# hmmsearch_out_folder = "/".join(sys.path[1].replace("\\", "/").split("/")[:-1])+"/Data/HMMs/HMMsearch_results/"
 
 def read_hmmsearch_table(path: str, format: str = "tblout", save_as_csv: bool = False) -> pd.DataFrame:
     """Function receives the path for a paseable tabular (space-delimited) file from hmmsearch execution, and proceeds to its conversion
@@ -207,18 +207,27 @@ def relevant_info_df(dataframe: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([scores, evalues, matches, models], axis = 1)
 
 
-def concat_df_byrow(*dfs: pd.DataFrame, list_df: list = []) -> pd.DataFrame:
+def concat_df_byrow(*dfs: pd.DataFrame, df_dict: dict = {}) -> pd.DataFrame:
     """Given any number of pandas dataframes, concatenate them by row.
 
     Args:
-        list_df (list): A list of pandas dataframe objects to be merged together.
+        df_dict (dict): A dictionary of pandas dataframe objects with the theshold intervals as keys to be merged together.
 
     Returns:
         pd.DataFrame: A bigger (by number of indexes) Dataframe, with all hits from all given dataframes.
     """
-    if list_df == []:
+    list_df = []
+    if df_dict == {}:
         list_df = [df for df in dfs]
-    big_df = pd.concat(list_df, ignore_index = True, sort = False)
+    for k, v in df_dict.items():
+        index = []
+        counter = get_number_hits(v)
+        for _ in range(counter):
+            index.append(k)
+        indexes = pd.Index(index)
+        prov_df = v.set_index(indexes)
+        list_df.append(prov_df)
+    big_df = pd.concat(list_df, sort = False)
     return big_df
 
 
@@ -242,9 +251,9 @@ def quality_check(dataframe: pd.DataFrame, list_df: list = None, *dfs: pd.DataFr
         dataframe = concat_df_byrow(dfs=dfs)
     process_df = dataframe[(dataframe["bit_score"] >= bit_threshold) & (dataframe["E-value"] <= eval_threshold)]
     if give_params:
-        return process_df.reset_index(drop = True), bit_threshold, eval_threshold
+        return process_df, bit_threshold, eval_threshold
     else:
-        return process_df.reset_index(drop = True)
+        return process_df
 
 
 def get_bit_evalue_thresholds(bit, evalue) -> tuple:
