@@ -13,6 +13,15 @@ sys.path.append("/".join(sys.path[1].split("/")[:-2]))
 
 
 def make_paths_dic(db_name:str) -> dict:
+    """Function that will resolve all folder paths needed for the validation workflow, resolving the
+    system path the files are in and including the database name for the models
+
+    Args:
+        db_name (str): database name given by the --hmm_db_name option when running PlastEDMA
+
+    Returns:
+        dict: a dictionary with an identifier of each path as key and the corresponding path as values
+    """
     caminho0 = sys.path[1]
     path_dict = {
         "sequences_by_cluster_path": f'{caminho0}/resources/Data/FASTA/{db_name}/CDHIT/',
@@ -211,12 +220,14 @@ def concat_fasta(hmm_number: str, threshold: str, path_dictionary: dict) -> str:
     against all the other sequences not belonging to that HMM
 
     Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+    with the database name given in the --hmm_db_name when running PlastEDMA
         hmm_number (str): number of the built hmm.
         threshold (str): string number of the similarity threshold.
     
     Returns:
         filename (str): string for the created filename. If file already exists, only returns the name of the file,
-        not recreating the file all over again
+    not recreating the file all over again
     """
     filename = path_dictionary["hmmsearch_other_seqs_dir"] + threshold + "/" + hmm_number + "_out.fasta"
     fasta_out = path_dictionary["sequences_by_cluster_path"] + threshold + "/" + hmm_number + ".fasta"
@@ -248,6 +259,8 @@ def leave_one_out(thresholds: list, path_dictionary: dict):
     only the hmmsearch results.
 
     Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+    with the database name given in the --hmm_db_name when running PlastEDMA
         thresholds (list): A list of the thresholds used for similarity separation after UPIMAPI in order to 
     create the correspondent subdirectories
     """
@@ -313,6 +326,8 @@ def negative_control(path_dictionary: dict, database: str = None):
     only the hmmsearch results.
 
     Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+    with the database name given in the --hmm_db_name when running PlastEDMA
         database (str, optional): A path for a fasta file with a set of protein sequences to serve as negative control.
     Defaults to None. Only for testing purposes.
     """
@@ -345,7 +360,7 @@ def search_other_seqs(path_dictionary: dict):
         if os.path.isdir(path):
             for hmm in file_generator(path):
                 hmm_num = hmm.split("_")[0]
-                target = concat_fasta(hmm_num, thresh)
+                target = concat_fasta(hmm_num, thresh, path_dictionary)
                 # nome será search_oneless_{sequencia que esta de fora}_clustout{numero do hmm (que é o mesmo do cluster que
                 # lhe deu origem e por isso é também a sequencia que ficará de fora)}
                 run_hmmsearch(target,
@@ -362,6 +377,8 @@ def exec_testing(thresholds: list, path_dictionary: dict, database: str = None):
     validation. Does not return anything, just write the final models.
 
     Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+    with the database name given in the --hmm_db_name when running PlastEDMA
         thresholds (list): the list of thresholds for the leave-one-out
         database (str, optional): a fasta filename with the sequence database for negative control validation
     """
@@ -376,6 +393,10 @@ def hmm_filtration(path_dictionary: dict):
     with one less sequence must: all evalues from the recalled sequences must be lower than the minimun evalue 
     from all the other tests (negative control and search agaisnt other sequences).
     Function must differentiate between each hmm in terms of the sequences left out. 
+
+    Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+        with the database name given in the --hmm_db_name when running PlastEDMA
 
     Returns:
         false_positives (list): A list containing the number of the models (and respective threshold) which did 
@@ -462,6 +483,8 @@ def remove_fp_models(list_fp: list, path_dictionary: dict):
     """Function that will copy the models checked by validtion to a final folder.
 
     Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+        with the database name given in the --hmm_db_name when running PlastEDMA
         list_fp (list): A list containing the number of the models (and respective threshold) which did 
         not passed the validations check.
     """
@@ -478,7 +501,11 @@ def remove_fp_models(list_fp: list, path_dictionary: dict):
 
 
 def concat_final_model(path_dictionary: dict):
-    """Function that will cancatenate the models from each threshold in a single hmm file
+    """Function that will cancatenate the models from each threshold in a single hmm file.
+
+    Args:
+        path_dictionay (dict): dictionary containing the paths to all directories needed for validation
+        with the database name given in the --hmm_db_name when running PlastEDMA
     """
     p = os.listdir(path_dictionary["validated_models_dir"])
     for thresh in p:
