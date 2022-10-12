@@ -91,12 +91,14 @@ def read_config_yaml(filename: str) -> tuple:
         with open(filename) as stream:
             try:
                 config_file = yaml.safe_load(stream)
+                stream.close()
             except yaml.YAMLError as exc:
                 print(exc)
     elif config_type == "json":
         with open(filename) as stream:
             try:
-                config_file == json.load(stream)    
+                config_file == json.load(stream)  
+                stream.close()  
             except json.decoder.JSONDecodeError as exc:
                 print(exc)
     else:
@@ -201,21 +203,26 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
     Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
     config_type = config_filename.split(".")[-1]
-    if config_type == "yaml":
-        with open(caminho, "w") as file:
-            document = yaml.dump(dict_file, file)
-    else:
-        with open(caminho, "w") as file:
-            document = json.dumps(dict_file)
-            file.write(document)
     if with_results:
         if config_type == "yaml":
-            with open(out_dir, "w") as file:
+            with open(f'{out_dir}/{config_filename}', "w") as file:
                 document = yaml.dump(dict_file, file)
+                file.close()
         else:
-            with open(out_dir, "w") as file:
+            with open(f'{out_dir}/{config_filename}', "w") as file:
                 document = json.dumps(dict_file)
                 file.write(document)
+                file.close()
+    else:
+        if config_type == "yaml":
+            with open(caminho, "w") as file:
+                document = yaml.dump(dict_file, file)
+                file.close()
+        else:
+            with open(caminho, "w") as file:
+                document = json.dumps(dict_file)
+                file.write(document)
+                file.close()
     return document
 
 
