@@ -1,0 +1,7 @@
+PlastEDMA hits report:
+                     
+From a total number of 329 HMM profiles initially considered, only 191 where consideredfor the final report.
+ Filtering process was performed considering the values from bit score and E-value from the HMM search run, 
+in which the considered bit score threshold was 180 and E-value was 1e-05.
+Also, 5 initial query sequences where inputed form ci/sequences.fasta file, from which 5
+ out of these 5 were considered to have a hit against the HMM database.

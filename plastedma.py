@@ -33,14 +33,6 @@ from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtr
 
 version = "0.2.1"
 
-
-strat = "/".join(sys.path[0].split("/")[:-1])
-snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
-# config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
-config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
-hmm_database_path = "/".join(sys.path[1].split("/"))+"/resources/Data/HMMs/After_tcoffee_UPI/"
-validated_hmm_dir = "/".join(sys.path[1].split("/"))+"/resources/Data/HMMs/validated_HMM/"
-
 parser = argparse.ArgumentParser(description="PlastEDMA's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
                     a list of protein sequences to be analysed")
@@ -83,6 +75,14 @@ parser.add_argument("--display_config", default = False, action = "store_true",
 parser.add_argument("-v", "--version", action = "version", version = "PlastEDMA {}".format(version))
 args = parser.parse_args()
 print(vars(args))
+
+
+strat = "/".join(sys.path[0].split("/")[:-1])
+snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
+# config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
+config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
+hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
+validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
 
 def read_config_yaml(filename: str) -> tuple:
@@ -445,7 +445,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, args.config_file)
 config, config_format = read_config_yaml(config_path + args.config_file)
 
-hmmsearch_results_path = sys.path[1].replace("\\", "/")+"/results/HMMsearch_results/"
+hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
 
 
 st = time.time()
