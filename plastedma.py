@@ -268,7 +268,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
-        mother_seqs = f'resources/Data/FASTA/{db_name}/CDHIT/'
+        mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/CDHIT/'
         list_IDS_permodel = {}
         for val in summary_dic["models"]:
             thresh = val.split("_")[0]
