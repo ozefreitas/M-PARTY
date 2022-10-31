@@ -1,28 +1,28 @@
-# PlastEDMA - Plastic Enzymes Degrading for Metagenomic databases Analysis
+# M-PARTY - Plastic Enzymes Degrading for Metagenomic databases Analysis
 #### Version 0.1.3
 
 
 <br>
-PlastEDMA is a free to use, open source user friendly CLI (early release) implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models.
+M-PARTY is a free to use, open source user friendly CLI (early release) implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models.
 <p>
 <br>
 
 ## Index
 
-1. [Introduction](https://github.com/ozefreitas/PlastEDMA#introduction)
-2. [Installation](https://github.com/ozefreitas/PlastEDMA#installation)
-3. [Usage](https://github.com/ozefreitas/PlastEDMA#usage)
-4. [Output](https://github.com/ozefreitas/PlastEDMA#output)
-5. [Additional arguments](https://github.com/ozefreitas/PlastEDMA#additional-arguments)
+1. [Introduction](https://github.com/ozefreitas/M-PARTY#introduction)
+2. [Installation](https://github.com/ozefreitas/M-PARTY#installation)
+3. [Usage](https://github.com/ozefreitas/M-PARTY#usage)
+4. [Output](https://github.com/ozefreitas/M-PARTY#output)
+5. [Additional arguments](https://github.com/ozefreitas/M-PARTY#additional-arguments)
 
 <br>
 
 ## Introduction 
 
-PlastEDMA is a free to use, open source user friendly CLI implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models, that allows the user to freely interacte with the tool in-built databases and backbone. <p>
-PlastEDMA compreends a extensive HMM database, built with state of the art checked enzymatic sequences able to degrade plastic polymers, which is used to carry the structural annotation of given sequences. <p>
-First version of PlastEDMA is only available for mining PE (polyethylene), as latter version will compreend a more vast list of plastics to analyse. <p>
-Also, PlastEDMA is meant to analyse metagenomic sequences, but version 0.1.0 only accepts single FASTA aminoacidic sequences. Basic steps of PlastEDMA annotation workflow in its frist stages are: 
+M-PARTY is a free to use, open source user friendly CLI implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models, that allows the user to freely interacte with the tool in-built databases and backbone. <p>
+M-PARTY compreends a extensive HMM database, built with state of the art checked enzymatic sequences able to degrade plastic polymers, which is used to carry the structural annotation of given sequences. <p>
+First version of M-PARTY is only available for mining PE (polyethylene), as latter version will compreend a more vast list of plastics to analyse. <p>
+Also, M-PARTY is meant to analyse metagenomic sequences, but version 0.1.0 only accepts single FASTA aminoacidic sequences. Basic steps of M-PARTY annotation workflow in its frist stages are: 
 
 1. The acceptence of any number of protein sequences in a single FASTA file as query;
 2. Execution of hmmsearch from the [HMMER package](https://www.hmmer.org/), using the pre-built HMMs from previously knowns sequences able to have some kind of PE deterioration levels as database; 
@@ -37,25 +37,26 @@ Also, PlastEDMA is meant to analyse metagenomic sequences, but version 0.1.0 onl
 
 ## Installation
 
-PlastEDMA is, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:
+M-PARTY is, avaliable for Linux platforms though GitHub repository clonning, using the following line in a git bash terminal inside the desired (empty) folder:
 
 ```
 cd path/to/desired/dir
-git clone https://github.com/ozefreitas/PlastEDMA.git 
+git clone https://github.com/ozefreitas/M-PARTY.git 
 ```
 
-I highly recommed users to create an appropriate conda environment with the required dependencies so PlastEDMA executes smoothly, with:
+I highly recommed users to create an appropriate conda environment with the required dependencies so M-PARTY executes smoothly, with:
 
 ```
 cd workflow/envs/ 
-conda env create -n <name of env> -f plastedma.yaml 
+conda env create -n <name of env> -f m-party.yaml 
 conda activate <name of env> 
 cd ../..
 ```
 
 Clonning though GitHub is only recommended in last case scenario, as this as deprecated in detriment of bioconda distribution aplication.
 
-PlastEDMA is available as a conda package from bioconda. Simply open an Anaconda prompt or a command line interface with Anaconda or Miniconda distributions installed and:
+M-PARTY is available as a conda package from bioconda. Due to tool recent name change, the package still remains with the old name.
+Simply open an Anaconda prompt or a command line interface with Anaconda or Miniconda distributions installed and:
 
 ```
 conda install -c conda-forge -c bioconda plastedma
@@ -74,20 +75,20 @@ due to possible compatibility issues that may occur.
 
 ## Usage
 
-The main and most basic use for PlastEDMA is:<p>
+The main and most basic use for M-PARTY is:<p>
 
 ```
-plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel 
+m-party.py -i path/to/input_file -o output_folder -rt --output_type excel 
 ```
 
 where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded.
 
 <br>
 
-The HMM database PlastEDMA has from the start are not validated, has some can be false positive and give deceiving results. If your goal is to only validate a set a HMMs, than run:
+The HMM database M-PARTY has from the start are not validated, has some can be false positive and give deceiving results. If your goal is to only validate a set a HMMs, than run:
 
 ```
-plastedma.py --validation
+m-party.py --validation
 ```
 
 <br>
@@ -95,21 +96,21 @@ plastedma.py --validation
 Now, if you want you can instantly run the annotation workflow from a set of proteins of your liking, and so performing the validation beforehand, with:
 
 ```
-plastedma.py -i path/to/input_file -o output_folder -rt --output_type excel --validation
+m-party.py -i path/to/input_file -o output_folder -rt --output_type excel --validation
 ```
 
 ## Output
 
-PlastEDMA will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by PlastEDMA, and embrace a series of useful information for the user, depending on the given arguments. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into PlastEDMA). 
+M-PARTY will result in three distinct outputs: **report table**, **text report** and **aligned**. In earlier versions, **report table** is only available in *excel* format, although later will also be for *tsv* and *csv*. **Text report** is a user friendly easy to understand summary of the annotation run performed by M-PARTY, and embrace a series of useful information for the user, depending on the given arguments. For last, **aligned** is a FASTA file with all the sequences that had a match in one or more models (this will be refined as model benchmarking and validation are introduced into M-PARTY). 
 
 <br>
 
 ## Aditional arguments
 
-PlastEDMA is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution, so I highly recommend you to follow the steps in the [usage](https://github.com/ozefreitas/PlastEDMA#usage) section.
+M-PARTY is currently in development stage, so only the **"annotation"** workflow is available, and so, also some other features and parameters still have no use and impact in this tool execution, so I highly recommend you to follow the steps in the [usage](https://github.com/ozefreitas/M-PARTY#usage) section.
 
 ```
-usage: plastedma.py [-h] [-i INPUT]
+usage: m-party.py [-h] [-i INPUT]
                     [--input_seqs_db_const INPUT_SEQS_DB_CONST]
                     [-ip INPUT_TYPE] [-o OUTPUT] [--output_type OUTPUT_TYPE]
                     [-rt] [--hmms_output_type HMMS_OUTPUT_TYPE] [--validation]
@@ -117,7 +118,7 @@ usage: plastedma.py [-h] [-i INPUT]
                     [-hm HMM_MODELS] [--concat_hmm_models] [--unlock]
                     [-w WORKFLOW] [-c CONFIG_FILE] [-v]
 
-PlastEDMA's main script
+M-PARTY's main script
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -132,7 +133,7 @@ optional arguments:
                         file between 'protein', 'nucleic' or 'metagenome'
   -o OUTPUT, --output OUTPUT
                         name for the output directory. Defaults to
-                        'PlastEDMA_results'
+                        'M-PARTY_results'
   --output_type OUTPUT_TYPE
                         chose report table outpt format from 'tsv', 'csv' or
                         'excel'. Defaults to 'tsv'

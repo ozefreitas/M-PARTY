@@ -22,14 +22,14 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: plastedma:latest
-          outputs: type=docker, dest=/tmp/plastedma.tar
+          tags: mparty:latest
+          outputs: type=docker, dest=/tmp/mparty.tar
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
-          name: plastedma
-          path: /tmp/plastedma.tar
+          name: mparty
+          path: /tmp/mparty.tar
 
   annotation:
     runs-on: ubuntu-latest
@@ -41,28 +41,28 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: plastedma
+          name: mparty
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker load --input /tmp/plastedma.tar
+          docker load --input /tmp/mparty.tar
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run plastedma bin/bash -c "ls"
+        run: docker run mparty bin/bash -c "ls"
 
-      - name: Print PlastEDMA's main script
-        run: docker run plastedma bin/bash -c "plastedma.py -h"
+      - name: Print M-PARTY's main script
+        run: docker run mparty bin/bash -c "m-party.py -h"
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/sequences.fasta -o output_results -rt --output_type excel --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/sequences.fasta -o output_results -rt --output_type excel --hmm_db_name PE"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate same outputs
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate config file
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE --display_config"
+        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE --display_config"
 
   validation:
     runs-on: ubuntu-latest
@@ -74,22 +74,22 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: plastedma
+          name: mparty
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker load --input /tmp/plastedma.tar
+          docker load --input /tmp/mparty.tar
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run plastedma bin/bash -c "ls"
+        run: docker run mparty bin/bash -c "ls"
 
-      - name: Print PlastEDMA's main script
-        run: docker run plastedma bin/bash -c "plastedma.py -h"
+      - name: Print M-PARTY's main script
+        run: docker run mparty bin/bash -c "mparty.py -h"
 
       - name: Validation workflow alone
-        run: docker run plastedma bin/bash -c "plastedma.py --validation --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "mparty.py --validation --hmm_db_name PE"
 
   annotation_validation:
     runs-on: ubuntu-latest
@@ -101,22 +101,22 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: plastedma
+          name: mparty
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker load --input /tmp/plastedma.tar
+          docker load --input /tmp/mparty.tar
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run plastedma bin/bash -c "ls"
+        run: docker run mparty bin/bash -c "ls"
 
-      - name: Print PlastEDMA's main script
-        run: docker run plastedma bin/bash -c "plastedma.py -h"
+      - name: Print M-PARTY's main script
+        run: docker run mparty bin/bash -c "mparty.py -h"
       
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
 
   annotation_validation_swapdb:
     runs-on: ubuntu-latest
@@ -128,22 +128,22 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: plastedma
+          name: mparty
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker load --input /tmp/plastedma.tar
+          docker load --input /tmp/mparty.tar
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run plastedma bin/bash -c "ls"
+        run: docker run mparty bin/bash -c "ls"
 
-      - name: Print PlastEDMA's main script
-        run: docker run plastedma bin/bash -c "plastedma.py -h"
+      - name: Print M-PARTY's main script
+        run: docker run mparty bin/bash -c "mparty.py -h"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
-        run: docker run plastedma bin/bash -c "plastedma.py -i PlastEDMA/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db PlastEDMA/ci/polymerase_DB.fasta"
+        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
 
   # db_construction:
   #   runs-on: ubuntu-latest
@@ -155,26 +155,26 @@ jobs:
   #     - name: Download artifact
   #       uses: actions/download-artifact@v2
   #       with:
-  #         name: plastedma
+  #         name: mparty
   #         path: /tmp
 
   #     - name: Load Docker image
   #       run: |
-  #         docker load --input /tmp/plastedma.tar
+  #         docker load --input /tmp/mparty.tar
   #         docker image ls -a
 
   #     - name: Check base entrypoint
-  #       run: docker run plastedma bin/bash -c "ls"
+  #       run: docker run mparty bin/bash -c "ls"
 
-  #     - name: Print PlastEDMA's main script
-  #       run: docker run plastedma bin/bash -c "plastedma.py -h"
+  #     - name: Print M-PARTY's main script
+  #       run: docker run mparty bin/bash -c "mparty.py -h"
 
       # - name: Database construction workflow with small FASTA protein file, WITHOUT model validation script
-      #   run: docker run plastedma bin/bash -c "plastedma.py -w database_construction -i PlastEDMA/ci/sequences.fasta"
+      #   run: docker run mparty bin/bash -c "mparty.py -w database_construction -i M-PARTY/ci/sequences.fasta"
       
       # - name: Database construction workflow with small FASTA protein file, WITH model validation script
-      #   run: docker run plastedma bin/bash -c "plastedma.py -w database_construction -i PlastEDMA/ci/sequences.fasta --validation"
+      #   run: docker run mparty bin/bash -c "mparty.py -w database_construction -i M-PARTY/ci/sequences.fasta --validation"
       
-      # - name: Full PlastEDMA workflow execution!
-      #   run: docker run plastedma bin/bash -c "plastedma.py -w both -i PlastEDMA/ci/sequences.fasta -o output_results -rt --output_type excel --validation"
+      # - name: Full M-PARTY workflow execution!
+      #   run: docker run mparty bin/bash -c "mparty.py -w both -i M-PARTY/ci/sequences.fasta -o output_results -rt --output_type excel --validation"
       
