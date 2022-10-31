@@ -1,4 +1,4 @@
-name: plastedma
+name: mparty
 channels:
   - conda-forge
   - bioconda

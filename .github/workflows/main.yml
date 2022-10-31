@@ -86,10 +86,10 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
 
       - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "mparty.py -h"
+        run: docker run mparty bin/bash -c "m-party.py -h"
 
       - name: Validation workflow alone
-        run: docker run mparty bin/bash -c "mparty.py --validation --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py --validation --hmm_db_name PE"
 
   annotation_validation:
     runs-on: ubuntu-latest
@@ -113,10 +113,10 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
 
       - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "mparty.py -h"
+        run: docker run mparty bin/bash -c "m-party.py -h"
       
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
-        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
 
   annotation_validation_swapdb:
     runs-on: ubuntu-latest
@@ -140,10 +140,10 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
 
       - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "mparty.py -h"
+        run: docker run mparty bin/bash -c "m-party.py -h"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
-        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
 
   # db_construction:
   #   runs-on: ubuntu-latest
@@ -167,14 +167,14 @@ jobs:
   #       run: docker run mparty bin/bash -c "ls"
 
   #     - name: Print M-PARTY's main script
-  #       run: docker run mparty bin/bash -c "mparty.py -h"
+  #       run: docker run mparty bin/bash -c "m-party.py -h"
 
       # - name: Database construction workflow with small FASTA protein file, WITHOUT model validation script
-      #   run: docker run mparty bin/bash -c "mparty.py -w database_construction -i M-PARTY/ci/sequences.fasta"
+      #   run: docker run mparty bin/bash -c "m-party.py -w database_construction -i M-PARTY/ci/sequences.fasta"
       
       # - name: Database construction workflow with small FASTA protein file, WITH model validation script
-      #   run: docker run mparty bin/bash -c "mparty.py -w database_construction -i M-PARTY/ci/sequences.fasta --validation"
+      #   run: docker run mparty bin/bash -c "m-party.py -w database_construction -i M-PARTY/ci/sequences.fasta --validation"
       
       # - name: Full M-PARTY workflow execution!
-      #   run: docker run mparty bin/bash -c "mparty.py -w both -i M-PARTY/ci/sequences.fasta -o output_results -rt --output_type excel --validation"
+      #   run: docker run mparty bin/bash -c "m-party.py -w both -i M-PARTY/ci/sequences.fasta -o output_results -rt --output_type excel --validation"
       
