@@ -2,7 +2,7 @@
 # run tool main script without indicating python
 
 """
-PlastEDMA - Plastic Enzymes Degrading for Metagenomic Analysis
+M-PARTY - Mining Protein dAtasets for Targeted EnzYmes
 
 by José Freitas
 
@@ -97,8 +97,8 @@ def read_config_yaml(filename: str) -> tuple:
     elif config_type == "json":
         with open(filename) as stream:
             try:
-                config_file == json.load(stream)  
-                stream.close()  
+                config_file == json.load(stream)
+                stream.close()
             except json.decoder.JSONDecodeError as exc:
                 print(exc)
     else:
@@ -497,15 +497,17 @@ if args.workflow == "annotation" and args.input is not None:
             concat_final_model(pathing)
         else:
             print("Validated HMM already up, proceding to annotation...")
-            time.spleep(2)
+            time.sleep(2)
 
         for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+            # print(hmm_file)
             run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
     else:
         for hmm_file in file_generator(hmm_database_path, full_path = True):
+            # print(hmm_file)
             run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
@@ -527,6 +529,9 @@ if args.workflow == "annotation" and args.input is not None:
 
 elif args.workflow == "database_construction":
     print("This feature will be available soon!")
+
+    if args.hmm_db_name is None:
+        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
 
     # NAO É MELHOR AO COMEÇAR ESTE WORKFLOW, APAGAR OU "ESCONDER" A BASE DE DADOS QUE JA VEM COM A
     # FERRAMENTA PARA DEPOIS NAO INTERFERIR????

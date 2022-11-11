@@ -62,7 +62,7 @@ jobs:
         run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate config file
-        run: docker run mparty bin/bash -c "mparty.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE --display_config"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE --display_config"
 
   validation:
     runs-on: ubuntu-latest

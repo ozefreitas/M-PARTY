@@ -1,6 +1,10 @@
 from glob import glob
 from itertools import product
+from clint.textui import progress
 import pandas as pd
+import requests
+import shutil
+from docker_run import run_command
 
 
 def get_clusters(tsv_file):
@@ -14,15 +18,21 @@ def get_number_clusters(tsv_file):
 
 
 # vai buscar aos .tsv criados antes, e não fica dependente dos fasta que vão ser criados
-def get_tsv_files(config_file):
-	files = {threshold: glob(f"workflow/Data/Tables/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in config_file["thresholds"]}
+def get_tsv_files(config_file) -> dict:
+	files = {threshold: glob(f"resources/Data/Tables/PE/CDHIT_clusters/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in config_file["thresholds"]}
 	return files
 
 
-def threshold2clusters(file_list):
+def threshold2clusters(file_dic: dict) -> dict:
 	threshold2clusters = {}
-	for thresh, path in file_list.items():
+	for thresh, path in file_dic.items():
 		threshold2clusters[thresh] = get_clusters(path[0])
+	return threshold2clusters
+
+
+def clusters_in_list(dic: dict) -> list:
+	lista_clusters = [v for k, v in dic.items()]
+	return lista_clusters
 
 
 def get_all_clusters(config_file):
@@ -83,8 +93,43 @@ def get_output_dir(path, config, hmm = False):
 			ind = c.index("Tables")
 	c.insert(ind + 1, config["hmm_database_name"])
 	return "/".join(c)
+ 
+
+def get_UPI_queryDB(config):
+	return config["database"]
 
 
-def download_uniprot():
-	pass
+def download_with_progress_bar(url: str, database_folder: str):
+	r = requests.get(url, stream=True)
+	path = f'{database_folder}/{url.split("/")[-1]}'
+	with open(path, "wb") as wf:
+		total_length = int(r.headers.get('content-length'))
+		for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length/1024) + 1): 
+			if chunk:
+				wf.write(chunk)
+				wf.flush()
+	wf.close()
+	
+
+def download_uniprot(database_folder: str):
+	for url in [
+	"https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", 
+	"https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
+	"https://ftp.uniprot.org/pub/databases/uniprot/relnotes.txt"]:
+		download_with_progress_bar(url, database_folder)
+	run_command(f'zcat {database_folder}/{url[0].split("/")[-1]} {database_folder}/{url[1].split("/")[-1]} > {database_folder}/uniprot.fasta')
+
+
+def build_UPI_query_DB(database_folder, config = None):
+	# database = "uniprot"
+	database = get_UPI_queryDB(config)
+	if database == "uniprot":
+		download_uniprot(database_folder)
+	elif database == "swissprot":
+		download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
+		run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+	elif database.split(".")[-1] == "fasta":
+		shutil.move(database, database_folder)
+	else:
+		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a .fasta file of protein sequences.")
 

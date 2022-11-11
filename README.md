@@ -48,7 +48,7 @@ I highly recommed users to create an appropriate conda environment with the requ
 
 ```
 cd workflow/envs/ 
-conda env create -n <name of env> -f m-party.yaml 
+conda env create -n <name of env> -f mparty.yaml 
 conda activate <name of env> 
 cd ../..
 ```

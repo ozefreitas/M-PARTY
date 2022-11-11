@@ -19,9 +19,9 @@ def fasta_retriever_from_cdhit(tsv_file: str, out_file: str):
     # print("cluster", cluster)
     # print("thresh", threshold)
     for index, content in df.iterrows():
-        print(index, type(index))
+        # print(index, type(index))
         if index == int(cluster):
-            print("sucesso")
+            # print("sucesso")
             # abre o ficheiro no modo write
             #file = open("c:/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/FASTA/CDHIT" + threshold + "/" + str(index) + ".fasta", mode="w")
             file = open(out_file, mode="w")
@@ -45,4 +45,3 @@ def fasta_retriever_from_cdhit(tsv_file: str, out_file: str):
             break
 
 fasta_retriever_from_cdhit(snakemake.input[0], snakemake.output[0])
-# fasta_retriever_from_cdhit("C:/Users/Ze/Desktop/Mestrado/3ºSemestre/TESE/PDETool/workflow/Data/Tables/cdhit_clusters_60-65_afterUPIMAPI.tsv", "C:/Users/Ze/Desktop/Mestrado/3ºSemestre/TESE/PDETool/workflow/Data/FASTA/CDHIT/60-65/1.fasta")

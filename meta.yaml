@@ -1,4 +1,4 @@
-{% set name = "PlastEDMA" %}
+{% set name = "M-PARTY" %}
 {% set version = "0.2.1" %}
 {% set sha256 = "5336686ae082d8f2de2787356b718fefe41ee93e4b86051ec2a5b6ea719dee65" %}
 
@@ -7,12 +7,12 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/ozefreitas/PlastEDMA/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://github.com/ozefreitas/M-PARTY/archive/refs/tags/v{{ version }}.tar.gz
   sha256: {{ sha256 }}
 
 build:
   noarch: python
-  number: 1
+  number: 0
 
 requirements:
   run:
@@ -24,20 +24,21 @@ requirements:
     - pandas
     - openpyxl
     - snakemake
+    - clint
 
 test:
   commands:
-    - plastedma -h
-    # - plastedma.py -i $INSTALL_FOLDER/lit_sequences.fasta -o output_results -rt --output_type excel
+    - m-party -h
+    # - m-party -i $INSTALL_FOLDER/lit_sequences.fasta -o output_results -rt --output_type excel
 
 about:
-  home: https://github.com/ozefreitas/PlastEDMA
+  home: https://github.com/ozefreitas/M-PARTY
   license: MIT license
   license_family: MIT
   license_file: LICENSE
-  summary: 'Plastic Enzymes Degrading in Metagenomic databases Analysis'
+  summary: 'Mining Protein dAtasets for Targeted EnzYmes'
   description: |
-    PlastEDMA takes an input FASTA file with a variable number of aminoacidic
+    M-PARTY takes an input FASTA file with a variable number of aminoacidic
     sequences and performes a search against an considerable amount of Hidden 
     Markov Models, previously built and trained from state of the art plastic 
     (PE - polyethylene) degrading enzymes. This process relies on the hmmsearch 
@@ -45,8 +46,8 @@ about:
     about the potential presence of plastic degradring enzymes in the inputed
     sequences, and is composed by 3 distinct files, in order to help the user 
     to have an easier time to read and conclude about the results.
-  doc_url: https://github.com/ozefreitas/PlastEDMA/blob/main/README.md
-  dev_url: https://github.com/ozefreitas/PlastEDMA 
+  doc_url: https://github.com/ozefreitas/M-PARTY/blob/main/README.md
+  dev_url: https://github.com/ozefreitas/M-PARTY 
 
 extra:
   recipe-maintainers:

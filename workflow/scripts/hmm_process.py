@@ -181,7 +181,13 @@ def get_models_names(dataframe: pd.DataFrame, to_list: bool = False, only_releva
     """
     if to_list:
         if only_relevant:
-            return dataframe["query_name"].tolist()
+            lst = dataframe["query_name"].tolist()
+            for i in range(len(lst)):
+                try:
+                    lst[i] = lst[i].split(".")[0]
+                except:
+                    continue
+            return lst
         else:
             return dataframe["identifier"]["query_name"].tolist()
     else:
