@@ -1,5 +1,5 @@
-# M-PARTY - Plastic Enzymes Degrading for Metagenomic databases Analysis
-#### Version 0.1.3
+# M-PARTY - Mining Protein dAtabases foR Targueted enzYmes
+#### Version 0.2.2
 
 
 <br>

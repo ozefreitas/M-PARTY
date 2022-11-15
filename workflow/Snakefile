@@ -1,19 +1,30 @@
 configfile: "config/config.yaml"
 
-from scripts.snakemake_util import get_target_db, get_clusters, threshold2clusters, clusters_in_list
+from scripts.snakemake_util import get_target_db, get_clusters, threshold2clusters, clusters_in_list, get_UPI_queryDB, build_UPI_query_DB
 from glob import glob
 
+
 db_name = get_target_db(config)
-print(f'Database name set to {db_name}. New folders will be created with this name.')
+upi_db = get_UPI_queryDB(config)
+
+print(f'Databases name\'s set to {db_name}. New folders will be created with this name.\n')
+if upi_db == "uniprot" or upi_db == "swissprot":
+	print(f'UPIMAPI query database set to {upi_db}. Download will start shortly.\n')
+else:
+	print(f'UPIMAPI query database set to {upi_db}')
+
 
 rule all:
 	input:
 		expand("resources/Data/HMMs/{db}/After_tcoffee_UPI/{threshold}.hmm", threshold=config["thresholds"], db=db_name)
 
 
+build_UPI_query_DB("resources/Data/FASTA/DataBases/", config=config)
+
+
 # rule UPIMAPI_search:
 # 	input:
-# 		# db_name=get_target_db(config),
+# 		# upi_query=expand("resources/Data/FASTA/DataBases/{query_DB}.fasta", query_DB=config["database"])
 # 		query="resources/Data/FASTA/DataBases/familiesDB.fasta",
 # 		upi_database="resources/Data/FASTA/PE/literature_seq/lit_sequences.fasta"
 # 		# upi_database=config["input_file_db_const"]
@@ -45,14 +56,14 @@ rule UPIMAPI_parse:
 		"scripts/UPIMAPI_parser.py"
 
 
-# rule mockup:
-# 	input:
-# 		expand("resources/Alignments/{db}/BLAST/upimapi_results/UPIMAPI_results.tsv", db=db_name)
-# 	output:
-# 		"mockup.out"
-# 	run:
-# 		with open("mockup.out", "w") as f:
-# 			f.write("sucess!")
+rule mockup:
+	input:
+		expand("resources/Alignments/{db}/BLAST/upimapi_results/UPIMAPI_results.tsv", db=db_name)
+	output:
+		"mockup.out"
+	run:
+		with open("mockup.out", "w") as f:
+			f.write("sucess!")
 
 
 wildcard_constraints:
@@ -222,15 +233,15 @@ rule hmmbuild:
 		"hmmbuild {output} {input}"
 
 
-rule mockup:
- 	input:
- 		["resources/Data/HMMs/{db}/After_tcoffee_UPI/{threshold}/{cluster}.hmm".format(db=db_name, threshold=config["thresholds"][x], 
-		cluster=config[config["thresholds"][x]][y]) for x in range(len(config["thresholds"])) for y in range(len(config[config["thresholds"][x]]))]
- 	output:
- 		"mockup.out"
- 	run:
- 		with open("mockup.out", "w") as f:
- 			f.write("sucess!")
+# rule mockup:
+#  	input:
+#  		["resources/Data/HMMs/{db}/After_tcoffee_UPI/{threshold}/{cluster}.hmm".format(db=db_name, threshold=config["thresholds"][x], 
+# 		cluster=config[config["thresholds"][x]][y]) for x in range(len(config["thresholds"])) for y in range(len(config[config["thresholds"][x]]))]
+#  	output:
+#  		"mockup.out"
+#  	run:
+#  		with open("mockup.out", "w") as f:
+#  			f.write("sucess!")
 
 
 # files = {threshold: glob(f"resources/Data/FASTA/CDHIT/{threshold}/*.fasta") for threshold in config["thresholds"]}

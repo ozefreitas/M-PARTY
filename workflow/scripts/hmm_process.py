@@ -3,10 +3,6 @@ import sys
 import numpy as np
 
 
-hmmsearch_out_folder = "/".join(sys.path[1].replace("\\", "/").split("/"))+"/Data/HMMs/HMMsearch_results/"
-# Para testar em raw python
-# hmmsearch_out_folder = "/".join(sys.path[1].replace("\\", "/").split("/")[:-1])+"/Data/HMMs/HMMsearch_results/"
-
 def read_hmmsearch_table(path: str, format: str = "tblout", save_as_csv: bool = False) -> pd.DataFrame:
     """Function receives the path for a paseable tabular (space-delimited) file from hmmsearch execution, and proceeds to its conversion
     to a pandas Dataframe object.

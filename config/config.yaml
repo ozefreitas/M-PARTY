@@ -1,4 +1,4 @@
-database: UniProt
+database: uniprot
 hmm_database_name: PE
 hmmsearch_out_type: tsv
 input_file: sequences.fasta

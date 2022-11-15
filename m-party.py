@@ -78,11 +78,11 @@ print(vars(args))
 
 
 strat = "/".join(sys.path[0].split("/")[:-1])
-snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
+snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
-hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
-validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
+hmm_database_path = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
+validated_hmm_dir = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
 
 def read_config_yaml(filename: str) -> tuple:
@@ -275,7 +275,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
-        mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/CDHIT/'
+        mother_seqs = f'{sys.path[0]}/resources/Data/FASTA/{db_name}/CDHIT/'
         list_IDS_permodel = {}
         for val in summary_dic["models"]:
             thresh = val.split("_")[0]
@@ -452,7 +452,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, args.config_file)
 config, config_format = read_config_yaml(config_path + args.config_file)
 
-hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
+hmmsearch_results_path = sys.path[0].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
 
 
 st = time.time()

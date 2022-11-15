@@ -123,13 +123,12 @@ def download_uniprot(database_folder: str):
 def build_UPI_query_DB(database_folder, config = None):
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
-	if database == "uniprot":
+	if database.lower() == "uniprot":
 		download_uniprot(database_folder)
-	elif database == "swissprot":
+	elif database.lower() == "swissprot":
 		download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
 		run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
 	elif database.split(".")[-1] == "fasta":
 		shutil.move(database, database_folder)
 	else:
-		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a .fasta file of protein sequences.")
-
+		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a path to a FASTA file of protein sequences.")

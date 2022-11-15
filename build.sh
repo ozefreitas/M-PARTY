@@ -9,8 +9,8 @@ mkdir -p $BIN_FOLDER
 
 cp -r workflow/scripts $INSTALL_FOLDER/
 cp -r config $INSTALL_FOLDER/
-cp -r resources/Data/HMMs/PE/After_tcoffee_UPI/* $INSTALL_FOLDER/
-cp -r resources/Data/FASTA/PE/CDHIT/* $INSTALL_FOLDER/
+cp -r resources/Data/HMMs/PE/After_tcoffee_UPI/* $INSTALL_FOLDER/resources/Data/HMMs/PE/After_tcoffee_UPI/
+cp -r resources/Data/FASTA/PE/CDHIT/* $INSTALL_FOLDER/resources/Data/FASTA/PE/CDHIT/
 cp -r results $INSTALL_FOLDER/
 cp m-party.py $INSTALL_FOLDER/
 # ls -lt $INSTALL_FOLDER

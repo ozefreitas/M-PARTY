@@ -1,5 +1,5 @@
 {% set name = "M-PARTY" %}
-{% set version = "0.2.1" %}
+{% set version = "0.2.2" %}
 {% set sha256 = "5336686ae082d8f2de2787356b718fefe41ee93e4b86051ec2a5b6ea719dee65" %}
 
 package:
@@ -36,7 +36,7 @@ about:
   license: MIT license
   license_family: MIT
   license_file: LICENSE
-  summary: 'Mining Protein dAtasets for Targeted EnzYmes'
+  summary: 'Mining Protein dAtasets foR Targeted EnzYmes'
   description: |
     M-PARTY takes an input FASTA file with a variable number of aminoacidic
     sequences and performes a search against an considerable amount of Hidden 
