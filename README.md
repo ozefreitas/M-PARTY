@@ -59,7 +59,7 @@ M-PARTY is available as a conda package from bioconda. Due to tool recent name c
 Simply open an Anaconda prompt or a command line interface with Anaconda or Miniconda distributions installed and:
 
 ```
-conda install -c conda-forge -c bioconda plastedma
+conda install -c conda-forge -c bioconda m-party
 ```
 
 and you will be good to go. <p>
@@ -67,7 +67,7 @@ and you will be good to go. <p>
 If somethig goes wrong, I sugest you to first create a conda environment with:
 
 ```
-conda create -n <name of env> -c conda-forge -c bioconda plastedma
+conda create -n <name of env> -c conda-forge -c bioconda m-party
 ```
 due to possible compatibility issues that may occur.
 
@@ -78,7 +78,7 @@ due to possible compatibility issues that may occur.
 The main and most basic use for M-PARTY is:<p>
 
 ```
-m-party.py -i path/to/input_file -o output_folder -rt --output_type excel 
+m-party.py -i path/to/input_file -o output_folder -rt --output_type excel --hmm_db_name PE
 ```
 
 where the **`-i` input file** must be in FASTA format and contain only (for the time being) aminoacidic sequences, otherwise, program will exit. **`-o` output folder** can be a pre-existing folder or any name for a folder that will be created anyways. The **`-rt`** option flag instructs the tool to include in the output the report in text format, for an easier interpretation of the annotation results and conclusion taking. Also, **`--output_type`** is recommended to be set to "excel" on these earlier versions, as other output format for the table report will be incrementally coded.
@@ -96,7 +96,7 @@ m-party.py --validation
 Now, if you want you can instantly run the annotation workflow from a set of proteins of your liking, and so performing the validation beforehand, with:
 
 ```
-m-party.py -i path/to/input_file -o output_folder -rt --output_type excel --validation
+m-party -i path/to/input_file -o path/to/output_folder -rt --output_type excel --hmm_db_name PE --validation --display_config
 ```
 
 ## Output
@@ -128,40 +128,52 @@ optional arguments:
   --input_seqs_db_const INPUT_SEQS_DB_CONST
                         input a FASTA file with a set of sequences from which
                         the user wants to create the HMM database from scratch
-  -ip INPUT_TYPE, --input_type INPUT_TYPE
+  -db DATABASE, --database DATABASE
+                        FASTA database to run against the also user inputted
+                        sequences. DIAMOND is performed in order to expand the
+                        data and build the models. PlastEDMA has no in-built
+                        database for this matter. If flag is given, download
+                        of the default database will start and model built
+                        from that. Defaults to UniProt DataBase.
+  --hmm_db_name HMM_DB_NAME
+                        name to be assigned to the hmm database to be created.
+                        Its recomended to give a name that that describes the
+                        family or other characteristic of the given sequences
+  -it INPUT_TYPE, --input_type INPUT_TYPE
                         specifies the nature of the sequences in the input
-                        file between 'protein', 'nucleic' or 'metagenome'
+                        file between 'protein', 'nucleic' or 'metagenome'.
+                        Defaults to 'protein'
   -o OUTPUT, --output OUTPUT
                         name for the output directory. Defaults to
-                        'M-PARTY_results'
+                        'PlastEDMA_results'
   --output_type OUTPUT_TYPE
-                        chose report table outpt format from 'tsv', 'csv' or
+                        choose report table outpt format from 'tsv', 'csv' or
                         'excel'. Defaults to 'tsv'
-  -rt, --report_text    decides wether to produce or not a friendly report in
+  -rt, --report_text    decides whether to produce or not a friendly report in
                         txt format with easy to read information
   --hmms_output_type HMMS_OUTPUT_TYPE
                         chose output type of hmmsearch run from 'out', 'tsv'
-                        ou 'pfam' format. Defaults to 'out'
-  --validation          decides wether to performe models validation and
+                        or 'pfam' format. Defaults to 'tsv'
+  --validation          decides whether to perform models validation and
                         filtration with the 'leave-one-out' cross validation
                         methods. Call to set to True. Defaults to False
   -p, --produce_inter_tables
                         call if user wants to save intermediate tables as
                         parseale .csv files (tables from hmmsearch results
                         processing)
-  -db DATABASE, --database DATABASE
-                        path to a user defined database. Default use of in-
-                        built database
+  --negative_db NEGATIVE_DB
+                        path to a user defined negative control database.
+                        Default use of human gut microbiome
   -s SNAKEFILE, --snakefile SNAKEFILE
-                        user defined snakemake worflow Snakefile. Defaults to
+                        user defined snakemake workflow Snakefile. Defaults to
                         '/workflow/Snakefile
   -t THREADS, --threads THREADS
                         number of threads for Snakemake to use. Defaults to 1
   -hm HMM_MODELS, --hmm_models HMM_MODELS
                         path to a directory containing HMM models previously
-                        created by the user. By default PDETool uses the
-                        built-in HMMs from database in 'resources/Data/HMMs/
-                        After_tcoffee_UPI/'
+                        created by the user. By default PlastEDMA uses the
+                        built-in HMMs from database in
+                        'resources/Data/HMMs/After_tcoffee_UPI/'
   --concat_hmm_models   concatenate HMM models into a single file
   --unlock              could be required after forced workflow termination
   -w WORKFLOW, --workflow WORKFLOW
@@ -171,7 +183,9 @@ optional arguments:
                         annotation. Defaults to "annotation"
   -c CONFIG_FILE, --config_file CONFIG_FILE
                         user defined config file. Only recommended for
-                        advanced users. Defaults to '/config/config.yaml'. If
-                        given, overrides config file construction from input
+                        advanced users. Defaults to 'config.yaml'. If given,
+                        overrides config file construction from input
+  --display_config      declare to output the written config file together
+                        with results. Useful in case of debug
   -v, --version         show program's version number and exit
 ```

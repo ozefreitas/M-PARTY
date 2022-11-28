@@ -31,9 +31,9 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic
 
 
-version = "0.2.1"
+version = "0.2.2"
 
-parser = argparse.ArgumentParser(description="PlastEDMA's main script")
+parser = argparse.ArgumentParser(description="M-PARTY's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
                     a list of protein sequences to be analysed")
 parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
@@ -72,17 +72,17 @@ parser.add_argument("-c", "--config_file", help = "user defined config file. Onl
                     from input", default = "config.yaml")
 parser.add_argument("--display_config", default = False, action = "store_true", 
                     help = "declare to output the written config file together with results. Useful in case of debug")
-parser.add_argument("-v", "--version", action = "version", version = "PlastEDMA {}".format(version))
+parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
 args = parser.parse_args()
 print(vars(args))
 
 
 strat = "/".join(sys.path[0].split("/")[:-1])
-snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
+snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
-hmm_database_path = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
-validated_hmm_dir = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
+hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
+validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
 
 def read_config_yaml(filename: str) -> tuple:
@@ -275,7 +275,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
-        mother_seqs = f'{sys.path[0]}/resources/Data/FASTA/{db_name}/CDHIT/'
+        mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/CDHIT/'
         list_IDS_permodel = {}
         for val in summary_dic["models"]:
             thresh = val.split("_")[0]
@@ -295,7 +295,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
         df1 = pd.DataFrame.from_dict(list_IDS_permodel, orient = "index")
         # df1 = df1.transpose()
         df1.to_excel(writer, sheet_name = "Model_Sequences")
-        writer.save()
+        writer.save()  # FutureWarning: save is not part of the public API, usage can give unexpected results and will be removed in a future version
         writer.close()
     else:
         raise TypeError("Specified table format is not available. Read documentation for --output_type.")
@@ -452,7 +452,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, args.config_file)
 config, config_format = read_config_yaml(config_path + args.config_file)
 
-hmmsearch_results_path = sys.path[0].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
+hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
 
 
 st = time.time()
@@ -528,7 +528,7 @@ if args.workflow == "annotation" and args.input is not None:
     generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
 elif args.workflow == "database_construction":
-    print("This feature will be available soon!")
+    print("HMM database construction workflow from user input started...")
 
     if args.hmm_db_name is None:
         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
@@ -555,7 +555,7 @@ elif args.workflow == "database_construction":
     #     remove_fp_models(to_remove, pathing)
     #     concat_final_model(pathing)
 
-    quit("Exiting PlastEDMA's program execution...")
+    quit("HMM database created!")
 
 elif args.workflow == "both":
     print("Feature still waiting to be implemented into the workflow. Thank you for your patience!")
