@@ -1,21 +1,36 @@
 import pandas as pd
 import re
+from docker_run import run_command
 
 
-def UPIMAPI_parser(filepath):
+def run_UPIMAPI(query: str, outdir: str, upi_database: str, threads: int) -> str:
+    """Function to run UPIMAPI by bash with the given arguments from M-PARTY.
+
+    Args:
+        query (str): Database path to be searched on by DIAMOND.
+        outdir (str): Output directory name.
+        upi_database (str): Sequence list to be searched against the database.
+        threads (int): Number of threads.
+
+    Returns:
+        str: Path to the final TSV file.
+    """
+    run_command(f'upimapi.py`-i`{query}`-o`{outdir}`--database`{upi_database}`-t`{threads}', sep = "`")
+    return outdir + "/UPIMAPI_results.tsv"
+
+def UPIMAPI_parser(filepath: str):
     UPIMAPI_outfile = pd.read_csv(filepath, sep="\t")
     return UPIMAPI_outfile
 
-def UPIMAPI_iter_per_sim(dataframe):
+def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
     """Given a pandas DataFrame, return a dictionary with a list of sequences form the iteration of the sequence similarity between queries and database sequences.
 
     Args:
-        dataframe (DataFrame): A pandas dataframe with diamond documented columns names as header
+        dataframe (pd.DataFrame): A pandas dataframe with diamond documented columns names as header.
 
     Returns:
-        dictionary: A dictionary where the keys are intervals of sequence similarity, and values are lists of UniProtKB queries
+        dict: A dictionary where the keys are intervals of sequence similarity, and values are lists of UniProtKB queries.
     """
-
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
     # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
@@ -35,12 +50,11 @@ def UPIMAPI_iter_per_sim(dataframe):
                     target_enzymes[chave].append(ident)
     return target_enzymes
 
-def save_as_tsv(dic):
+def save_as_tsv(dic: dict, out_path: str):
     int_df = pd.DataFrame.from_dict(dic, orient="index")
-    # int_df.to_csv("C:/Users/jpsfr/OneDrive/Ambiente de Trabalho/TOOL/PDETool/workflow/Data/Tables/UPIMAPI_results_per_sim.tsv", sep="\t")
-    int_df.to_csv(snakemake.output[0], sep="\t")
+    int_df.to_csv(out_path, sep="\t")
 
 
-handle = UPIMAPI_parser(snakemake.input[0])
-dicionario_identidades = UPIMAPI_iter_per_sim(handle)
-save_as_tsv(dicionario_identidades)
+# handle = UPIMAPI_parser(snakemake.input[0])
+# dicionario_identidades = UPIMAPI_iter_per_sim(handle)
+# save_as_tsv(dicionario_identidades)

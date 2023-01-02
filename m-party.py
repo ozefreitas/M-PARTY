@@ -13,7 +13,7 @@ import argparse
 import sys
 sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
 sys.path.append(f'{sys.path[1]}/workflow/scripts')
-# sys.path.append(f'{sys.path[0]}/PlastEDMA')
+# sys.path.append(f'{sys.path[0]}/M-PARTY')
 print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
@@ -24,14 +24,17 @@ import re
 import pandas as pd
 from collections import Counter
 import glob
-# import snakemake
+import snakemake
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic
+from UPIMAPI_parser import *
+from CDHIT_parser import *
+from snakemake_util import build_UPI_query_DB, threshold2clusters, get_tsv_files
 
 
-version = "0.2.2"
+version = "0.2.3"
 
 parser = argparse.ArgumentParser(description="M-PARTY's main script")
 parser.add_argument("-i", "--input", help = "input FASTA file containing\
@@ -39,14 +42,14 @@ parser.add_argument("-i", "--input", help = "input FASTA file containing\
 parser.add_argument("--input_seqs_db_const", help = "input a FASTA file with a set of sequences from which the user \
                     wants to create the HMM database from scratch")
 parser.add_argument("-db", "--database", help = "FASTA database to run against the also user inputted sequences. DIAMOND \
-                    is performed in order to expand the data and build the models. PlastEDMA has no in-built database for this \
+                    is performed in order to expand the data and build the models. M-PARTY has no in-built database for this \
                     matter. If flag is given, download of the default database will start and model built from that. Defaults to UniProt DataBase.",
                     default = "UniProt")
 parser.add_argument("--hmm_db_name", help = "name to be assigned to the hmm database to be created. Its recomended to give a name that \
                     that describes the family or other characteristic of the given sequences")
 parser.add_argument("-it", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
                     'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
-parser.add_argument("-o", "--output", default = "PlastEDMA_results", help = "name for the output directory. Defaults to 'PlastEDMA_results'")
+parser.add_argument("-o", "--output", default = "MPARTY_results", help = "name for the output directory. Defaults to 'MPARTY_results'")
 parser.add_argument("--output_type", default = "tsv", help = "choose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides whether to produce or not a friendly report in \
                     txt format with easy to read information")
@@ -61,7 +64,7 @@ parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
-                    PlastEDMA uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
+                    M-PARTY uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
 parser.add_argument("--concat_hmm_models", action = "store_true", default = False, help = "concatenate HMM models into a single file")
 parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
 parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
@@ -331,7 +334,7 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
     inputed_seqs = parse_fasta(args.input, meta_gen = config["metagenomic"])
     if config["validation"] == True:
         with open(path + "text_report.txt", "w") as f:
-            f.write(f"PlastEDMA hits report:\n \
+            f.write(f"M-PARTY hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
                     f"for the final report.\n User defined validation to true with {args.negative_db} database, from which resulted"
                     f"in {number_validated_hmms}. After annotation, another filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
@@ -341,7 +344,7 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
             f.close
     else:
         with open(path + "text_report.txt", "w") as f:
-            f.write(f"PlastEDMA hits report:\n \
+            f.write(f"M-PARTY hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
                     "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
@@ -472,7 +475,7 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     remove_fp_models(to_remove, pathing)
     concat_final_model(pathing)
     time.sleep(2)
-    print("PlastEDMA has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
+    print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
 
 
 # runs if input sequences are given
@@ -528,88 +531,172 @@ if args.workflow == "annotation" and args.input is not None:
     generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
 elif args.workflow == "database_construction":
-    print("HMM database construction workflow from user input started...")
-
     if args.hmm_db_name is None:
         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-
-    # NAO É MELHOR AO COMEÇAR ESTE WORKFLOW, APAGAR OU "ESCONDER" A BASE DE DADOS QUE JA VEM COM A
-    # FERRAMENTA PARA DEPOIS NAO INTERFERIR????
-
-    # print("Database construction workflow with snakemake started...")
+    else:
+        print("HMM database construction workflow from user input started...")
     time.sleep(2)
 
-    # snakemake.main(
-    #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
-    #     f'{" --unlock" if args.unlock else ""}')
+    ### UPIMAPI run DIAMOND
+    Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
+    query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
+    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    handle = UPIMAPI_parser(aligned_TSV)
+    dic_enzymes = UPIMAPI_iter_per_sim(handle)
+    save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
+    
+    from seq_download import get_fasta_sequences
 
-    # if args.validation:
-        # print("Starting validation procedures...")
-        # time.sleep(2)
-        # if args.hmm_db_name is None:
-        #     raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-        # else:
-        #     pathing = make_paths_dic(args.hmm_db_name)
-    #     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
-    #     to_remove = hmm_filtration(pathing)
-    #     remove_fp_models(to_remove, pathing)
-    #     concat_final_model(pathing)
+    Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
+    for thresh in config["thresholds"]:
+        get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
 
-    quit("HMM database created!")
+        ### run CDHIT
+        run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
+        handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+        handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+        save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
+    
+        from CDHIT_seq_download import fasta_retriever_from_cdhit
+        fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
+                                    f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+        
+    ### add cluster per threshol to config
+    os.remove("config/config.yaml")
+
+    if config_format == "yaml":
+        files = get_tsv_files(config)
+        # print(files)
+        threshandclust = threshold2clusters(files)
+        # print(threshandclust)
+        for thresh, cluster in threshandclust.items():
+            for c in range(len(cluster)):
+                cluster[c] = str(cluster[c])
+            config[thresh] = cluster
+        # print(conf_file)
+    elif config_format == "json":
+        pass
+
+    with open("config/config.yaml", "w") as dump_file:
+        yaml.dump(config, dump_file)
+        dump_file.close()
+
+    snakemake.main(
+        f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
+        f'{" --unlock" if args.unlock else ""}')
+
+    print("HMM database created!")
+    time.sleep(2)
+
+    if args.validation:
+        print("Starting validation procedures...")
+        time.sleep(2)
+        if args.hmm_db_name is None:
+            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        else:
+            pathing = make_paths_dic(args.hmm_db_name)
+        exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+        to_remove = hmm_filtration(pathing)
+        remove_fp_models(to_remove, pathing)
+        concat_final_model(pathing)
 
 elif args.workflow == "both":
-    print("Feature still waiting to be implemented into the workflow. Thank you for your patience!")
-
-    # print("Database construction workflow with snakemake started...")
+    if args.hmm_db_name is None:
+        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+    else:
+        print("HMM database construction workflow from user input started...")
     time.sleep(2)
 
-    # snakemake.main(
-    #     f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.configfile}'
-    #     f'{" --unlock" if args.unlock else ""}')
+    ### UPIMAPI run DIAMOND
+    Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
+    query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
+    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    handle = UPIMAPI_parser(aligned_TSV)
+    dic_enzymes = UPIMAPI_iter_per_sim(handle)
+    save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
+    
+    from seq_download import get_fasta_sequences
 
-    # print("Database construction workflow with snakemake has been completed")
-    # time.sleep(2)
+    Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
+    for thresh in config["thresholds"]:
+        get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
 
-#     if args.validation:
-        # print("Starting validation procedures...")
-        # time.sleep(2)
+        ### run CDHIT
+        run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
+        handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+        handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+        save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
+    
+        from CDHIT_seq_download import fasta_retriever_from_cdhit
+        fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
+                                    f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+        
+    ### add cluster per threshol to config
+    os.remove("config/config.yaml")
 
-        # if args.hmm_db_name is None:
-        #     raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-        # else:
-        #     pathing = make_paths_dic(args.hmm_db_name)
-    #     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
-    #     to_remove = hmm_filtration(pathing)
-    #     remove_fp_models(to_remove, pathing)
-    #     concat_final_model(pathing)
+    if config_format == "yaml":
+        files = get_tsv_files(config)
+        # print(files)
+        threshandclust = threshold2clusters(files)
+        # print(threshandclust)
+        for thresh, cluster in threshandclust.items():
+            for c in range(len(cluster)):
+                cluster[c] = str(cluster[c])
+            config[thresh] = cluster
+        # print(conf_file)
+    elif config_format == "json":
+        pass
 
-    # print("Annotation workflow with hmmsearch started...")
-    # time.sleep(2)
-    # if args.validation:
-    #     for hmm_file in file_generator(validated_hmm_dir, full_path = True):
-    #         run_hmmsearch(args.input, hmm_file, 
-    #                     hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-    #                     "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-    #                     out_type = args.hmms_output_type)
-    # else:
-    #     for hmm_file in file_generator(hmm_database_path, full_path = True):
-    #         run_hmmsearch(args.input, hmm_file, 
-    #                     hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-    #                     "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-    #                     out_type = args.hmms_output_type)
-    #     lista_dataframes = []
-    #     for file in file_generator(hmmsearch_results_path):
-    #         # print(f'File {file} detected \n')
-    #         lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
-    #     final_df = concat_df_byrow(list_df = lista_dataframes)
-    #     rel_df = relevant_info_df(final_df)
-    #     # print(rel_df)
-    #     quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-    #     hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
-    #     # print(hited_seqs)
-    #     generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+    with open("config/config.yaml", "w") as dump_file:
+        yaml.dump(config, dump_file)
+        dump_file.close()
 
-    quit("Exiting PlastEDMA's program execution...")
+    snakemake.main(
+        f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
+        f'{" --unlock" if args.unlock else ""}')
+
+    print("HMM database created!")
+    time.sleep(2)
+
+    if args.validation:
+        print("Starting validation procedures...")
+        time.sleep(2)
+        if args.hmm_db_name is None:
+            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        else:
+            pathing = make_paths_dic(args.hmm_db_name)
+        exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+        to_remove = hmm_filtration(pathing)
+        remove_fp_models(to_remove, pathing)
+        concat_final_model(pathing)
+
+    print("Annotation workflow with hmmsearch started...")
+    time.sleep(2)
+    if args.validation:
+        for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+            run_hmmsearch(args.input, hmm_file, 
+                        hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        out_type = args.hmms_output_type)
+    else:
+        for hmm_file in file_generator(hmm_database_path, full_path = True):
+            run_hmmsearch(args.input, hmm_file, 
+                        hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        out_type = args.hmms_output_type)
+        lista_dataframes = []
+        for file in file_generator(hmmsearch_results_path):
+            # print(f'File {file} detected \n')
+            lista_dataframes.append(read_hmmsearch_table(hmmsearch_results_path + file))
+        final_df = concat_df_byrow(list_df = lista_dataframes)
+        rel_df = relevant_info_df(final_df)
+        # print(rel_df)
+        quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+        hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+        # print(hited_seqs)
+        generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+
+    quit("Exiting M-PARTY's program execution...")
 
 elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
     raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
@@ -619,5 +706,5 @@ et = time.time()
 elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
 print(f'Execution time: {elapsed_time:.4f} milliseconds!')
-print("PlastEDMA has stoped running! Results are displayed in the results folder :)")
+print("M-PARTY has stoped running! Results are displayed in the results folder :)")
 

@@ -3,7 +3,7 @@ import re
 import urllib.request
 
 
-def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc=False):
+def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc: bool = False):
     """Given a .tsv file with UniProt ID's as data, first column as thresholds, write a fasta file with all fasta sequences of the corresponding ID's,
         by similarity thresholds.
     Args:
@@ -45,5 +45,4 @@ def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc=False):
             file.close()
 
 
-get_fasta_sequences(snakemake.input[0], snakemake.output[0])
-# get_fasta_sequences("workflow/Data/Tables/UPIMAPI_results_per_sim.tsv", "workflow/Data/FASTA/UPIMAPI/60-65.fasta")
+# get_fasta_sequences(snakemake.input[0], snakemake.output[0])

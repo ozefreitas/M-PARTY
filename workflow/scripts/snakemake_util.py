@@ -19,7 +19,7 @@ def get_number_clusters(tsv_file):
 
 # vai buscar aos .tsv criados antes, e não fica dependente dos fasta que vão ser criados
 def get_tsv_files(config_file) -> dict:
-	files = {threshold: glob(f"resources/Data/Tables/PE/CDHIT_clusters/cdhit_clusters_{threshold}_afterUPIMAPI.tsv") for threshold in config_file["thresholds"]}
+	files = {threshold: glob(f'resources/Data/Tables/{config_file["hmm_database_name"]}/CDHIT_clusters/cdhit_clusters_{threshold}_afterUPIMAPI.tsv') for threshold in config_file["thresholds"]}
 	return files
 
 
@@ -82,6 +82,10 @@ def get_target_db(config):
 	return config["hmm_database_name"]
 
 
+def get_UPI_queryDB(config):
+	return config["database"]
+
+
 def get_output_dir(path, config, hmm = False):
 	c = path.split("_")
 	if hmm:
@@ -94,10 +98,6 @@ def get_output_dir(path, config, hmm = False):
 	c.insert(ind + 1, config["hmm_database_name"])
 	return "/".join(c)
  
-
-def get_UPI_queryDB(config):
-	return config["database"]
-
 
 def download_with_progress_bar(url: str, database_folder: str):
 	r = requests.get(url, stream=True)
@@ -125,10 +125,13 @@ def build_UPI_query_DB(database_folder, config = None):
 	database = get_UPI_queryDB(config)
 	if database.lower() == "uniprot":
 		download_uniprot(database_folder)
+		return database_folder + "/uniprot.fasta"
 	elif database.lower() == "swissprot":
 		download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
 		run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+		return database_folder + "/uniprot_sprot.fasta"
 	elif database.split(".")[-1] == "fasta":
 		shutil.move(database, database_folder)
+		return database_folder + "/" + database
 	else:
 		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a path to a FASTA file of protein sequences.")
