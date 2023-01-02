@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 import shutil
 from docker_run import run_command
+import os
 
 
 def get_clusters(tsv_file):
@@ -97,7 +98,7 @@ def get_output_dir(path, config, hmm = False):
 			ind = c.index("Tables")
 	c.insert(ind + 1, config["hmm_database_name"])
 	return "/".join(c)
- 
+
 
 def download_with_progress_bar(url: str, database_folder: str):
 	r = requests.get(url, stream=True)
@@ -109,7 +110,7 @@ def download_with_progress_bar(url: str, database_folder: str):
 				wf.write(chunk)
 				wf.flush()
 	wf.close()
-	
+
 
 def download_uniprot(database_folder: str):
 	for url in [
@@ -124,14 +125,17 @@ def build_UPI_query_DB(database_folder, config = None):
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
 	if database.lower() == "uniprot":
+		print(f'Download of {database} started')
 		download_uniprot(database_folder)
 		return database_folder + "/uniprot.fasta"
 	elif database.lower() == "swissprot":
+		print(f'Download of {database} started')
 		download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
 		run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
 		return database_folder + "/uniprot_sprot.fasta"
 	elif database.split(".")[-1] == "fasta":
-		shutil.move(database, database_folder)
-		return database_folder + "/" + database
+		if not os.path.exists(database_folder + "/" + database.split("/")[-1]):
+			shutil.move(database, database_folder)
+		return database_folder + "/" + database.split("/")[-1]
 	else:
 		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a path to a FASTA file of protein sequences.")

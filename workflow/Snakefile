@@ -7,6 +7,7 @@ from glob import glob
 db_name = get_target_db(config)
 upi_db = get_UPI_queryDB(config)
 
+
 print(f'Databases name\'s set to {db_name}. New folders will be created with this name.\n')
 if upi_db == "uniprot" or upi_db == "swissprot":
 	print(f'UPIMAPI query database set to {upi_db}. Download will start shortly.\n')

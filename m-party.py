@@ -60,7 +60,7 @@ parser.add_argument("-p", "--produce_inter_tables", default = False, action = "s
                     tables as parseale .csv files (tables from hmmsearch results processing)")
 parser.add_argument("--negative_db", help = "path to a user defined negative control database. Default use of human gut microbiome")
 parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow Snakefile. Defaults to '/workflow/Snakefile",
-                    default = "/workflow/Snakefile")
+                    default = "workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
@@ -83,7 +83,7 @@ print(vars(args))
 strat = "/".join(sys.path[0].split("/")[:-1])
 snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
-config_path = "/".join(sys.path[0].split("/"))+"/config/"  # for Linux
+config_path = "/".join(sys.path[1].split("/"))+"/config/"  # for Linux
 hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI/'
 validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
@@ -538,9 +538,10 @@ elif args.workflow == "database_construction":
     time.sleep(2)
 
     ### UPIMAPI run DIAMOND
-    Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
+    Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
-    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
     save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
@@ -550,11 +551,13 @@ elif args.workflow == "database_construction":
     Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
     for thresh in config["thresholds"]:
         get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
-
+        
         ### run CDHIT
         run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
         handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+        print(handle)
         handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+        print(handle2)
         save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
     
         from CDHIT_seq_download import fasta_retriever_from_cdhit
@@ -582,23 +585,23 @@ elif args.workflow == "database_construction":
         dump_file.close()
 
     snakemake.main(
-        f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
+        f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
         f'{" --unlock" if args.unlock else ""}')
 
-    print("HMM database created!")
-    time.sleep(2)
+    # print("HMM database created!")
+    # time.sleep(2)
 
-    if args.validation:
-        print("Starting validation procedures...")
-        time.sleep(2)
-        if args.hmm_db_name is None:
-            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-        else:
-            pathing = make_paths_dic(args.hmm_db_name)
-        exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
-        to_remove = hmm_filtration(pathing)
-        remove_fp_models(to_remove, pathing)
-        concat_final_model(pathing)
+    # if args.validation:
+    #     print("Starting validation procedures...")
+    #     time.sleep(2)
+    #     if args.hmm_db_name is None:
+    #         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+    #     else:
+    #         pathing = make_paths_dic(args.hmm_db_name)
+    #     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+    #     to_remove = hmm_filtration(pathing)
+    #     remove_fp_models(to_remove, pathing)
+    #     concat_final_model(pathing)
 
 elif args.workflow == "both":
     if args.hmm_db_name is None:

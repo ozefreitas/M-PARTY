@@ -28,7 +28,7 @@ def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc: bool = False):
                 else:
                     clean = uni_id
                 try:
-                    # faz o download da sequencia em formato fasta
+                   # faz o download da sequencia em formato fasta
                     data = urllib.request.urlopen("http://www.uniprot.org/uniprot/" + clean + ".fasta")
                 except:
                     continue
@@ -43,6 +43,6 @@ def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc: bool = False):
                     file.write(line)
                     file.write("\n")
             file.close()
-
+            break
 
 # get_fasta_sequences(snakemake.input[0], snakemake.output[0])

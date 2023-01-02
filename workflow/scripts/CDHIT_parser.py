@@ -5,7 +5,7 @@ from UPIMAPI_parser import save_as_tsv
 
 
 def run_CDHIT(input: str, output: str):
-    run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`8')
+    run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`8', sep = "`")
 
 def cdhit_parser(txtfile: str) -> dict:
     """Receives a text file with a similar format as a FASTA file, and returns a dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.
@@ -40,6 +40,7 @@ def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool
         remove_single (bool, optional): Decides to remove single sequence clusters. Defaults to True.
         tsv_ready (bool, optional): Only works if remove_single is set to True, and makes a dicitionary of lists, ready to be saved as tsv. Defaults to False.
         remove_duplicates (bool, optional): Decides to remove duplicates from the clusters. Defaults to False.
+
     Returns:
         dict: A dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster, as well as the size
         of that same cluster as value, in the form of tuple.
@@ -54,10 +55,14 @@ def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool
                     number_seqs_by_cluster[k] = (v, len(v))
         else:
             number_seqs_by_cluster[k] = (v, len(v))
+    set_number_seqs_by_cluster = {}
     if remove_duplicates:
         for k, v in number_seqs_by_cluster.items():
-            number_seqs_by_cluster[k] = list(set(v))
-    return number_seqs_by_cluster
+            if len(list(set(v))) == 1:
+                continue
+            else:
+                set_number_seqs_by_cluster[k] = list(set(v))
+    return set_number_seqs_by_cluster
 
 
 # handle = cdhit_parser(snakemake.input[0])
