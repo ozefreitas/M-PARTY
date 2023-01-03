@@ -540,8 +540,8 @@ elif args.workflow == "database_construction":
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
-    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
-    aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
+    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    # aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
     save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
