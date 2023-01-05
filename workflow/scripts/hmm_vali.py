@@ -295,7 +295,7 @@ def leave_one_out(thresholds: list, path_dictionary: dict):
                     write_interfile(path_dictionary["vali_directory"] + thresh + "/" + inter, set_prot)
                     write_interfile(path_dictionary["eliminated_seqs_dir"] + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
-                        run_command(f't_coffee`{path_dictionary["vali_directory"] + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN',
+                        run_command(f't_coffee`{path_dictionary["vali_directory"] + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN`-n_core`4`-thread`8',
                                     sep = "`")
                         # docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
                         #                     vali_directory + thresh + "/" + inter, 
@@ -355,7 +355,10 @@ def search_other_seqs(path_dictionary: dict):
     removes all intermediate fasta files created.
     """
     p = os.listdir(path_dictionary["hmm_recon_dir"])
+    Path(path_dictionary["hmmsearch_other_seqs_dir"]).mkdir(parents = True, exist_ok = True)
     for thresh in p:
+        if not os.path.exists(path_dictionary["neg_control_dir"] + thresh):
+            os.mkdir(path_dictionary["neg_control_dir"] + thresh)
         path = os.path.join(path_dictionary["hmm_recon_dir"], thresh)
         if os.path.isdir(path):
             for hmm in file_generator(path):

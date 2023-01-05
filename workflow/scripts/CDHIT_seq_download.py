@@ -17,7 +17,6 @@ def fasta_retriever_from_cdhit(tsv_file: str, out_dir: str):
     # print(out_file)
     for index, content in df.iterrows():
         # print(index, type(index))
-        # print("sucesso")
         # abre o ficheiro no modo write
         out_file = out_dir + "/" + str(index) + ".fasta"
         file = open(out_file, mode = "w")

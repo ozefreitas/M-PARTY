@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
 sys.path.append(f'{sys.path[1]}/workflow/scripts')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
-print(sys.path)
+# print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -125,6 +125,8 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, meta_gen: bool = F
     unip_IDS = []
     # if only validation, input sequences are not needed
     if args.validation == True and args.workflow == "annotation" and args.input == None:
+        return unip_IDS
+    elif args.workflow == "database_construction" and args.input == None:
         return unip_IDS
     else:
         try:
@@ -237,7 +239,6 @@ def file_generator(path: str, full_path: bool = False) -> str:
     Yields:
         str: Yield the name of each file inside the given directory
     """
-
     for file in os.listdir(path):
         if os.path.isfile(os.path.join(path, file)):
             if full_path:
@@ -304,6 +305,18 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
         raise TypeError("Specified table format is not available. Read documentation for --output_type.")
 
 
+def concat_hmmsearch_results(folder: str, output: str):
+    """Concatenate .TSV files from hmmsearch.
+
+    Args:
+        folder (str): Initial folder with the hmmsearch results in .TSV.
+        output (str): Output directory for the concatenated files.
+    """
+    file_list = os.listdir(folder)
+    df = pd.concat(map(pd.read_csv(sep="\t"), file_list), ignore_index=True)
+    df.to_csv(output, sep = "\t")
+
+
 def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_threshold: float, vali: bool = False):
     """Write the final report as .txt file, with a summary of the results from the annotation 
     performed with hmmsearch. Starts by calculating the number of in-built HMM profiles, and gives an insight of the 
@@ -336,19 +349,19 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
         with open(path + "text_report.txt", "w") as f:
             f.write(f"M-PARTY hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                    f"for the final report.\n User defined validation to true with {args.negative_db} database, from which resulted"
+                    f"for the final report.\nUser defined validation to true with {args.negative_db} database, from which resulted"
                     f"in {number_validated_hmms}. After annotation, another filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
+                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
                     f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
             f.close
     else:
         with open(path + "text_report.txt", "w") as f:
             f.write(f"M-PARTY hits report:\n \
                     \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                    "for the final report.\n Filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
+                    "for the final report.\nFiltering process was performed considering the values from bit score and E-value from the HMM search run, \n"
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n "
+                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
                     f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
             f.close
 
@@ -483,7 +496,7 @@ if args.workflow == "annotation" and args.input is not None:
 
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
-    
+
     Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.validation:
         if not os.path.exists(validated_hmm_dir):
@@ -498,6 +511,8 @@ if args.workflow == "annotation" and args.input is not None:
             to_remove = hmm_filtration(pathing)
             remove_fp_models(to_remove, pathing)
             concat_final_model(pathing)
+            time.sleep(2)
+            print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
         else:
             print("Validated HMM already up, proceding to annotation...")
             time.sleep(2)
@@ -509,12 +524,24 @@ if args.workflow == "annotation" and args.input is not None:
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
     else:
-        for hmm_file in file_generator(hmm_database_path, full_path = True):
-            # print(hmm_file)
-            run_hmmsearch(args.input, hmm_file, 
+        if args.concat_hmm_models:
+            for hmm_file in file_generator(hmm_database_path, full_path = True):
+                print(hmm_file)
+                run_hmmsearch(args.input, hmm_file, 
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
+        # else:
+        #     p = os.listdir(hmm_database_path)
+        #     for thresh in p:
+        #         path = os.path.join(hmm_database_path, thresh)
+        #         Path(path).mkdir(parents = True, exist_ok = True)
+        #         for hmm_file in file_generator(path, full_path = True):
+        #             run_hmmsearch(args.input, hmm_file, 
+        #                 path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+        #                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+        #                 out_type = args.hmms_output_type)
+        #            concat_hmmsearch_results(path, hmmsearch_results_path)
 
     lista_dataframes = dict.fromkeys(config["thresholds"])
     for file in file_generator(hmmsearch_results_path):
@@ -540,18 +567,18 @@ elif args.workflow == "database_construction":
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
-    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
-    # aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
+    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
     save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
-    
+
     from seq_download import get_fasta_sequences
 
     Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
     for thresh in config["thresholds"]:
         get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
-        
+
         ### run CDHIT
         run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
         handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
@@ -559,11 +586,13 @@ elif args.workflow == "database_construction":
         handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
         print(handle2)
         save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
-    
+
         from CDHIT_seq_download import fasta_retriever_from_cdhit
+
+        Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
         fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
                                     f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
-        
+
     ### add cluster per threshol to config
     os.remove("config/config.yaml")
 
@@ -588,8 +617,8 @@ elif args.workflow == "database_construction":
         f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
         f'{" --unlock" if args.unlock else ""}')
 
-    # print("HMM database created!")
-    # time.sleep(2)
+    print("HMM database created!")
+    time.sleep(2)
 
     # if args.validation:
     #     print("Starting validation procedures...")
@@ -602,6 +631,8 @@ elif args.workflow == "database_construction":
     #     to_remove = hmm_filtration(pathing)
     #     remove_fp_models(to_remove, pathing)
     #     concat_final_model(pathing)
+    #     time.sleep(2)
+    #     print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
 
 elif args.workflow == "both":
     if args.hmm_db_name is None:
@@ -617,7 +648,7 @@ elif args.workflow == "both":
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
     save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
-    
+
     from seq_download import get_fasta_sequences
 
     Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
@@ -633,7 +664,7 @@ elif args.workflow == "both":
         from CDHIT_seq_download import fasta_retriever_from_cdhit
         fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
                                     f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
-        
+
     ### add cluster per threshol to config
     os.remove("config/config.yaml")
 
@@ -672,6 +703,8 @@ elif args.workflow == "both":
         to_remove = hmm_filtration(pathing)
         remove_fp_models(to_remove, pathing)
         concat_final_model(pathing)
+        time.sleep(2)
+        print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
 
     print("Annotation workflow with hmmsearch started...")
     time.sleep(2)
@@ -699,7 +732,7 @@ elif args.workflow == "both":
         # print(hited_seqs)
         generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
-    quit("Exiting M-PARTY's program execution...")
+    print("Exiting M-PARTY's program execution...")
 
 elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
     raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
@@ -710,4 +743,3 @@ elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
 print(f'Execution time: {elapsed_time:.4f} milliseconds!')
 print("M-PARTY has stoped running! Results are displayed in the results folder :)")
-

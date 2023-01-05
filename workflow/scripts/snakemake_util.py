@@ -125,13 +125,19 @@ def build_UPI_query_DB(database_folder, config = None):
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
 	if database.lower() == "uniprot":
-		print(f'Download of {database} started')
-		download_uniprot(database_folder)
+		if not os.path.exists(database_folder + "/uniprot.fasta"):
+			print(f'Download of {database} started')
+			download_uniprot(database_folder)
+		else:
+			print("UniProt database already present. Proceding...")
 		return database_folder + "/uniprot.fasta"
 	elif database.lower() == "swissprot":
-		print(f'Download of {database} started')
-		download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
-		run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+		if not os.path.exists(database_folder + "/uniprot_sprot.fasta"):
+			print(f'Download of {database} started')
+			download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
+			run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+		else:
+			print("SwissProt database already present. Proceding...")
 		return database_folder + "/uniprot_sprot.fasta"
 	elif database.split(".")[-1] == "fasta":
 		if not os.path.exists(database_folder + "/" + database.split("/")[-1]):
