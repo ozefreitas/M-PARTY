@@ -121,23 +121,25 @@ def download_uniprot(database_folder: str):
 	run_command(f'zcat {database_folder}/{url[0].split("/")[-1]} {database_folder}/{url[1].split("/")[-1]} > {database_folder}/uniprot.fasta')
 
 
-def build_UPI_query_DB(database_folder, config = None):
+def build_UPI_query_DB(database_folder, config = None, verbose: bool = False):
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
 	if database.lower() == "uniprot":
 		if not os.path.exists(database_folder + "/uniprot.fasta"):
-			print(f'Download of {database} started')
+			print(f'Download of {database} database started... \n')
 			download_uniprot(database_folder)
+			print("Done \n")
 		else:
-			print("UniProt database already present. Proceding...")
+			print("UniProt database already present. Proceding...\n")
 		return database_folder + "/uniprot.fasta"
 	elif database.lower() == "swissprot":
 		if not os.path.exists(database_folder + "/uniprot_sprot.fasta"):
-			print(f'Download of {database} started')
+			print(f'Download of {database} database started... \n')
 			download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
 			run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+			print("Done \n")
 		else:
-			print("SwissProt database already present. Proceding...")
+			print("SwissProt database already present. Proceding...\n")
 		return database_folder + "/uniprot_sprot.fasta"
 	elif database.split(".")[-1] == "fasta":
 		if not os.path.exists(database_folder + "/" + database.split("/")[-1]):

@@ -2,7 +2,7 @@
 # run tool main script without indicating python
 
 """
-M-PARTY - Mining Protein dAtasets for Targeted EnzYmes
+M-PARTY - Mining Protein dAtasets for Target EnzYmes
 
 by José Freitas
 
@@ -28,7 +28,7 @@ import snakemake
 
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
-from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic
+from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
 from snakemake_util import build_UPI_query_DB, threshold2clusters, get_tsv_files
@@ -65,7 +65,7 @@ parser.add_argument("-t", "--threads", type = int, help = "number of threads for
                     default = 1)
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
                     M-PARTY uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
-parser.add_argument("--concat_hmm_models", action = "store_true", default = False, help = "concatenate HMM models into a single file")
+parser.add_argument("--concat_hmm_models", action = "store_false", default = True, help = "call to not concatenate HMM models into a single file. Defaults to True")
 parser.add_argument("--unlock", action = "store_true", default = False, help = "could be required after forced workflow termination")
 parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines the workflow to follow,\
                     between "annotation", "database_construction" and "both". Latter keyword makes the database construction\
@@ -73,6 +73,7 @@ parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines 
 parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                     advanced users. Defaults to 'config.yaml'. If given, overrides config file construction\
                     from input", default = "config.yaml")
+parser.add_argument("--verbose", action = "store_true", default = False, help = "Call so M-PARTY display more messaging")
 parser.add_argument("--display_config", default = False, action = "store_true", 
                     help = "declare to output the written config file together with results. Useful in case of debug")
 parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
@@ -476,7 +477,7 @@ st = time.time()
 # first only runs for if user flags --validation alone without input sequences, will validate the models inside database only
 if args.validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
 
-    print("Starting validation procedures...")
+    print("Starting validation procedures...\n")
     time.sleep(2)
 
     if args.hmm_db_name is None:
@@ -484,23 +485,22 @@ if args.validation and args.workflow != "database_construction" and args.workflo
     else:
         pathing = make_paths_dic(args.hmm_db_name)
     exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
-    to_remove = hmm_filtration(pathing)
-    remove_fp_models(to_remove, pathing)
+    to_remove = hmm_filtration(pathing, verbose = config["verbose"])
+    remove_fp_models(to_remove, pathing, config["verbose"])
     concat_final_model(pathing)
     time.sleep(2)
-    print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
-
+    print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
 
 # runs if input sequences are given
 if args.workflow == "annotation" and args.input is not None:
 
-    print("Annotation workflow with hmmsearch started...")
+    print("Annotation workflow with hmmsearch started...\n")
     time.sleep(2)
 
     Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.validation:
         if not os.path.exists(validated_hmm_dir):
-            print("Starting validation procedures...")
+            print("Starting validation procedures...\n")
             time.sleep(2)
 
             if args.hmm_db_name is None:
@@ -508,13 +508,14 @@ if args.workflow == "annotation" and args.input is not None:
             else:
                 pathing = make_paths_dic(args.hmm_db_name)
             exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
-            to_remove = hmm_filtration(pathing)
-            remove_fp_models(to_remove, pathing)
+            to_remove = hmm_filtration(pathing, verbose = config["verbose"])
+            print(to_remove)
+            remove_fp_models(to_remove, pathing, config["verbose"])
             concat_final_model(pathing)
             time.sleep(2)
-            print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
+            print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
         else:
-            print("Validated HMM already up, proceding to annotation...")
+            print("Validated HMM already up, proceding to annotation...\n")
             time.sleep(2)
 
         for hmm_file in file_generator(validated_hmm_dir, full_path = True):
@@ -531,17 +532,17 @@ if args.workflow == "annotation" and args.input is not None:
                         hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
-        # else:
-        #     p = os.listdir(hmm_database_path)
-        #     for thresh in p:
-        #         path = os.path.join(hmm_database_path, thresh)
-        #         Path(path).mkdir(parents = True, exist_ok = True)
-        #         for hmm_file in file_generator(path, full_path = True):
-        #             run_hmmsearch(args.input, hmm_file, 
-        #                 path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-        #                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
-        #                 out_type = args.hmms_output_type)
-        #            concat_hmmsearch_results(path, hmmsearch_results_path)
+        else:
+            p = os.listdir(hmm_database_path)
+            for thresh in p:
+                path = os.path.join(hmm_database_path, thresh)
+                Path(path).mkdir(parents = True, exist_ok = True)
+                for hmm_file in file_generator(path, full_path = True):
+                    run_hmmsearch(args.input, hmm_file, 
+                        path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        out_type = args.hmms_output_type)
+                concat_hmmsearch_results(path, hmmsearch_results_path)
 
     lista_dataframes = dict.fromkeys(config["thresholds"])
     for file in file_generator(hmmsearch_results_path):
@@ -561,34 +562,42 @@ elif args.workflow == "database_construction":
     if args.hmm_db_name is None:
         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
     else:
-        print("HMM database construction workflow from user input started...")
+        print("HMM database construction workflow from user input started...\n")
     time.sleep(2)
 
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
-    query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
+    query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
     # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    ### RUN DIAMOND
+    # Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
+    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv',args.input_seqs_db_const, args.threads)
     aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
-    save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
+    print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
+    save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
 
     from seq_download import get_fasta_sequences
 
     Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
     for thresh in config["thresholds"]:
+        if config["verbose"]:
+            print(f'Retrieving sequences from {thresh} range\n')
         get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
 
         ### run CDHIT
+        if config["verbose"]:
+            print(f'CDHIT run for {thresh} range\n')
         run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
         handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
-        print(handle)
         handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-        print(handle2)
         save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
 
         from CDHIT_seq_download import fasta_retriever_from_cdhit
-
+        if config["verbose"]:
+            print(f'Retrieving sequences divided by clusters from CDHIT\n')
         Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
         fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
                                     f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
@@ -598,14 +607,11 @@ elif args.workflow == "database_construction":
 
     if config_format == "yaml":
         files = get_tsv_files(config)
-        # print(files)
         threshandclust = threshold2clusters(files)
-        # print(threshandclust)
         for thresh, cluster in threshandclust.items():
             for c in range(len(cluster)):
                 cluster[c] = str(cluster[c])
             config[thresh] = cluster
-        # print(conf_file)
     elif config_format == "json":
         pass
 
@@ -616,6 +622,11 @@ elif args.workflow == "database_construction":
     snakemake.main(
         f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
         f'{" --unlock" if args.unlock else ""}')
+
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    for file in files:
+        if file.endswith(".dnd"):
+            delete_inter_files(file)
 
     print("HMM database created!")
     time.sleep(2)
@@ -660,7 +671,7 @@ elif args.workflow == "both":
         handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
         handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
         save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
-    
+
         from CDHIT_seq_download import fasta_retriever_from_cdhit
         fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
                                     f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
@@ -690,6 +701,12 @@ elif args.workflow == "both":
         f'{" --unlock" if args.unlock else ""}')
 
     print("HMM database created!")
+
+    files = [f for f in os.listdir('.') if os.path.isfile(f)]
+    for file in files:
+        if file.endswith(".dnd"):
+            delete_inter_files(file)
+
     time.sleep(2)
 
     if args.validation:

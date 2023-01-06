@@ -375,7 +375,7 @@ def search_other_seqs(path_dictionary: dict):
                     delete_inter_files(os.path.join(path_dictionary["hmmsearch_other_seqs_dir"] + thresh, item))
 
 
-def exec_testing(thresholds: list, path_dictionary: dict, database: str = None):
+def exec_testing(thresholds: list, path_dictionary: dict, database: str = None, verbose: bool = False):
     """Function that executes all the steps for the HMM validation and filtration with leave-one-out cross 
     validation. Does not return anything, just write the final models.
 
@@ -385,12 +385,18 @@ def exec_testing(thresholds: list, path_dictionary: dict, database: str = None):
         thresholds (list): the list of thresholds for the leave-one-out
         database (str, optional): a fasta filename with the sequence database for negative control validation
     """
+    if verbose:
+        print("Staring first validation step: 'leave-one-out'\n")
     leave_one_out(thresholds, path_dictionary)
+    if verbose:
+        print("Staring second validation step: negative control\n")
     negative_control(path_dictionary, database)
+    if verbose:
+        print("Staring third validation step: search agaisnty other model's sequences\n")
     search_other_seqs(path_dictionary)
 
 
-def hmm_filtration(path_dictionary: dict):
+def hmm_filtration(path_dictionary: dict, verbose: bool = False):
     """Function that will evaluate the results of all three steps of validation - "leave-one-out", "negative
     control" and "search other seqs" and decide which models pass. For this to happen, each reconstructed hmm
     with one less sequence must: all evalues from the recalled sequences must be lower than the minimun evalue 
@@ -406,6 +412,8 @@ def hmm_filtration(path_dictionary: dict):
         not passed the validations check.
     """
     # guardar e-values da primeira etapa "leave-one-out"
+    if verbose:
+        print("Evaluating 'leave-one-out' results...\n")
     p = os.listdir(path_dictionary["hmmsearch_results_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
     eval_per_hmms = {}
@@ -422,6 +430,8 @@ def hmm_filtration(path_dictionary: dict):
                 if ev is not None:
                     eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
+    if verbose:
+        print("Evaluating negative control results...\n")
     # guardar e-values da etapa do controlo negativo
     p = os.listdir(path_dictionary["neg_control_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
@@ -440,6 +450,8 @@ def hmm_filtration(path_dictionary: dict):
                 if ev is not None:
                     cont_neg_eval_per_hmms[f'{thresh}_{hmm_num}'].append(ev)
 
+    if verbose:
+        print("Evaluating search other model's sequences results...\n")
     # guardar e-values da etapa da procura contra todas as outras seqs
     p = os.listdir(path_dictionary["hmmsearch_other_seqs_dir"])
     # dicionario que irá guardar todos os evalues de cada sequencia recalled para cada hmm com menos uma seq
@@ -482,14 +494,14 @@ def hmm_filtration(path_dictionary: dict):
     return false_positives
 
 
-def remove_fp_models(list_fp: list, path_dictionary: dict):
+def remove_fp_models(list_fp: list, path_dictionary: dict, verbose: bool = False):
     """Function that will copy the models checked by validtion to a final folder.
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-        with the database name given in the --hmm_db_name when running PlastEDMA
+        with the database name given in the --hmm_db_name when running M-PARTY
         list_fp (list): A list containing the number of the models (and respective threshold) which did 
-        not passed the validations check.
+        not pass the validations check.
     """
     Path(path_dictionary["validated_models_dir"]).mkdir(parents = True, exist_ok = True)
     p = os.listdir(path_dictionary["HMM_directory"])
