@@ -22,7 +22,7 @@ def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> st
 
 def UPIMAPI_parser(filepath: str):
     UPIMAPI_outfile = pd.read_csv(filepath, sep="\t")
-    # UPIMAPI_outfile.columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore"]
+    UPIMAPI_outfile.columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore"]
     return UPIMAPI_outfile
 
 def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
@@ -37,13 +37,13 @@ def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
     # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
-    # print(seq_id)
-
+    print(seq_id)
     # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
     target_enzymes = {}
     for perc in range(60, 86, 5):
         chave = str(perc)+"-"+str(perc+5)
         for index, seq in seq_id.iterrows():
+            print(type(seq["pident"]))
             if seq["pident"] >= perc and seq["pident"] < perc+5:
                 ident = re.findall("\|.*\|", seq["qseqid"])
                 ident = re.sub("\|", "", ident[0])

@@ -17,7 +17,7 @@ def make_paths_dic(db_name:str) -> dict:
     system path the files are in and including the database name for the models
 
     Args:
-        db_name (str): database name given by the --hmm_db_name option when running PlastEDMA
+        db_name (str): database name given by the --hmm_db_name option when running M-PARTY
 
     Returns:
         dict: a dictionary with an identifier of each path as key and the corresponding path as values
@@ -221,7 +221,7 @@ def concat_fasta(hmm_number: str, threshold: str, path_dictionary: dict) -> str:
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-    with the database name given in the --hmm_db_name when running PlastEDMA
+    with the database name given in the --hmm_db_name when running M-PARTY
         hmm_number (str): number of the built hmm.
         threshold (str): string number of the similarity threshold.
     
@@ -260,7 +260,7 @@ def leave_one_out(thresholds: list, path_dictionary: dict):
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-    with the database name given in the --hmm_db_name when running PlastEDMA
+    with the database name given in the --hmm_db_name when running M-PARTY
         thresholds (list): A list of the thresholds used for similarity separation after UPIMAPI in order to 
     create the correspondent subdirectories
     """
@@ -295,7 +295,7 @@ def leave_one_out(thresholds: list, path_dictionary: dict):
                     write_interfile(path_dictionary["vali_directory"] + thresh + "/" + inter, set_prot)
                     write_interfile(path_dictionary["eliminated_seqs_dir"] + thresh + "/" + out, out_seq, out_sequence = True)
                     try:
-                        run_command(f't_coffee`{path_dictionary["vali_directory"] + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN`-n_core`4`-thread`8',
+                        run_command(f't_coffee`{path_dictionary["vali_directory"] + thresh + "/" + inter}`-output`clustalw_aln`-outfile`{path_dictionary["alignments_test_dir"] + thresh + "/" + inter.split(".")[0]}.clustal_aln`-type`PROTEIN`-n_core`4',
                                     sep = "`")
                         # docker_run_tcoffee(f'{sys.path[-1]}/:/data/', 
                         #                     vali_directory + thresh + "/" + inter, 
@@ -327,7 +327,7 @@ def negative_control(path_dictionary: dict, database: str = None):
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-    with the database name given in the --hmm_db_name when running PlastEDMA
+    with the database name given in the --hmm_db_name when running M-PARTY
         database (str, optional): A path for a fasta file with a set of protein sequences to serve as negative control.
     Defaults to None. Only for testing purposes.
     """
@@ -381,7 +381,7 @@ def exec_testing(thresholds: list, path_dictionary: dict, database: str = None, 
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-    with the database name given in the --hmm_db_name when running PlastEDMA
+    with the database name given in the --hmm_db_name when running M-PARTY
         thresholds (list): the list of thresholds for the leave-one-out
         database (str, optional): a fasta filename with the sequence database for negative control validation
     """
@@ -405,7 +405,7 @@ def hmm_filtration(path_dictionary: dict, verbose: bool = False):
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-        with the database name given in the --hmm_db_name when running PlastEDMA
+        with the database name given in the --hmm_db_name when running M-PARTY
 
     Returns:
         false_positives (list): A list containing the number of the models (and respective threshold) which did 
@@ -520,7 +520,7 @@ def concat_final_model(path_dictionary: dict):
 
     Args:
         path_dictionay (dict): dictionary containing the paths to all directories needed for validation
-        with the database name given in the --hmm_db_name when running PlastEDMA
+        with the database name given in the --hmm_db_name when running M-PARTY
     """
     p = os.listdir(path_dictionary["validated_models_dir"])
     for thresh in p:

@@ -31,7 +31,7 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
-from snakemake_util import build_UPI_query_DB, threshold2clusters, get_tsv_files
+from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files
 
 
 version = "0.2.3"
@@ -73,6 +73,7 @@ parser.add_argument("-w", "--workflow", default = "annotation", help = 'defines 
 parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
                     advanced users. Defaults to 'config.yaml'. If given, overrides config file construction\
                     from input", default = "config.yaml")
+parser.add_argument("--overwrite", action = "store_true", default = False, help = "Call to overwrite inputted files. Defaults to False")
 parser.add_argument("--verbose", action = "store_true", default = False, help = "Call so M-PARTY display more messaging")
 parser.add_argument("--display_config", default = False, action = "store_true", 
                     help = "declare to output the written config file together with results. Useful in case of debug")
@@ -200,12 +201,15 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
                 "validation": True if args.workflow == "database_construction" or 
                 args.workflow == "both" or 
                 args.validation else False,
+                "concat_models": args.concat_hmm_models,
                 "output_directory": out_dir,
                 "out_table_format": args.output_type,
                 "hmmsearch_out_type": args.hmms_output_type,
                 "threads": args.threads,
                 "workflow": args.workflow,
-                "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"]}
+                "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"],
+                "verbose": args.verbose,
+                "overwrite": args.overwrite}
     Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
     config_type = config_filename.split(".")[-1]
@@ -410,10 +414,14 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str):
     with open(path + "aligned.fasta", "w") as wf:
         # returns list of IDs from inputed FASTA sequences (entire ID)
         input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False, meta_gen = config["metagenomic"])
+        # print(input_IDs[0:10])
         # print("Sequencias que vieram do input file", input_IDs)
+        # time.sleep(5)
         # returns a list the sequences that hit against the models (only one entry)
         unique_IDS = get_unique_hits(hit_IDs_list)
+        # print(unique_IDS)
         # print("Sequencias que vieram dos hits com os HMMs", unique_IDS)
+        # time.sleep(5)
         with open(inputed_seqs, "r") as rf:
             Lines = rf.readlines()
             for x in unique_IDS:
@@ -469,7 +477,10 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
 doc = write_config(args.input, args.output, args.config_file)
 config, config_format = read_config_yaml(config_path + args.config_file)
 
-hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
+if args.hmm_db_name is None:
+    raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+else:
+    hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
 
 
 st = time.time()
@@ -517,13 +528,24 @@ if args.workflow == "annotation" and args.input is not None:
         else:
             print("Validated HMM already up, proceding to annotation...\n")
             time.sleep(2)
-
-        for hmm_file in file_generator(validated_hmm_dir, full_path = True):
-            # print(hmm_file)
-            run_hmmsearch(args.input, hmm_file, 
-                        hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+        if args.concat_hmm_models:
+            for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+                run_hmmsearch(args.input, hmm_file, 
+                            hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            out_type = args.hmms_output_type)
+        else:
+            p = os.listdir(hmm_database_path)
+            for thresh in p:
+                path = os.path.join(hmm_database_path, thresh)
+                Path(path).mkdir(parents = True, exist_ok = True)
+                for hmm_file in file_generator(path, full_path = True):
+                    run_hmmsearch(args.input, hmm_file, 
+                        path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                         "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
                         out_type = args.hmms_output_type)
+                concat_hmmsearch_results(path, hmmsearch_results_path)
+
     else:
         if args.concat_hmm_models:
             for hmm_file in file_generator(hmm_database_path, full_path = True):
@@ -564,18 +586,22 @@ elif args.workflow == "database_construction":
     else:
         print("HMM database construction workflow from user input started...\n")
     time.sleep(2)
+    if args.input_seqs_db_const is None:
+        raise TypeError("Missing input sequences to build HMM database! Make sure --input_seqs_db_const option is filled with a fasta file.")
+    time.sleep(2)
 
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
     # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
     ### RUN DIAMOND
-    # Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv',args.input_seqs_db_const, args.threads)
-    aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
+    Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
+    aligned_TSV = run_UPIMAPI(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv', query_DB, args.threads)
+    # aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
-    print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
+    if config["verbose"]:
+        print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
     save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
 
     from seq_download import get_fasta_sequences
@@ -655,10 +681,11 @@ elif args.workflow == "both":
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
-    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+    aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_results/DIAMOND_results.out', args.input_seqs_db_const, args.threads)
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
-    save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
+    save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
 
     from seq_download import get_fasta_sequences
 
@@ -759,4 +786,4 @@ et = time.time()
 elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
 print(f'Execution time: {elapsed_time:.4f} milliseconds!')
-print("M-PARTY has stoped running! Results are displayed in the results folder :)")
+print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')

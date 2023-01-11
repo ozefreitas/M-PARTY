@@ -34,7 +34,7 @@ rule t_coffee:
 	# script:
 	# 	"scripts/db_construction/t_coffee_run.py"
 	shell:
-		"t_coffee {input} -output clustalw_aln -outfile {output}"
+		"t_coffee {input} -output clustalw_aln -outfile {output} -type PROTEIN -n_core 4"
 
 
 # rule mockup:
