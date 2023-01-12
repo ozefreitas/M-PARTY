@@ -1,6 +1,6 @@
 configfile: "config/config.yaml"
 
-from scripts.snakemake_util import get_target_db, get_clusters, threshold2clusters, clusters_in_list, get_UPI_queryDB, build_UPI_query_DB
+from scripts.mparty_util import get_target_db, get_clusters, threshold2clusters, clusters_in_list, get_UPI_queryDB, build_UPI_query_DB
 from glob import glob
 
 

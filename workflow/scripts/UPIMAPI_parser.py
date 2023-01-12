@@ -16,7 +16,7 @@ def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> st
         str: Path to the final TSV file.
     """
     # run_command(f'upimapi.py`-i`{query}`-o`{outdir}`--database`{upi_database}`-t`{threads}', sep = "`")
-    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{upi_database}`--threads`{threads}`--very-sensitive`--outfmt`6`--unal`1`--max-target-seqs`1`-b`0.36036930084228513`-c`4`--evalue`0.001', sep = "`")
+    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{upi_database}`--threads`{threads}`--very-sensitive`--outfmt`6`--unal`1`-b`0.36036930084228513`-c`4`--evalue`0.001', sep = "`")
     # return outdir + "/UPIMAPI_results.tsv"
     return outpath
 

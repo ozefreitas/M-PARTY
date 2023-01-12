@@ -31,7 +31,7 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
-from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files
+from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, build_diamond_DB
 
 
 version = "0.2.3"
@@ -63,6 +63,10 @@ parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow
                     default = "workflow/Snakefile")
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
                     default = 1)
+parser.add_argument("--align_method", default = "diamond", help = "chose the alignment method for the initial sequences database expansion, between\
+                    'diamond', 'blast' and 'upimapi'. Defaults to 'upimapi'")
+parser.add_argument("--aligner", default = "tcoffee", help = "chose the aligner program to perform the multiple sequence alignment for the models\
+                    between 'tcoffee' and 'muscle'. Defaults to 'tcoffee'.")
 parser.add_argument("-hm", "--hmm_models", type=str, help = f"path to a directory containing HMM models previously created by the user. By default\
                     M-PARTY uses the built-in HMMs from database in 'resources/Data/HMMs/After_tcoffee_UPI/'")
 parser.add_argument("--concat_hmm_models", action = "store_false", default = True, help = "call to not concatenate HMM models into a single file. Defaults to True")
@@ -196,6 +200,8 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
                 "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
                 "input_file_db_const": args.input_seqs_db_const,
                 "hmm_database_name": args.hmm_db_name,
+                "alignment_method": args.align_method,
+                "msa_aligner": args.aligner,
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
                 "validation": True if args.workflow == "database_construction" or 
@@ -590,13 +596,18 @@ elif args.workflow == "database_construction":
         raise TypeError("Missing input sequences to build HMM database! Make sure --input_seqs_db_const option is filled with a fasta file.")
     time.sleep(2)
 
+    ### FASTA to DMND
+    # diamond_file = build_diamond_DB(args.input_seqs_db_const, "resources/Data/FASTA/", verbose = config["verbose"])
+
     ### UPIMAPI run DIAMOND
     Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
     # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+
     ### RUN DIAMOND
     Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
     aligned_TSV = run_UPIMAPI(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv', query_DB, args.threads)
+    # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv', args.input_seqs_db_const, args.threads)
     # aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results/UPIMAPI_results.tsv'
     handle = UPIMAPI_parser(aligned_TSV)
     dic_enzymes = UPIMAPI_iter_per_sim(handle)
@@ -611,22 +622,28 @@ elif args.workflow == "database_construction":
     for thresh in config["thresholds"]:
         if config["verbose"]:
             print(f'Retrieving sequences from {thresh} range\n')
-        get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
+        get_fasta_sequences("resources/Data/Tables/diamond_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
 
         ### run CDHIT
         if config["verbose"]:
             print(f'CDHIT run for {thresh} range\n')
-        run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
-        handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
-        handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-        save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
+        try:
+            run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
+            handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+            handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+            save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
 
-        from CDHIT_seq_download import fasta_retriever_from_cdhit
-        if config["verbose"]:
-            print(f'Retrieving sequences divided by clusters from CDHIT\n')
-        Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
-        fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
-                                    f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+            from CDHIT_seq_download import fasta_retriever_from_cdhit
+            if config["verbose"]:
+                print(f'Retrieving sequences divided by clusters from CDHIT\n')
+            Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
+            fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
+                                        f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+        except:
+            if config["verbose"]:
+                print(f'[WARNING] {thresh} range of similarities not detected.\n')
+            time.sleep(2)
+            continue
 
     ### add cluster per threshol to config
     os.remove("config/config.yaml")
@@ -634,10 +651,18 @@ elif args.workflow == "database_construction":
     if config_format == "yaml":
         files = get_tsv_files(config)
         threshandclust = threshold2clusters(files)
+        print(threshandclust)
         for thresh, cluster in threshandclust.items():
             for c in range(len(cluster)):
                 cluster[c] = str(cluster[c])
             config[thresh] = cluster
+        newthresh = []
+        for thresh in config["thresholds"]:
+            if thresh not in threshandclust.keys():
+                continue
+            else:
+                newthresh.append(thresh)
+        config["thresholds"] = newthresh
     elif config_format == "json":
         pass
 

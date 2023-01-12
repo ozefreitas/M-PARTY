@@ -1,6 +1,6 @@
 import pandas as pd
 import urllib.request
-from snakemake_util import get_clusters, get_number_clusters
+from mparty_util import get_clusters, get_number_clusters
 
 
 def fasta_retriever_from_cdhit(tsv_file: str, out_dir: str):
