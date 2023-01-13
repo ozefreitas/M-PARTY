@@ -170,7 +170,7 @@ jobs:
         run: docker run mparty bin/bash -c "m-party.py -h"
 
       - name: Database construction workflow with small FASTA protein file, WITHOUT model validation script
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name PET -db swissprot --input_seqs_db_const M-PARTY/ci/sequences_PET.fasta" -t 8 --verbose
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name PET -db swissprot --input_seqs_db_const M-PARTY/ci/sequences_PET.fasta -t 8 --verbose --alignment_method blast"
       
       # - name: Database construction workflow with small FASTA protein file, WITH model validation script
       #   run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name PE -i M-PARTY/ci/_PE.fasta --validation"
