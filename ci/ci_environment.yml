@@ -12,3 +12,7 @@ dependencies:
   - openpyxl
   - snakemake
   - clint
+  - blast
+  - diamond
+  - muscle
+  - beautifulsoup4

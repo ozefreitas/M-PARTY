@@ -13,12 +13,12 @@ def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc: bool = False):
     """
     # abrir tsv como DataFrame
     df = pd.read_csv(tsv_file, sep="\t", index_col=0)
-    threshold = out_folder.split("/")[-1][0:5]
+    threshold = out_folder.split("/")[-1].split(".")[0]
     # print("teste de threshold:", threshold)
     # iterar pelas linhas
     for index, content in df.iterrows():
-        if index == threshold:
-            file = open(file = "/".join(out_folder.split("/")[:-1]) + "/" + index + ".fasta", mode="w")
+        if str(index) == threshold:
+            file = open(file = "/".join(out_folder.split("/")[:-1]) + "/" + str(index) + ".fasta", mode="w")
             # file = "/".join(out_folder.split("/")[:-1]) + "/" + index + ".fasta"
             for uni_id in list(content):
             # muda a seq para o codigo que o uniprot aceite como ID

@@ -24,25 +24,67 @@ def concat_hmmsearch_results(folder: str, output: str):
     df.to_csv(output, sep = "\t")
 
 
+def build_blast_DB(input_fasta: str, output_path: str, input_type: str, verbose: bool = False) -> str:
+    """Builds a blast database file from a fasta file to run with DIAMOND.
+
+    Args:
+        input_fasta (str): path for the fasta file.
+        output_path (str): path for the output diamond database.
+        input_type (str): Sequence type in file: protein ou nucleic.
+        verbose (bool): prints aditional information. Defaults to False.
+
+    Returns:
+        str: name of the resulting file.
+    """
+    blast_dbname = f'{output_path}/{input_fasta.split("/")[-1].split(".")[0]}'
+    if input_type in  ["protein", "proteic", "aa", "p", "prot"]:
+        input_type = "prot"
+    elif input_type in ["nucleic", "nucleotid", "n", "nucl", "nuc"]:
+        input_type = "nucl"
+    if verbose:
+        print("Building BLAST database file...\n")
+    run_command(f'makeblastdb`-in`{input_fasta}`-out`{blast_dbname}`-dbtype`{input_type}`-title`BLAST_run`-parse_seqids', sep = "`")
+    if verbose:
+        print("Done\n")
+    return blast_dbname
+
+
+def run_BLAST(query: str, outpath: str, database: str, threads: int) -> str:
+    """Function to run BLAST by bash with the given arguments from M-PARTY.
+
+    Args:
+        query (str): Sequence list to be searched against the database.
+        outpath (str): Output directory name with filename.
+        database (str): Database path to be searched against query sequences.
+        threads (str): Number of threads.
+
+    Returns:
+        str: Path to the final .TSV file. 
+    """
+    run_command(f'blastp`-query`{query}`-out`{outpath}`-db`{database}`-num_threads`{threads}`-outfmt`6', sep = "`")
+    return outpath
+
+
 def BLAST_parser(filepath: str) -> str:
     BLAST_outfile = pd.read_csv(filepath, sep="\t")
+    BLAST_outfile.columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore"]
     return BLAST_outfile
 
 
 def BLAST_iter_per_sim(dataframe):
-    seq_id = dataframe[["Accession", "Identities(%)"]]
-    # seq_id = dataframe[["qseqid", "sseqid", "pident"]]
-    # print(seq_id)
-    # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
+    # seq_id = dataframe[["Accession", "Identities(%)"]]
+    seq_id = dataframe[["qseqid", "sseqid", "pident"]]
+    # retirar os grupos de enzimas com similaridade minima de 60% a 90% com incrementos de 5%
     target_enzymes = {}
-    for perc in range(60, 86, 5):
-        chave = str(perc)+"-"+str(perc+5)
+    for perc in range(60, 91, 5):
+        # chave = str(perc)+"-"+str(perc+5)
         for index, seq in seq_id.iterrows():
-            if seq["Identities(%)"] >= perc and seq["Identities(%)"] < perc+5:
-                if chave not in target_enzymes.keys():
-                    target_enzymes[chave] = [seq["Accession"]]
+            # if seq["Identities(%)"] >= perc and seq["Identities(%)"] < perc+5:
+            if seq["pident"] >= perc:
+                if perc not in target_enzymes.keys():
+                    target_enzymes[perc] = [seq["sseqid"]]
                 else:
-                    target_enzymes[chave].append(seq["Accession"])
+                    target_enzymes[perc].append(seq["sseqid"])
     return target_enzymes
 
 

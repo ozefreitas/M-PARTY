@@ -1,11 +1,10 @@
 import re
 import pandas as pd
 from docker_run import run_command
-from UPIMAPI_parser import save_as_tsv
 
 
-def run_CDHIT(input: str, output: str):
-    run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`8', sep = "`")
+def run_CDHIT(input: str, output: str, threads: int):
+    run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
 
 def cdhit_parser(txtfile: str) -> dict:
     """Receives a text file with a similar format as a FASTA file, and returns a dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.

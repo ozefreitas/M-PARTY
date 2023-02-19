@@ -25,6 +25,10 @@ requirements:
     - openpyxl
     - snakemake
     - clint
+    - blast
+    - diamond
+    - muscle
+    - beautifulsoup4
 
 test:
   commands:

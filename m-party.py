@@ -31,8 +31,9 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
-from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, build_diamond_DB
+from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, save_as_tsv
 from BLAST_parser import *
+from DIAMOND_parser import *
 
 
 version = "0.2.3"
@@ -50,6 +51,8 @@ parser.add_argument("--hmm_db_name", help = "name to be assigned to the hmm data
                     that describes the family or other characteristic of the given sequences")
 parser.add_argument("-it", "--input_type", default = "protein", help = "specifies the nature of the sequences in the input file between \
                     'protein', 'nucleic' or 'metagenome'. Defaults to 'protein'")
+parser.add_argument("--input_type_db_const", help = "specifies the nature of the input sequences for the database construction between \
+                    'nucleic' and 'protein'. Defaults to 'protein'.", default = "protein")
 parser.add_argument("-o", "--output", default = "MPARTY_results", help = "name for the output directory. Defaults to 'MPARTY_results'")
 parser.add_argument("--output_type", default = "tsv", help = "choose report table outpt format from 'tsv', 'csv' or 'excel'. Defaults to 'tsv'")
 parser.add_argument("-rt", "--report_text", default = False, action = "store_true", help = "decides whether to produce or not a friendly report in \
@@ -62,9 +65,9 @@ parser.add_argument("-p", "--produce_inter_tables", default = False, action = "s
 parser.add_argument("--negative_db", help = "path to a user defined negative control database. Default use of human gut microbiome")
 parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow Snakefile. Defaults to '/workflow/Snakefile",
                     default = "workflow/Snakefile")
-parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to 1",
-                    default = 1)
-parser.add_argument("--align_method", default = "diamond", help = "chose the alignment method for the initial sequences database expansion, between\
+parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to max number of available logical CPUs.",
+                    default = os.cpu_count())
+parser.add_argument("--align_method", default = "upimapi", help = "chose the alignment method for the initial sequences database expansion, between\
                     'diamond', 'blast' and 'upimapi'. Defaults to 'upimapi'")
 parser.add_argument("--aligner", default = "tcoffee", help = "chose the aligner program to perform the multiple sequence alignment for the models\
                     between 'tcoffee' and 'muscle'. Defaults to 'tcoffee'.")
@@ -201,7 +204,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
                 "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
                 "input_file_db_const": args.input_seqs_db_const,
                 "hmm_database_name": args.hmm_db_name,
-                "alignment_method": args.align_method,
+                "alignment_method": args.align_method.lower(),
                 "msa_aligner": args.aligner,
                 "input_type": args.input_type,
                 "metagenomic": True if args.input_type == "metagenome" else False,
@@ -214,7 +217,8 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
                 "hmmsearch_out_type": args.hmms_output_type,
                 "threads": args.threads,
                 "workflow": args.workflow,
-                "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"],
+                "thresholds": [*range(60, 91, 5)],
+                # "thresholds": ["60-65", "65-70", "70-75", "75-80", "80-85", "85-90"],
                 "verbose": args.verbose,
                 "overwrite": args.overwrite}
     Path(config_path).mkdir(parents = True, exist_ok = True)
@@ -584,69 +588,75 @@ elif args.workflow == "database_construction":
     if args.input_seqs_db_const is None:
         raise TypeError("Missing input sequences to build HMM database! Make sure --input_seqs_db_const option is filled with a fasta file.")
     time.sleep(2)
-
+    
+    Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/Tables/{args.hmm_db_name}').mkdir(parents = True, exist_ok = True)
     query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
 
     if config["alignment_method"] == "diamond":
         ### FASTA to DMND
-        # diamond_file = build_diamond_DB(args.input_seqs_db_const, "resources/Data/FASTA/", verbose = config["verbose"])
+        diamond_file = build_diamond_DB(query_DB, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
         Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-        aligned_TSV = run_UPIMAPI(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv', query_DB, args.threads)
-        # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/out.tsv', args.input_seqs_db_const, args.threads)
-        handle = UPIMAPI_parser(aligned_TSV)
-        dic_enzymes = UPIMAPI_iter_per_sim(handle)
+        aligned_TSV = run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
+        handle = DIAMOND_parser(aligned_TSV)
+        dic_enzymes = DIAMOND_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/DIAMOND_results_per_sim.tsv')
 
     elif config["alignment_method"] == "upimapi":
-        Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
-        aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/upimapi_results', args.input_seqs_db_const, args.threads)
+        # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
+        aligned_TSV = "resources/Alignments/PE/BLAST/upimapi_results/UPIMAPI_results.tsv"
         handle = UPIMAPI_parser(aligned_TSV)
         dic_enzymes = UPIMAPI_iter_per_sim(handle)
         if config["verbose"]:
-            print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, "resources/Data/Tables/UPIMAPI_results_per_sim.tsv")
+            print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/UPIMAPI_results_per_sim.tsv')
 
     elif config["alignment_method"] == "blast":
-        ### FALTA COMANDO PARA CORRER O BLASTP ###
-        aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/test.tsv'
+        # blastdb_file = build_blast_DB(query_DB, "resources/Data/FASTA/DataBases/BLAST", args.input_type_db_const, verbose = config["verbose"])
+        Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
+        # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
+        aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv'
         handle = BLAST_parser(aligned_TSV)
         dic_enzymes = BLAST_iter_per_sim(handle)
         if config["verbose"]:
             print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-        save_as_tsv(dic_enzymes, "resources/Data/Tables/BLAST_results_per_sim.tsv")
+        Path(f'resources/Data/Tables/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+        save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/BLAST_results_per_sim.tsv')
 
     else:
         raise ValueError("--align_method flag only ranges from 'diamond', 'upimapi' or 'blast'. Chose one from the list.")
 
     from seq_download import get_fasta_sequences
 
-    Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
+    Path(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
     Path(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
     for thresh in config["thresholds"]:
         if config["verbose"]:
             print(f'Retrieving sequences from {thresh} range\n')
-        get_fasta_sequences("resources/Data/Tables/BLAST_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
-
+        try:
+            get_fasta_sequences(f'resources/Data/Tables/{args.hmm_db_name}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta')
+        except:
+            raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
         ### run CDHIT
         if config["verbose"]:
             print(f'CDHIT run for {thresh} range\n')
         try:
-            run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
-            handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+            run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/cd-hit90_after_diamond_{thresh}.fasta', 8)
+            handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/cd-hit90_after_diamond_{thresh}.fasta.clstr')
             handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-            save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
+            save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"].upper()}.tsv')
 
             from CDHIT_seq_download import fasta_retriever_from_cdhit
             if config["verbose"]:
                 print(f'Retrieving sequences divided by clusters from CDHIT\n')
             Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
-            fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
+            fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"].upper()}.tsv', 
                                         f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
         except:
             if config["verbose"]:
-                print(f'[WARNING] {thresh} range of similarities not detected.\n')
+                print(f'[WARNING] Minimum cutoff of {thresh} of similarity not detected.\n')
             time.sleep(2)
             continue
 

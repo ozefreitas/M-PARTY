@@ -21,7 +21,7 @@ def get_number_clusters(tsv_file: str) -> int:
 
 # vai buscar aos .tsv criados antes, e não fica dependente dos fasta que vão ser criados
 def get_tsv_files(config_file: str) -> dict:
-	files = {threshold: glob(f'resources/Data/Tables/{config_file["hmm_database_name"]}/CDHIT_clusters/cdhit_clusters_{threshold}_afterUPIMAPI.tsv') for threshold in config_file["thresholds"]}
+	files = {threshold: glob(f'resources/Data/Tables/{config_file["hmm_database_name"]}/CDHIT_clusters/cdhit_clusters_{threshold}_after{config_file["alignment_method"].upper()}.tsv') for threshold in config_file["thresholds"]}
 	return files
 
 
@@ -95,6 +95,11 @@ def get_UPI_queryDB(config):
 	return config["database"]
 
 
+def save_as_tsv(dic: dict, out_path: str):
+    int_df = pd.DataFrame.from_dict(dic, orient="index")
+    int_df.to_csv(out_path, sep="\t")
+
+
 def get_output_dir(path: str, config: str, hmm: bool = False) -> str:
 	c = path.split("_")
 	if hmm:
@@ -106,26 +111,6 @@ def get_output_dir(path: str, config: str, hmm: bool = False) -> str:
 			ind = c.index("Tables")
 	c.insert(ind + 1, config["hmm_database_name"])
 	return "/".join(c)
-
-
-def build_diamond_DB(input_fasta: str, output_path: str, verbose: bool = False) -> str:
-	"""Builds a dmnd database file from a fasta file to run with DIAMOND.
-
-	Args:
-		input_fasta (str): path for the fasta file.
-		output_path (str): path for the output diamond database.
-		verbose (bool): prints aditional information. Defaults to False.
-
-	Returns:
-		str: name of the resulting file.
-	"""
-	dmnd_dbname = f'{output_path}/{input_fasta.split("/")[-1].split(".")[0]}'
-	if verbose:
-		print("Building binary DIAMOND database file...\n")
-	run_command(f'diamond`makedb`--in`{input_fasta}`-d`{dmnd_dbname}', sep = "`")
-	if verbose:
-		print("Done\n")
-	return dmnd_dbname + ".dmnd"
 
 
 def ask_for_overwrite(path: str, verbose: bool = False) -> bool:
@@ -192,9 +177,8 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 			if verbose:
 				print("Done\n")
 				time.sleep(0.5)
-			# database_path = build_diamond_DB(database_folder + "/uniprot.fasta", database_folder, verbose = verbose)
 		else:
-			overw = ask_for_overwrite(database_folder + "/uniprot.fasta", verbose = verbose)
+			overw = ask_for_overwrite(database_folder + "/uniprot.fasta.gz", verbose = verbose)
 			if overw:
 				os.remove(database_folder + "/uniprot.fasta")
 				print(f'Download of {database} database started...\n')
@@ -202,22 +186,12 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 				if verbose:
 					print("Done\n")
 					time.sleep(0.5)
-				# database_path = build_diamond_DB(database_folder + "/uniprot.fasta", database_folder, verbose = verbose)
 			else:
 				print("UniProt database already present. Proceding...\n")
 				time.sleep(0.5)
-				# database_path = build_diamond_DB(database_folder + "/uniprot.fasta", database_folder, verbose = verbose)
 		return database_folder + "/uniprot.fasta"
 	elif database.lower() == "swissprot":
-		if not os.path.exists(database_folder + "/uniprot_sprot.fasta"):
-			print(f'Download of {database} database started...\n')
-			download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
-			run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
-			if verbose:
-				print("Done\n")
-				time.sleep(0.5)
-			# database_path = build_diamond_DB(database_folder + "/uniprot_sprot.fasta", database_folder, verbose = verbose)
-		else:
+		if not os.path.exists(database_folder + "/uniprot_sprot.fasta.gz") and os.path.exists(database_folder + "/uniprot_sprot.fasta"):
 			overw = ask_for_overwrite(database_folder + "/uniprot_sprot.fasta", verbose = verbose)
 			if overw:
 				os.remove(database_folder + "/uniprot_sprot.fasta")
@@ -227,19 +201,35 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 				if verbose:
 					print("Done\n")
 					time.sleep(0.5)
-				# database_path = build_diamond_DB(database_folder + "/uniprot_sprot.fasta", database_folder, verbose = verbose)
+			return database_folder + "/uniprot_sprot.fasta"
+		if not os.path.exists(database_folder + "/uniprot_sprot.fasta.gz"):
+			print(f'Download of {database} database started...\n')
+			download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
+			run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+			if verbose:
+				print("Done\n")
+				time.sleep(0.5)
+		else:
+			overw = ask_for_overwrite(database_folder + "/uniprot_sprot.fasta.gz", verbose = verbose)
+			if overw:
+				os.remove(database_folder + "/uniprot_sprot.fasta.gz")
+				print(f'Download of {database} database started...\n')
+				download_with_progress_bar("https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", database_folder)
+				run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
+				if verbose:
+					print("Done\n")
+					time.sleep(0.5)
 			else:
+				run_command(f'gunzip -v {database_folder}/uniprot_sprot.fasta.gz')
 				print("SwissProt database already present. Proceding...\n")
 				time.sleep(0.5)
-				# database_path = build_diamond_DB(database_folder + "/uniprot_sprot.fasta", database_folder, verbose = verbose)
-		return database_folder + "/uniprot_sprot.fasta"
+			return database_folder + "/uniprot_sprot.fasta"
 	elif database.split(".")[-1] == "fasta":
 		if not os.path.exists(database_folder + "/" + database.split("/")[-1]):
 			shutil.move(database, database_folder)
 			if verbose:
 				print(f'Inputed database moved to {database_folder}')
 				time.sleep(0.5)
-			# database_path = build_diamond_DB(database_folder + "/" + database.split("/")[-1], database_folder, verbose = verbose)
 		else:
 			overw = ask_for_overwrite(database_folder + "/" + database.split("/")[-1], verbose = verbose)
 			if overw:
@@ -248,12 +238,10 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 				if verbose:
 					print(f'Inputed database moved to {database_folder}')
 					time.sleep(0.5)
-				# database_path = build_diamond_DB(database_folder + "/" + database.split("/")[-1], database_folder, verbose = verbose)
 			else:
 				if verbose:
 					print("Inputed database already present. Proceding...\n")
 					time.sleep(0.5)
-					# database_path = build_diamond_DB(database_folder + "/" + database.split("/")[-1], database_folder, verbose = verbose)
 		return database_folder + "/" + database.split("/")[-1]
 	else:
 		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a path to a FASTA file of protein sequences.")

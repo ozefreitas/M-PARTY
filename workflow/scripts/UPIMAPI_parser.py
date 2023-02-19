@@ -15,15 +15,14 @@ def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> st
     Returns:
         str: Path to the final TSV file.
     """
-    # run_command(f'upimapi.py`-i`{query}`-o`{outdir}`--database`{upi_database}`-t`{threads}', sep = "`")
-    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{upi_database}`--threads`{threads}`--very-sensitive`--outfmt`6`--unal`1`-b`0.36036930084228513`-c`4`--evalue`0.001', sep = "`")
-    # return outdir + "/UPIMAPI_results.tsv"
-    return outpath
+    run_command(f'upimapi.py`-i`{query}`-o`{outpath}`--database`{upi_database}`-t`{threads}', sep = "`")
+    return outpath + "/UPIMAPI_results.tsv"
+
 
 def UPIMAPI_parser(filepath: str):
     UPIMAPI_outfile = pd.read_csv(filepath, sep="\t")
-    UPIMAPI_outfile.columns = ["qseqid", "sseqid", "pident", "length", "mismatch", "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore"]
     return UPIMAPI_outfile
+
 
 def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
     """Given a pandas DataFrame, return a dictionary with a list of sequences form the iteration of the sequence similarity between queries and database sequences.
@@ -37,25 +36,22 @@ def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
     # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
-    print(seq_id)
-    # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
+    # print(seq_id)
+    # retirar os grupos de enzimas com similaridade de no minimo 60% a 90% com incrementos de 5%
     target_enzymes = {}
-    for perc in range(60, 86, 5):
-        chave = str(perc)+"-"+str(perc+5)
+    for perc in range(60, 91, 5):
+        # chave = str(perc)+"-"+str(perc+5)
         for index, seq in seq_id.iterrows():
-            print(type(seq["pident"]))
-            if seq["pident"] >= perc and seq["pident"] < perc+5:
+            # print(type(seq["pident"]))
+            # if seq["pident"] >= perc and seq["pident"] < perc+5:
+            if seq["pident"] >= perc:
                 ident = re.findall("\|.*\|", seq["qseqid"])
                 ident = re.sub("\|", "", ident[0])
-                if chave not in target_enzymes.keys():
-                    target_enzymes[chave] = [ident]
+                if perc not in target_enzymes.keys():
+                    target_enzymes[perc] = [ident]
                 else:
-                    target_enzymes[chave].append(ident)
+                    target_enzymes[perc].append(ident)
     return target_enzymes
-
-def save_as_tsv(dic: dict, out_path: str):
-    int_df = pd.DataFrame.from_dict(dic, orient="index")
-    int_df.to_csv(out_path, sep="\t")
 
 
 # handle = UPIMAPI_parser(snakemake.input[0])

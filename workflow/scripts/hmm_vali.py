@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 import subprocess
 import shutil
+import time
 sys.path.append("/".join(sys.path[1].split("/")[:-2]))
 
 
@@ -309,6 +310,7 @@ def leave_one_out(thresholds: list, path_dictionary: dict):
                     except:
                         run += 1
                         print("SOMETHING IS NOT WORKING!!!!!!!!!!")
+                        time.sleep(1)
                         continue
                     df = read_hmmsearch_table(f'{path_dictionary["hmmsearch_results_dir"] + thresh + "/search_" + file.split(".")[0]}_hmm_{run}_seq.tsv')
                     df = check_eval(df)
