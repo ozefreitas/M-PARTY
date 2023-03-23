@@ -29,7 +29,7 @@ def get_gene_ids(ec_number: str = None, ko: str = None) -> list:
     return gene_ids
 
 
-def get_gene_sequences(gene_ids):
+def get_gene_sequences(gene_ids: list) -> tuple:
     # Use the KEGG API to get the sequence information for a given list of gene IDs
     fasta = ""
     not_found = 0

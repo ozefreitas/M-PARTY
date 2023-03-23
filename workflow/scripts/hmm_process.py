@@ -218,9 +218,11 @@ def concat_df_byrow(*dfs: pd.DataFrame, df_dict: dict = {}) -> pd.DataFrame:
     Returns:
         pd.DataFrame: A bigger (by number of indexes) Dataframe, with all hits from all given dataframes.
     """
+    for x, y in df_dict.items():
+        print(x, y)
     list_df = []
-    if df_dict == {}:
-        list_df = [df for df in dfs]
+    # if df_dict == {}:
+    #     list_df = [df for df in dfs]
     for k, v in df_dict.items():
         index = []
         counter = get_number_hits(v)

@@ -1,6 +1,6 @@
 import re
 import pandas as pd
-from docker_run import run_command
+from command_run import run_command
 
 
 def run_CDHIT(input: str, output: str, threads: int):

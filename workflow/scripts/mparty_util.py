@@ -4,7 +4,7 @@ from clint.textui import progress
 import pandas as pd
 import requests
 import shutil
-from docker_run import run_command
+from command_run import run_command
 import os
 import time
 

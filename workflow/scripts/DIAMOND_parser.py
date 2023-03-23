@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from docker_run import run_command
+from command_run import run_command
 
 
 def build_diamond_DB(input_fasta: str, output_path: str, verbose: bool = False) -> str:

@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from docker_run import run_command
+from command_run import run_command
 
 
 def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> str:

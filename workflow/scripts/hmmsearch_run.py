@@ -1,4 +1,4 @@
-from docker_run import run_command
+from command_run import run_command
 
 def run_hmmsearch(sequences_file: str, hmm_file: str, output_file: str, out_type = "out"):
     if out_type == "out":
