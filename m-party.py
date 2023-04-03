@@ -35,6 +35,8 @@ from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, s
 from BLAST_parser import *
 from DIAMOND_parser import *
 from command_run import run_tcoffee, run_hmmbuild
+from InterPro_retriever import get_IP_sequences
+from KEGG_retriever import get_KEGG_sequences
 
 
 version = "0.2.3"
@@ -67,6 +69,8 @@ parser.add_argument("--negative_db", help = "path to a user defined negative con
 parser.add_argument("-s", "--snakefile", help = "user defined snakemake workflow Snakefile. Defaults to '/workflow/Snakefile",
                     default = "workflow/Snakefile")
 parser.add_argument("-ex", "--expansion", default = False, action = "store_true", help = "Decides wheter to expand the interest dataset. Defaults to False.")
+parser.add_argument("--kegg", help = "input a KEGG ID to download respective sequences, in order to build a pHMM based on those", type = str)
+parser.add_argument("--interpro", help = "input an InterPro ID to download the respective sequences, in order to build a pHMM based on those", type = str or list)
 parser.add_argument("-t", "--threads", type = int, help = "number of threads for Snakemake to use. Defaults to max number of available logical CPUs.",
                     default = os.cpu_count())
 parser.add_argument("--align_method", default = "upimapi", help = "chose the alignment method for the initial sequences database expansion, between\
@@ -706,10 +710,28 @@ elif args.workflow == "database_construction":
         time.sleep(2)
 
     else:
-
-        run_tcoffee(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_UPI/{args.input_seqs_db_const.split(".")[0]}.clustal_aln')
-        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_UPI/{args.input_seqs_db_const.split(".")[0]}.clustal_aln',
-                     f'resources/Data/HMMs/{args.hmm_db_name}/After_tcoffee_UPI.hmm')
+        if args.kegg:
+            # if given ID is Kegg Orthology
+            if args.kegg.startswith("K"):
+                KEGG_seqs = get_KEGG_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg}.fasta', ko = args.kegg, verbose = args.verbose)
+            # If given ID is an E.C. number
+            else:
+                KEGG_seqs = get_KEGG_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg}.fasta', ec = args.kegg, verbose = args.verbose)
+        run_tcoffee(KEGG_seqs, f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{args.kegg}.clustal_aln')
+        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{args.kegg}.clustal_aln',
+                     f'resources/Data/HMMs/{args.hmm_db_name}/{args.kegg}.hmm')
+        if args.interpro:
+            # if given ID is a InterProt ID
+            if type(args.interpro) is str:
+                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/InterPro/{args.interpro}.fasta', interpro_ID = args.interpro, verbose = args.verbose)
+                filename = args.interpro
+            # if given ID is a list of proteins from InterProt
+            elif type(args.interpro) is list:
+                filename = args.interpro[0]
+                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/InterPro/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
+        run_tcoffee(InP_seqs, f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{filename}.clustal_aln')
+        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{filename}.clustal_aln',
+                     f'resources/Data/HMMs/{args.hmm_db_name}/{filename}.hmm')
 
     if args.hmm_validation:
         print("Starting HMM validation procedures...")
