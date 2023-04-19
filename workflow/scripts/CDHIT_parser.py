@@ -4,6 +4,13 @@ from command_run import run_command
 
 
 def run_CDHIT(input: str, output: str, threads: int):
+    """Funtion that uses the run command function to easily run CD-HIT from the command line
+
+    Args:
+        input (str): Input path
+        output (str): Output path
+        threads (int): Number of threads
+    """
     run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
 
 def cdhit_parser(txtfile: str) -> dict:
@@ -62,6 +69,50 @@ def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool
             else:
                 set_number_seqs_by_cluster[k] = list(set(v))
     return set_number_seqs_by_cluster
+
+def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, input_IDs_list: list):
+    """Wirtes an ouput FASTA file with the sequences from the input files that were clustered toghether 
+    with CD-HIT.
+
+    Args:
+        clust_dict (dict): Dictionary from cdhit_parser function with number of cluster as key and every seq ID
+        belonging to each cluster as value.
+        path (str): Ouput path.
+        inputed_seqs (str): Path for the initial input file.
+        input_IDs_list (list): list of seq IDs from the input file (to facilitate).
+    """
+    # returns list of IDs from inputed FASTA sequences (entire ID)
+    with open(inputed_seqs, "r") as rf:
+        Lines = rf.readlines()
+        for k, v in clust_dict.items():
+            with open(f'{path}/KEGG_cluster_{k}.fasta', "w") as wf:
+                for x in v:
+                    if x in input_IDs_list:
+                        # try:
+                            iterador = iter(Lines)
+                            linha = next(iterador)
+                            while linha is not None:
+                                if x not in linha:
+                                    linha = next(iterador, None)
+                                    continue
+                                elif x in linha:
+                                    wf.write(linha)
+                                    print(linha)
+                                    linha = next(iterador, None)
+                                    # print(linha)
+                                    while linha is not None and not linha.startswith(">"):
+                                        wf.write(linha)
+                                        linha = next(iterador, None)
+                                        # print(linha)
+                                elif x not in linha and linha.startswith(">"):
+                                    break
+                                linha = next(iterador, None)
+                        # except:
+                            # quit("File must be in Fasta format.")
+                    else:
+                        continue
+            wf.close()
+    rf.close()
 
 
 # handle = cdhit_parser(snakemake.input[0])

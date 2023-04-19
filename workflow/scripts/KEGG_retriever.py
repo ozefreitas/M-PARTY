@@ -13,7 +13,24 @@ def find_between(string, first, last):
         return ""
 
 
-def get_KEGG_sequences(filepath: str, ec_number: str = None, ko: str = None, verbose: bool = False) -> list:
+def get_KEGG_sequences(filepath: str, type: str = "AA", ec_number: str = None, ko: str = None, verbose: bool = False) -> str:
+    """Writes a FASTA file with the given protein ou nucleic sequences from a gicen E.C. number or KO from KEGG database.
+    It uses the KEGG API in order to download the sequences.
+
+    Args:
+        filepath (str): Name to be given to the FASTA file
+        type (str, optional): Defines the type of sequences to be retrieved. Defaults to "AA".
+        ec_number (str, optional): Given EC number. Defaults to None.
+        ko (str, optional): Given KO. Defaults to None.
+        verbose (bool, optional): Prints additional information about what is happening. Defaults to False.
+
+    Raises:
+        ValueError: Raises a ValueError if neither an EC number or KO is given.
+        ValueError: Raises a ValueError if both EC number and KO are given.
+
+    Returns:
+        str: Path for the created FASTA file.
+    """
     # Use the KEGG API to get the gene IDs for a given KEGG entry
     if ko == None and ec_number == None:
         raise ValueError("Either an E.C. number or a KO must be given")
@@ -39,11 +56,14 @@ def get_KEGG_sequences(filepath: str, ec_number: str = None, ko: str = None, ver
         if gene_id.startswith("RG"):
             if verbose:
                 print(f'Downloading {gene_id} gene')
-            # print(gene_id)
             # url = f'https://www.rest.kegg.jp/get/{gene_id}/aaseq'
-            url = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
+            if type == "AA":
+                url = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
+            else:
+                url = f"https://www.genome.jp/entry/-f+-n+n+{gene_id}"
             response = requests.get(url)
             text = response.text
+            print(text)
             # Add the sequence information to the fasta string
             try:
                 start = text.index("-->&gt;") + len("-->&gt;")
@@ -66,6 +86,4 @@ def get_KEGG_sequences(filepath: str, ec_number: str = None, ko: str = None, ver
 # fasta, not_found = get_gene_sequences(ref_genes)
 # save_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_test.fasta", fasta)
 
-# ref_genes_KO = get_gene_ids(ko=ko)
-# fasta_KO, not_found = get_gene_sequences(ref_genes_KO)
-# save_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_test_KO.fasta", fasta_KO)
+# get_KEGG_sequences("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_nuc_test.fasta", type="nuc", ko=ko, verbose=True)

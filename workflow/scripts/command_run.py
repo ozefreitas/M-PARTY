@@ -21,8 +21,17 @@ def docker_run_hmmbuild(volume, input_file, output_file):
 def docker_run_hmmsearch(volume, hmm_file, db, output_file):
     run_command(f'docker`run`--rm`-v`{volume}`biocontainers/hmmer:v3.2.1dfsg-1-deb_cv1`hmmsearch`{hmm_file}`{db}`>`{output_file}', sep="`")
 
-def run_tcoffee(input: str, output: str):
-    run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`PROTEIN`-n_core`4', sep = "`")
+def run_tcoffee(input: str, output: str, type_seq: str = "PROTEIN"):
+    run_command(f't_coffee`{input}`-output`clustalw_aln`-outfile`{output}`-type`{type_seq}`-n_core`4', sep = "`")
 
 def run_hmmbuild(input: str, output: str):
     run_command(f'hmmbuild`{output}`{input}', sep = "`")
+
+def run_hmmemit(input: str, output: str):
+    run_command(f'hmmemit`-o`{output}`{input}', sep = "`")
+
+def concat_hmm(input_path: str, output_path: str):
+    run_command(f'cat`{input_path}*.hmm`>`{output_path}.hmm', sep = "`")
+
+def concat_fasta(input_path: str, output_path: str):
+    run_command(f'cat`{input_path}*.fasta`>`{output_path}.fasta', sep = "`")
