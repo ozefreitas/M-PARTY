@@ -4,7 +4,7 @@ import re
 import time
 
 
-def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [], verbose: bool = False) -> tuple:
+def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [], verbose: bool = False) -> str:
     if interpro_ID == None and protein == []:
         raise ValueError("Either an InterPro ID or a list with protein IDs must be given")
     elif interpro_ID != None and protein != []:
@@ -29,7 +29,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
             list_prot[name] = seq
     elif interpro_ID != None:
         try:
-            url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/entry/InterPro/{interpro_ID}/?extra_fields=sequence&page_size=100'
+            url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/entry/InterPro/{interpro_ID[0]}/?extra_fields=sequence&page_size=100'
             response = requests.get(url)
             response.raise_for_status()
             json_resp = response.json()
@@ -40,6 +40,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
         number = json_resp["count"]
         if verbose:
             print(f'Found InterPro entry for {interpro_ID} with {number} protein sequences')
+            time.sleep(2)
         list_prot = {}
         counter = 0
         while url:
@@ -51,7 +52,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
                 name4fasta = f'>{data["metadata"]["accession"]}|{data["metadata"]["name"]}|{data["metadata"]["source_organism"]["scientificName"]}'
                 if verbose:
                     name = data["metadata"]["accession"]
-                    print(f'Downloading {name}\n')
+                    print(f'Downloading {name}')
                 for entry in data["entries"]:
                     for locations in entry["entry_protein_locations"]:
                         for frags in locations["fragments"]:

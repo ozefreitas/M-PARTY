@@ -3,17 +3,22 @@ import pandas as pd
 from command_run import run_command
 
 
-def run_CDHIT(input: str, output: str, threads: int):
+def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", identperc: float = 0.7):
     """Funtion that uses the run command function to easily run CD-HIT from the command line
 
     Args:
         input (str): Input path
         output (str): Output path
         threads (int): Number of threads
+        type_seq (str, optional): Type of sequence to be clustered. Defaults to 'AA'
+        identperc (float, optional): Minimum identity between sequences to be clustered. Defaults to 0.7
     """
-    run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+    if type_seq == "AA":
+        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+    else:
+        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
 
-def cdhit_parser(txtfile: str) -> dict:
+def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
     """Receives a text file with a similar format as a FASTA file, and returns a dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.
 
     Args:
@@ -31,9 +36,21 @@ def cdhit_parser(txtfile: str) -> dict:
             cluster += 1
             seqs_by_cluster[cluster] = []
         else:
-            target_seq = re.findall("\|.*\|", line)
-            # print(target_seq)
-            clean = re.sub("\|", "", target_seq[0])
+            try:
+                if ip:
+                    target_seq = re.findall(">.*?\|", line)
+                    clean = re.sub(">", "", target_seq[0])
+                    clean = re.sub("\|*", "", clean)
+                if kegg:
+                    target_seq = re.findall(">.*.", line)
+                    clean = re.sub(">", "", target_seq[0])
+                    clean = re.sub("\..*", "", clean)    
+                if ip == False and kegg == False:                   
+                    target_seq = re.findall("\|.*\|", line)
+                    # print(target_seq)
+                    clean = re.sub("\|", "", target_seq[0])
+            except:
+                continue
             seqs_by_cluster[cluster].append(clean)
     return seqs_by_cluster
 
@@ -70,7 +87,7 @@ def counter(clstr_lst: dict, remove_single: bool = True, remove_duplicates: bool
                 set_number_seqs_by_cluster[k] = list(set(v))
     return set_number_seqs_by_cluster
 
-def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, input_IDs_list: list):
+def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, input_IDs_list: list, db: str):
     """Wirtes an ouput FASTA file with the sequences from the input files that were clustered toghether 
     with CD-HIT.
 
@@ -85,7 +102,7 @@ def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, inpu
     with open(inputed_seqs, "r") as rf:
         Lines = rf.readlines()
         for k, v in clust_dict.items():
-            with open(f'{path}/KEGG_cluster_{k}.fasta', "w") as wf:
+            with open(f'{path}/{db}_cluster_{k}.fasta', "w") as wf:
                 for x in v:
                     if x in input_IDs_list:
                         # try:
@@ -97,7 +114,7 @@ def get_clustered_sequences(clust_dict: dict, path: str, inputed_seqs: str, inpu
                                     continue
                                 elif x in linha:
                                     wf.write(linha)
-                                    print(linha)
+                                    # print(linha)
                                     linha = next(iterador, None)
                                     # print(linha)
                                     while linha is not None and not linha.startswith(">"):

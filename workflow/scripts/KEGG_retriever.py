@@ -12,33 +12,85 @@ def find_between(string, first, last):
     except ValueError:
         return ""
 
-
-def get_KEGG_sequences(filepath: str, type: str = "AA", ec_number: str = None, ko: str = None, verbose: bool = False) -> str:
-    """Writes a FASTA file with the given protein ou nucleic sequences from a gicen E.C. number or KO from KEGG database.
-    It uses the KEGG API in order to download the sequences.
-
-    Args:
-        filepath (str): Name to be given to the FASTA file
-        type (str, optional): Defines the type of sequences to be retrieved. Defaults to "AA".
-        ec_number (str, optional): Given EC number. Defaults to None.
-        ko (str, optional): Given KO. Defaults to None.
-        verbose (bool, optional): Prints additional information about what is happening. Defaults to False.
-
-    Raises:
-        ValueError: Raises a ValueError if neither an EC number or KO is given.
-        ValueError: Raises a ValueError if both EC number and KO are given.
-
-    Returns:
-        str: Path for the created FASTA file.
-    """
-    # Use the KEGG API to get the gene IDs for a given KEGG entry
+def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number = None, ko = None, verbose: bool = False):
     if ko == None and ec_number == None:
         raise ValueError("Either an E.C. number or a KO must be given")
     elif ko != None and ec_number != None:
         raise ValueError("Only give eith a E.C. number or KO")
-    elif ec_number:
-        url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ec:{ec_number}"
     elif ko:
+        ko_urlist = []
+        for k in ko:
+            ko_urlist.append(f'https://rest.kegg.jp/get/{k}')
+
+            if verbose:
+                print(f'Downloading {k} orthology genes')
+        for link in ko_urlist:
+            get_kegg_kosequences(filepath, link, korec = "ko", type_seq = type_seq, verbose=verbose)
+    elif ec_number:
+        ec_urlist = []
+        for ec in ec_number:
+            ec_urlist.append(f'https://rest.kegg.jp/get/{ec}')
+            if verbose:
+                print(f'Downloading {ec} gene')
+        for link in ec_urlist:
+            get_kegg_kosequences(filepath, link, korec = "ec", type_seq = type_seq, verbose=verbose)
+    return filepath
+
+def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        genes = []
+        start_line = False
+        end_line = False
+        with open(filepath, "a") as wf:
+            for line in soup.get_text().split('\n'):
+                if line.startswith("GENES"):
+                    start_line = True
+                    end_line = False
+                    gene_line = line.split(None, 1)[1]
+                    genes.extend(gene_line.split(';'))
+                elif start_line and not end_line:
+                    if line.startswith(' '):
+                        gene_line = line.strip()
+                        genes.extend(gene_line.split(';'))
+                    else:
+                        end_line = True
+            # case of EC numbers with no acess to api genes
+            if genes == []:
+                if verbose:
+                    print(f'Sequences from {url} not found. Trying in RefGene')
+                wf.close()
+                try:
+                    get_kegg_refgene_sequences(filepath, url, korec, type_seq = type_seq, verbose = verbose)
+                except:
+                    print(f"[WARNING] Sequence for {url} not found")
+            else:
+                for i in range(len(genes)):
+                    genes[i] = genes[i].replace(" ", "")
+                    genes[i] = re.findall(".*:", genes[i])[0].lower() + re.findall(":.*", genes[i])[0][1:]
+                    if type_seq == "AA":
+                        url2 = f'https://rest.kegg.jp/get/{genes[i]}/aaseq'
+                    else:
+                        url2 = f'https://rest.kegg.jp/get/{genes[i]}/ntseq'
+                    if verbose:
+                        print(f'Downloading sequence from {url2}')
+                    response = requests.get(url2)
+                    wf.write(response.text)
+                if verbose:
+                    print(f'Checking the existance of other genes for {url.split("/")[-1]} in RefSeq')
+                get_kegg_refgene_sequences(filepath, url, korec, type_seq, verbose)
+            wf.close()
+    except:
+        print(f"[WARNING] Sequence for {url} not found")
+    
+def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False):
+    if korec == "ec":
+        ec = url.split("/")[-1]
+        url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ec:{ec}"
+    else:
+        ko = url.split("/")[-1]
+        print(ko)
         url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ko:{ko}"
     try:
         response = requests.get(url)
@@ -56,14 +108,12 @@ def get_KEGG_sequences(filepath: str, type: str = "AA", ec_number: str = None, k
         if gene_id.startswith("RG"):
             if verbose:
                 print(f'Downloading {gene_id} gene')
-            # url = f'https://www.rest.kegg.jp/get/{gene_id}/aaseq'
-            if type == "AA":
+            if type_seq == "AA":
                 url = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
             else:
                 url = f"https://www.genome.jp/entry/-f+-n+n+{gene_id}"
             response = requests.get(url)
             text = response.text
-            print(text)
             # Add the sequence information to the fasta string
             try:
                 start = text.index("-->&gt;") + len("-->&gt;")
@@ -74,16 +124,13 @@ def get_KEGG_sequences(filepath: str, type: str = "AA", ec_number: str = None, k
                 not_found += 1
                 continue
         # print(fasta)
-    file = open(filepath, "w")
+    file = open(filepath, "a")
     file.write(fasta)
     file.close()
-    return filepath
 
 
-# ec_number = "3.1.1.101"
-# ko = "K21104"
-# ref_genes = get_gene_ids(ec_number = ec_number)
-# fasta, not_found = get_gene_sequences(ref_genes)
-# save_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_test.fasta", fasta)
+# ec_number = ["3.1.1.101", "1.14.12.15", "1.18.1.-", "1.3.1.53"]
+# ko = ["K18251", "K18252", "K18253", "K18254"]
 
 # get_KEGG_sequences("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_nuc_test.fasta", type="nuc", ko=ko, verbose=True)
+# get_kegg_genes("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_new_test.fasta", ec_number=ec_number, verbose = True)
