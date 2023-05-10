@@ -16,7 +16,7 @@ def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", ident
     if type_seq == "AA":
         run_command(f'cd-hit`-i`{input}`-o`{output}`-c`{identperc}`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
     else:
-        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.9`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
+        run_command(f'cd-hit`-i`{input}`-o`{output}`-c`0.8`-n`5`-M`16000`-d`0`-T`{threads}', sep = "`")
 
 def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
     """Receives a text file with a similar format as a FASTA file, and returns a dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.
@@ -27,11 +27,11 @@ def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
     Returns:
         dict: A dictionary with the number of the cluster as key and the UniProt ID's for the sequences inside each cluster as value.
     """
-    file = open(txtfile, "r")
+    handle = open(txtfile, "r")
     cluster = 0
     seqs_by_cluster = {}
-    Lines = file.readlines()
-    for line in Lines:
+    lines = handle.readlines()
+    for line in lines:
         if line[0] == ">":
             cluster += 1
             seqs_by_cluster[cluster] = []
@@ -45,10 +45,14 @@ def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
                     target_seq = re.findall(">.*.", line)
                     clean = re.sub(">", "", target_seq[0])
                     clean = re.sub("\..*", "", clean)    
-                if ip == False and kegg == False:                   
-                    target_seq = re.findall("\|.*\|", line)
-                    # print(target_seq)
-                    clean = re.sub("\|", "", target_seq[0])
+                if ip == False and kegg == False:     
+                    try:              
+                        target_seq = re.findall("\|.*\|", line)
+                        clean = re.sub("\|", "", target_seq[0])
+                    except:
+                        target_seq = re.findall(">.*.", line)
+                        clean = re.sub(">", "", target_seq[0])
+                        clean = re.sub("\.\.\..*", "", clean) 
             except:
                 continue
             seqs_by_cluster[cluster].append(clean)

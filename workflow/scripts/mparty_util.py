@@ -1,4 +1,5 @@
 from glob import glob
+import sys
 from itertools import product
 from clint.textui import progress
 import pandas as pd
@@ -7,6 +8,7 @@ import shutil
 from command_run import run_command
 import os
 import time
+from hmm_vali import delete_inter_files
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -245,3 +247,19 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 		return database_folder + "/" + database.split("/")[-1]
 	else:
 		raise TypeError("--database given parameter is not accepted. Chose between 'uniprot', 'swissprot' or a path to a FASTA file of protein sequences.")
+
+
+def concat_code_hmm(db_name: str, model_name: str):
+	os.mkdir(f'resources/Data/HMMs/{db_name}/concat_model/')
+	with open(f'resources/Data/HMMs/{db_name}/concat_model/{model_name}.hmm', "w") as wf:
+		for hmm in os.listdir(f'resources/Data/HMMs/{db_name}/'):
+			if not hmm.startswith(model_name):
+				with open(os.path.join(f'resources/Data/HMMs/{db_name}/', hmm), "r") as rf:
+					lines = rf.readlines()
+					wf.writelines(lines)
+				rf.close()
+	wf.close()
+
+
+def delete_previous_same_run(dir_path: str):
+	shutil.rmtree(dir_path)

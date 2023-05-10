@@ -16,3 +16,4 @@ dependencies:
   - diamond
   - muscle
   - beautifulsoup4
+  - kma

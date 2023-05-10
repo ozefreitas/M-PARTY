@@ -29,6 +29,7 @@ requirements:
     - diamond
     - muscle
     - beautifulsoup4
+    - kma
 
 test:
   commands:
