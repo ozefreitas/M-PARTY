@@ -9,6 +9,7 @@ from command_run import run_command
 import os
 import time
 from hmm_vali import delete_inter_files
+from pathlib import Path
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -250,10 +251,10 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 
 
 def concat_code_hmm(db_name: str, model_name: str):
-	os.mkdir(f'resources/Data/HMMs/{db_name}/concat_model/')
+	Path(f'resources/Data/HMMs/{db_name}/concat_model/').mkdir(parents = True, exist_ok = True)
 	with open(f'resources/Data/HMMs/{db_name}/concat_model/{model_name}.hmm', "w") as wf:
 		for hmm in os.listdir(f'resources/Data/HMMs/{db_name}/'):
-			if not hmm.startswith(model_name):
+			if os.path.isfile(os.path.join(f'resources/Data/HMMs/{db_name}/', hmm)):
 				with open(os.path.join(f'resources/Data/HMMs/{db_name}/', hmm), "r") as rf:
 					lines = rf.readlines()
 					wf.writelines(lines)

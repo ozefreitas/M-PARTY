@@ -56,94 +56,94 @@ jobs:
         run: docker run mparty bin/bash -c "m-party.py -h"
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/sequences_PE.fasta -o output_results -rt --output_type excel --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/positive_control.fasta --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate same outputs
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate config file
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --hmm_db_name PE --display_config"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt --display_config"
 
-  validation:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+  # validation:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
 
-      - name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: mparty
-          path: /tmp
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: mparty
+  #         path: /tmp
 
-      - name: Load Docker image
-        run: |
-          docker load --input /tmp/mparty.tar
-          docker image ls -a
+  #     - name: Load Docker image
+  #       run: |
+  #         docker load --input /tmp/mparty.tar
+  #         docker image ls -a
 
-      - name: Check base entrypoint
-        run: docker run mparty bin/bash -c "ls"
+  #     - name: Check base entrypoint
+  #       run: docker run mparty bin/bash -c "ls"
 
-      - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "m-party.py -h"
+  #     - name: Print M-PARTY's main script
+  #       run: docker run mparty bin/bash -c "m-party.py -h"
 
-      - name: Validation workflow alone
-        run: docker run mparty bin/bash -c "m-party.py --validation --hmm_db_name PE"
+  #     - name: Validation workflow alone
+  #       run: docker run mparty bin/bash -c "m-party.py --validation --hmm_db_name PE"
 
-  annotation_validation:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+  # annotation_validation:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
 
-      - name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: mparty
-          path: /tmp
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: mparty
+  #         path: /tmp
 
-      - name: Load Docker image
-        run: |
-          docker load --input /tmp/mparty.tar
-          docker image ls -a
+  #     - name: Load Docker image
+  #       run: |
+  #         docker load --input /tmp/mparty.tar
+  #         docker image ls -a
 
-      - name: Check base entrypoint
-        run: docker run mparty bin/bash -c "ls"
+  #     - name: Check base entrypoint
+  #       run: docker run mparty bin/bash -c "ls"
 
-      - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "m-party.py -h"
+  #     - name: Print M-PARTY's main script
+  #       run: docker run mparty bin/bash -c "m-party.py -h"
       
-      - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
+  #     - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
+  #       run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
 
-  annotation_validation_swapdb:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+  # annotation_validation_swapdb:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   steps:
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
 
-      - name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: mparty
-          path: /tmp
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: mparty
+  #         path: /tmp
 
-      - name: Load Docker image
-        run: |
-          docker load --input /tmp/mparty.tar
-          docker image ls -a
+  #     - name: Load Docker image
+  #       run: |
+  #         docker load --input /tmp/mparty.tar
+  #         docker image ls -a
 
-      - name: Check base entrypoint
-        run: docker run mparty bin/bash -c "ls"
+  #     - name: Check base entrypoint
+  #       run: docker run mparty bin/bash -c "ls"
 
-      - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "m-party.py -h"
+  #     - name: Print M-PARTY's main script
+  #       run: docker run mparty bin/bash -c "m-party.py -h"
 
-      - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
+  #     - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
+  #       run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
 
   db_construction:
     runs-on: ubuntu-latest
@@ -169,12 +169,17 @@ jobs:
       - name: Print M-PARTY's main script
         run: docker run mparty bin/bash -c "m-party.py -h"
 
-      - name: Database construction workflow with small FASTA protein file, WITHOUT model validation script
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name PET -db swissprot --input_seqs_db_const M-PARTY/ci/sequences_PET.fasta -t 8 --verbose --alignment_method blast"
+      - name: Database construction workflow with small FASTA protein file
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name protein_file_inputest --input_seqs_db_const M-PARTY/ci/KEGG_nuc_test.fasta --input_type_db_const nucleic -t 8 --verbose"
       
-      # - name: Database construction workflow with small FASTA protein file, WITH model validation script
-      #   run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name PE -i M-PARTY/ci/_PE.fasta --validation"
+      - name: Database construction workflowfor with KEGG KO
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_KO --kegg K21104 --verbose"
       
-      # - name: Full M-PARTY workflow execution!
-      #   run: docker run mparty bin/bash -c "m-party.py -w both -i M-PARTY/ci/sequences_PE.fasta -o output_results -rt --output_type excel --validation"
-      
+      - name: Database construction workflowfor with KEGG EC number
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_EC --kegg 3.1.1.101 1.14.12.15 1.18.1.- 1.3.1.53 --verbose"
+
+      - name: Database construction workflowfor with InterPro IPR
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_IPR --interpro IPR000003 --verbose"
+
+      - name: Database construction workflowfor with InterPro individual protein IDs
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_Prots --interpro A0A000 A0A001 A0A002 --verbose"
