@@ -1023,51 +1023,51 @@ elif args.workflow == "both":
     else:
 
         if args.kegg:
-            # Path(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/').mkdir(parents = True, exist_ok = True)
-            # # if given ID is Kegg Orthology
-            # if args.kegg[0].startswith("K"):
-            #     if args.input_type_db_const == "nucleic":
-            #         KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
-            #     else:
-            #         KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+            Path(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/').mkdir(parents = True, exist_ok = True)
+            # if given ID is Kegg Orthology
+            if args.kegg[0].startswith("K"):
+                if args.input_type_db_const == "nucleic":
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
+                else:
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
 
-            # # If given ID is an E.C. number
-            # else:
-            #     if args.input_type_db_const == "nucleic":
-            #         KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ec = args.kegg, verbose = args.verbose)
-            #     else:
-            #         KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ec = args.kegg, verbose = args.verbose)
-            # # KEGG_seqs = f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta'
+            # If given ID is an E.C. number
+            else:
+                if args.input_type_db_const == "nucleic":
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ec = args.kegg, verbose = args.verbose)
+                else:
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ec = args.kegg, verbose = args.verbose)
+            # KEGG_seqs = f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta'
             
-            # Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
-            # Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            # Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
             
-            # run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
+            run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
 
-            # seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
-            # input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
-            # get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
+            seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
+            input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
+            get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
 
-            # for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
-            #     try:
-            #         if args.input_type_db_const == "nucleic":
-            #             run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-            #                         f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
-            #         elif args.input_type_db_const == "protein":
-            #             run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-            #                         f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
-            #     except:
-            #         if args.verbose:
-            #             print(f'[WARNING] T-COFFEE for file {file} not working')
-            #         continue
+            for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+                try:
+                    if args.input_type_db_const == "nucleic":
+                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                    elif args.input_type_db_const == "protein":
+                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
+                except:
+                    if args.verbose:
+                        print(f'[WARNING] T-COFFEE for file {file} not working')
+                    continue
             
-            # for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
-            #     run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
-            #             f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-            #     if args.consensus:
-            #         run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-            #                 f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
+            for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
+                run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
+                        f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                if args.consensus:
+                    run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
+                            f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
 
             concat_code_hmm(args.hmm_db_name, "KEGG_model")
 
