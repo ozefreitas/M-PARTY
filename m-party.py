@@ -15,7 +15,7 @@ import shutil
 sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
 sys.path.append(f'{sys.path[1]}/workflow/scripts')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
-# print(sys.path)
+print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -341,13 +341,13 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
         df.to_csv(path + table_name)
     elif type_format == "excel":
         if not args.expansion:
-            number_db = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')
-            if len(number_db) > 1:
-                ask = input(f'[WARINING] {len(number_db)} in Data. Choose between {number_db} to track input sequences')
-            else:
-                ask = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')[0]
-                # print(ask)
-            mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/{ask}/'
+            # number_db = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')
+            # if len(number_db) > 1:
+            #     ask = input(f'[WARINING] {len(number_db)} in Data. Choose between {number_db} to track input sequences')
+            # else:
+            #     ask = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')[0]
+            #     # print(ask)
+            # mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/{ask}/'
             df.to_excel(f'{path}report_table.xlsx', sheet_name = "Table_Report", index = 0)
         else:
             mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/CDHIT/'
@@ -793,7 +793,7 @@ elif args.workflow == "database_construction":
         files = [f for f in os.listdir('.') if os.path.isfile(f)]
         for file in files:
             if file.endswith(".dnd"):
-                delete_inter_files(os.path.join(sys.path[1], file))
+                delete_inter_files(file)
 
         print("HMM database created!")
         time.sleep(2)
@@ -929,7 +929,7 @@ elif args.workflow == "database_construction":
         files = [f for f in os.listdir('.') if os.path.isfile(f)]
         for file in files:
             if file.endswith(".dnd"):
-                delete_inter_files(os.path.join(sys.path[1], file))
+                delete_inter_files(file)
 
     if args.hmm_validation:
         print("Starting HMM validation procedures...")
@@ -1152,7 +1152,7 @@ elif args.workflow == "both":
         files = [f for f in os.listdir('.') if os.path.isfile(f)]
         for file in files:
             if file.endswith(".dnd"):
-                delete_inter_files(os.path.join(sys.path[1], file))
+                delete_inter_files(file)
 
     if args.hmm_validation:
         print("Starting HMM validation procedures...")
