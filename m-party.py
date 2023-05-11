@@ -105,7 +105,8 @@ strat = "/".join(sys.path[0].split("/")[:-1])
 snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = sys.path[1] + "/config/"  # for Linux
-hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/'
+# hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/'
+hmm_database_path = f'/resources/Data/HMMs/{args.hmm_db_name}/'
 validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
 
@@ -1034,9 +1035,9 @@ elif args.workflow == "both":
             # If given ID is an E.C. number
             else:
                 if args.input_type_db_const == "nucleic":
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ec = args.kegg, verbose = args.verbose)
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
                 else:
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ec = args.kegg, verbose = args.verbose)
+                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
             # KEGG_seqs = f'resources/Data/FASTA/{args.hmm_db_name}/KEGG/{args.kegg[0]}.fasta'
             
             Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
