@@ -4,47 +4,56 @@ import os
 import pandas as pd
 
 
-def run_KMA(input_DB: str, output_DB: str, meta_input: str, meta_out: str, threads: int, paired_end: bool = False, second_input: str = None):
+def run_KMA(input_DB: str, output_DB: str, meta_input: str, meta_out: str, threads: int, paired_end: bool = False, second_input: str = None) -> str:
     """Runs KMA with in the command line and returns the output file
 
     Args:
-        input_DB (str): _description_
-        output_DB (str): _description_
-        meta_input (str): _description_
-        meta_out (str): _description_
-        threads (int): _description_
-        paired_end (bool, optional): _description_. Defaults to False.
-        second_input (str, optional): _description_. Defaults to None.
+        input_DB (str): Reference nucleotide database
+        output_DB (str): Name for the indexed referente database
+        meta_input (str): Metagenome sample
+        meta_out (str): Output name
+        threads (int): Number of threads
+        paired_end (bool, optional): Set to true of a second input (paired end) is given. Defaults to False.
+        second_input (str, optional): Paired end input file. Defaults to None.
 
     Raises:
-        ValueError: _description_
+        ValueError: Raises a Value error if paired_end is True but no file is given
 
     Returns:
-        _type_: _description_
+        str: Path of the output file
     """
-    run_command(f'kma`index`-i`{input_DB}`-o`{output_DB}')
-    run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_DB}`-t`{threads}`-1t1`-mem_mode`-ef')
+    run_command(f'kma`index`-i`{input_DB}`-o`{output_DB}', sep = "`")
+    run_command(f'kma`-i`{meta_input}`-o`{meta_out}`-t_db`{output_DB}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
     if paired_end and second_input == None:
         raise ValueError("When paired end is flaged, a second input file is mandatory")
     elif paired_end and second_input != None:
-        run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_DB}`-t`{threads}`-1t1`-mem_mode`-ef')
+        run_command(f'kma`-i`{meta_input}`{second_input}`{meta_out}`-t_db`{output_DB}`-t`{threads}`-1t1`-mem_mode`-ef', sep = "`")
     return meta_out
 
-def kma_parser(input_file: str):
-    """_summary_
+def kma_parser(input_file: str) -> pd.DataFrame:
+    """Process the output of the KMA run for the desired information
 
     Args:
-        input_file (str): _description_
+        input_file (str): Path for the KMA output file
 
     Returns:
-        _type_: _description_
+        pd.Dataframe: A pandas Dataframe with relevant information
     """
     df = pd.read_csv(input_file, sep = "\t", decimal = ",")
-    df1 = df.loc[(df["Template_Identity"] >= 80) & 
-                 (df["Template_Coverage"] >= 60)]
+    df1 = df.loc[(pd.to_numeric(df["Template_Identity"]) >= 80) & 
+                 (pd.to_numeric(df["Template_Coverage"]) >= 60)]
     return df1[["#Template", "Template_Identity", "Template_Coverage", "q_value", "p_value"]]
 
 def get_hit_sequences(dataframe: pd.DataFrame, to_list: bool = False) -> list:
+    """Given a Dataframe with info from KMA run, return a list of the hit IDs
+
+    Args:
+        dataframe (pd.DataFrame): Dataframe from kma_parser
+        to_list (bool, optional): Flag True to return a list as output. Defaults to False.
+
+    Returns:
+        list: list of hit IDs from KMA
+    """
     if to_list:
         return dataframe["#Template"].tolist()
     else:

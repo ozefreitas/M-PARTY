@@ -30,6 +30,7 @@ requirements:
     - muscle
     - beautifulsoup4
     - kma
+    - sra-tools
 
 test:
   commands:

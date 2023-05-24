@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 import requests
 from requests.exceptions import HTTPError
 import re
+from tqdm import tqdm
 
 
 def find_between(string, first, last):
@@ -66,15 +67,15 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                 except:
                     print(f"[WARNING] Sequence for {url} not found")
             else:
-                for i in range(len(genes)):
+                for i in tqdm(range(len(genes)), desc = "Downloading genes"):
                     genes[i] = genes[i].replace(" ", "")
                     genes[i] = re.findall(".*:", genes[i])[0].lower() + re.findall(":.*", genes[i])[0][1:]
                     if type_seq == "AA":
                         url2 = f'https://rest.kegg.jp/get/{genes[i]}/aaseq'
                     else:
                         url2 = f'https://rest.kegg.jp/get/{genes[i]}/ntseq'
-                    if verbose:
-                        print(f'Downloading sequence from {url2}')
+                    # if verbose:
+                    #     print(f'Downloading sequence from {url2}')
                     response = requests.get(url2)
                     wf.write(response.text)
                 if verbose:
@@ -104,10 +105,10 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
     # Use the KEGG API to get the sequence information for a given list of gene IDs
     fasta = ""
     not_found = 0
-    for gene_id in gene_ids:
+    for gene_id in tqdm(gene_ids, desc = "Downloading genes", position=0, leave=True):
         if gene_id.startswith("RG"):
-            if verbose:
-                print(f'Downloading {gene_id} gene')
+            # if verbose:
+            #     print(f'Downloading {gene_id} gene')
             if type_seq == "AA":
                 url = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
             else:

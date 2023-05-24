@@ -4,7 +4,7 @@ import re
 import time
 
 
-def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [], verbose: bool = False) -> str:
+def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str:
     if interpro_ID == None and protein == []:
         raise ValueError("Either an InterPro ID or a list with protein IDs must be given")
     elif interpro_ID != None and protein != []:
@@ -15,6 +15,8 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
             try:
                 url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/{p}'
                 response = requests.get(url)
+                if response.status_code == 408:
+                    time.sleep(61)
                 response.raise_for_status()
                 json_resp = response.json()
             except HTTPError as http_err:
@@ -31,6 +33,8 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
         try:
             url = f'https://www.ebi.ac.uk/interpro/api/protein/UniProt/entry/InterPro/{interpro_ID[0]}/?extra_fields=sequence&page_size=100'
             response = requests.get(url)
+            if response.status_code == 408:
+                time.sleep(61)
             response.raise_for_status()
             json_resp = response.json()
         except HTTPError as http_err:
@@ -40,14 +44,20 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, protein: list = [],
         number = json_resp["count"]
         if verbose:
             print(f'Found InterPro entry for {interpro_ID} with {number} protein sequences')
-            time.sleep(2)
+            time.sleep(1)
         list_prot = {}
         counter = 0
         while url:
             response = requests.get(url)
+            if response.status_code == 408:
+                time.sleep(61)
+                continue
             response.raise_for_status()
             json_resp = response.json()
             for data in json_resp["results"]:
+                if reviewed:
+                    if data["metadata"]["source_database"] == "unreviewed":
+                        continue
                 seq = ""
                 name4fasta = f'>{data["metadata"]["accession"]}|{data["metadata"]["name"]}|{data["metadata"]["source_organism"]["scientificName"]}'
                 if verbose:

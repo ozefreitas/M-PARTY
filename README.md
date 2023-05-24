@@ -1,5 +1,5 @@
 # M-PARTY - Mining Protein dAtabases foR Targueted enzYmes
-#### Version 0.2.2
+#### Version 1.0.0
 
 
 <br>
@@ -24,10 +24,15 @@ M-PARTY compreends a extensive HMM database, built with state of the art checked
 First version of M-PARTY is only available for mining PE (polyethylene), as latter version will compreend a more vast list of plastics to analyse. <p>
 Also, M-PARTY is meant to analyse metagenomic sequences, but version 0.1.0 only accepts single FASTA aminoacidic sequences. Basic steps of M-PARTY annotation workflow in its frist stages are: 
 
-1. The acceptence of any number of protein sequences in a single FASTA file as query;
-2. Execution of hmmsearch from the [HMMER package](https://www.hmmer.org/), using the pre-built HMMs from previously knowns sequences able to have some kind of PE deterioration levels as database; 
-3. A quality benchmark to determine good and bad hits from the queries against models;
-4. Three output files, consisting in a FASTA file with the protein sequences returned as a hit from the search, a report in text format (if requested by the user) with simply puted information about the inputed and already built (HMMs) data, run and processing parameters and conclusions, and an easy to read report table in xlsx format, with all the important data about the annotation results, in particular:
+1. The acceptence of any number of protein sequences in a single FASTA file as query; also an KEGG ID representing the protein 
+sequences involved in certain reaction; an InterPro ID or a set of protein IDs of interest from latter database;
+2. Execution of hmmsearch from the [HMMER package](https://www.hmmer.org/) using the built HMMs from previously knowns sequences able to have some kind of PE deterioration levels as database; and [KMA](https://bitbucket.org/genomicepidemiology/kma/src/master/) to map and search raw metagenomes for interest genes; 
+3. Able to input three different genres of files:
+    - Protein datasets
+    - Assembled metagenomes
+    - Raw metagenomes
+4. A quality benchmark to determine good and bad hits from the queries against models;
+5. Three output files, consisting in a FASTA file with the protein sequences returned as a hit from the search, a report in text format (if requested by the user) with simply puted information about the inputed and already built (HMMs) data, run and processing parameters and conclusions, and an easy to read report table in xlsx format, with all the important data about the annotation results, in particular:
     - Sequence IDs
     - HMM IDs (Degraded plastic + number)
     - Bit scores
