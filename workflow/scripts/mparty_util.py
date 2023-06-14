@@ -10,6 +10,7 @@ import os
 import time
 from hmm_vali import delete_inter_files
 from pathlib import Path
+import fileinput
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -264,3 +265,41 @@ def concat_code_hmm(db_name: str, model_name: str):
 
 def delete_previous_same_run(dir_path: str):
 	shutil.rmtree(dir_path)
+
+
+def compress_fasta(filepath: str) -> str:
+	separator = "|||"
+	for line in fileinput.input(filepath, inplace=True):
+		if line.startswith(">"):
+			line = line.replace("\n", separator)
+			sys.stdout.write("\n" + line)
+		else:
+			sys.stdout.write(line.strip())
+	return filepath
+
+
+def return_fasta_content(filepath: str, outpath: str, identifier: list = None):
+	with open(filepath, "r") as rf:
+		with open(outpath + "aligned.fasta", "w") as wf:
+			# uma linha do ficheiro de input em memória
+			for line in rf:
+				for ident in identifier:
+					# se o id que deu hit estiver nessa linha
+					if ident in line:
+						# divide-se pelo separador
+						new = line.split("|||")
+						wf.write(new[0] + "\n")
+						# passamos a formato de fasta
+						fasta_form = []
+						if len(new[1]) > 60:
+							for i in range(0, len(new[1]), 60):
+								fasta_form.append(new[1][i: i + 60] + "\n")
+							fasta_form.append("\n")
+							for x in fasta_form:
+								wf.write(x)
+						else:
+							wf.write(new[1])
+						
+
+# compress_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/SRR3962293.faa")
+# return_fasta_content("/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/ERR476942.faa")

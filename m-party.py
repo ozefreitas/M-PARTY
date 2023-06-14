@@ -34,7 +34,7 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
-from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm
+from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content
 from BLAST_parser import *
 from DIAMOND_parser import *
 from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
@@ -144,6 +144,8 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, ip: bool = False, 
         for the FASTA entries.
         kegg (bool, optional): Set to True if sequences from filenames were retrieved from KEGG, which has a specific nomenclature
         for the FASTA entries.
+        verbose (bool, optional): Set to True to print aditional messages of wath is happening. Defaults to False.
+        kma_res (bool, optional): Set to True if this function is set to run for the processing of KMA results. Defaults to False.
 
     Returns:
         list: A list containing IDs from all sequences
@@ -158,14 +160,15 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, ip: bool = False, 
         if verbose:
             print("No input file detected. Proceding to construct the models")
         return unip_IDS
+            
     elif args.input_type == "metagenome" and kma_res == False:
         return unip_IDS
     else:
         try:
             with open(filename, "r") as f:
                 try:
-                    lines = f.readlines()
-                    for line in lines:
+                    # lines = f.readlines()
+                    for line in f:
                         if line.startswith(">"):
                             if kegg:
                                 identi = re.findall(">.*?\s", line)
@@ -194,6 +197,7 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, ip: bool = False, 
                                         identi = line.split(" ")[0]
                                         identi = re.sub(">", "", identi)
                                         unip_IDS.append(identi)
+                                        # print(unip_IDS)
                     if verbose:
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
                         time.sleep(2)
@@ -231,6 +235,9 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
         seq_IDS = []
     # if args.kegg != None or args.interpro != None:
     #     seq_IDS = []
+    file_stats = os.stat(input_file)
+    if file_stats.st_size / (1024 * 1024) > 400:
+        seq_IDS = "too_big"
     else:
         seq_IDS = parse_fasta(input_file)
     if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
@@ -398,7 +405,7 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
     number_hits_perseq = get_number_hits_perseq(query_names)
     # get the unique sequences
     unique_seqs = get_unique_hits(query_names)
-    inputed_seqs = parse_fasta(args.input)
+    inputed_seqs = config["seqids"]
     if config["hmm_validation"] == True:
         with open(path + "text_report.txt", "w") as f:
             f.write(f"M-PARTY hits report:\n \
@@ -451,8 +458,8 @@ def get_unique_hits(hit_IDs_list: list) -> list:
     return unique_IDs_list
 
 
-def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile:str = None):
-    """Wirtes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
+def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile: str = None):
+    """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
     Args:
@@ -460,43 +467,47 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool
         path (str): ouput path.
         inputed_seqs (str): name of the initial input file.
     """
-    with open(path + "aligned.fasta", "w") as wf:
-        # returns list of IDs from inputed FASTA sequences (entire ID)
-        if args.input_type == "metagenome":
-            input_IDs = parse_fasta(kma_alignfile, remove_excess_ID = False, kma_res = True)
-        else:
-            input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False)
+    # returns a list the sequences that hit against the models (only one entry)
+    unique_IDS = get_unique_hits(hit_IDs_list)
 
-        # returns a list the sequences that hit against the models (only one entry)
-        unique_IDS = get_unique_hits(hit_IDs_list)
-        
-        if args.input_type == "metagenome":
-            inp_seqs = kma_alignfile
-        else: 
-            inp_seqs = inputed_seqs
-        with open(inp_seqs, "r") as rf:
-            lines = rf.readlines()
-            for x in unique_IDS:
-                if x in input_IDs:
-                    iterador = iter(lines)
-                    linha = next(iterador)
-                    while linha is not None:
-                        if x not in linha:
-                            linha = next(iterador, None)
-                            continue
-                        elif x in linha:
-                            wf.write(linha)
-                            linha = next(iterador, None)
-                            while linha is not None and not linha.startswith(">"):
+    if config["seqids"] == "too_big":
+        filestr = compress_fasta(inputed_seqs)
+        return_fasta_content(filestr, path, unique_IDS)
+    
+    else:
+        with open(path + "aligned.fasta", "w") as wf:
+            if args.input_type == "metagenome":
+                input_IDs = parse_fasta(kma_alignfile, remove_excess_ID = False, kma_res = True)
+            else:
+                input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False)
+            
+            if args.input_type == "metagenome":
+                inp_seqs = kma_alignfile
+            else: 
+                inp_seqs = inputed_seqs
+            with open(inp_seqs, "r") as rf:
+                lines = rf.readlines()
+                for x in unique_IDS:
+                    if x in input_IDs:
+                        iterador = iter(lines)
+                        linha = next(iterador)
+                        while linha is not None:
+                            if x not in linha:
+                                linha = next(iterador, None)
+                                continue
+                            elif x in linha:
                                 wf.write(linha)
                                 linha = next(iterador, None)
-                        elif x not in linha and linha.startswith(">"):
-                            break
-                        linha = next(iterador, None)
-                else:
-                    continue
-        rf.close()
-    wf.close()
+                                while linha is not None and not linha.startswith(">"):
+                                    wf.write(linha)
+                                    linha = next(iterador, None)
+                            elif x not in linha and linha.startswith(">"):
+                                break
+                            linha = next(iterador, None)
+                    else:
+                        continue
+            rf.close()
+        wf.close()
 
 
 def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_seqs: str, bit_threshold: float = None, eval_threshold: float = None, kma: bool = False, kma_alignfile: str = None):
@@ -609,7 +620,7 @@ if args.workflow == "annotation" and args.input is not None:
             for hmm_file in file_generator(validated_hmm_dir, full_path = True):
                 run_hmmsearch(args.input, hmm_file, 
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
         else:
             p = os.listdir(hmm_database_path)
@@ -619,11 +630,12 @@ if args.workflow == "annotation" and args.input is not None:
                 for hmm_file in file_generator(path, full_path = True):
                     run_hmmsearch(args.input, hmm_file, 
                         path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                        "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                         out_type = args.hmms_output_type)
                 concat_hmmsearch_results(path, hmmsearch_results_path)
 
     else:
+        # if a metagenome is given, runs KMA
         if args.input_type == "metagenome":
             Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
             Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
@@ -641,15 +653,16 @@ if args.workflow == "annotation" and args.input is not None:
             generate_output_files(df, hit_seqs, kma_out, kma = True, kma_alignfile = kma_out + ".fsa")
 
         else:
+            # se os modelos estiverem concatenados
             if args.concat_hmm_models:
                 for hmm_file in file_generator(hmm_database_path + "concat_model/", full_path = True):
-                    if os.path.exists(hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                    if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
                         continue
                     else:   
                         run_hmmsearch(args.input, hmm_file, 
-                            hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
             else:
                 p = os.listdir(hmm_database_path)
@@ -659,7 +672,7 @@ if args.workflow == "annotation" and args.input is not None:
                     for hmm_file in file_generator(path, full_path = True):
                         run_hmmsearch(args.input, hmm_file, 
                             path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
                     concat_hmmsearch_results(path, hmmsearch_results_path)
 
@@ -677,7 +690,8 @@ if args.workflow == "annotation" and args.input is not None:
 
             else:
                 for file in file_generator(hmmsearch_results_path):
-                    dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
+                    if args.input.split("/")[-1].split(".")[0] in file:
+                        dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
                 rel_df = relevant_info_df(dataframe)
                 quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
                 hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
@@ -1212,7 +1226,7 @@ elif args.workflow == "both":
             for hmm_file in file_generator(validated_hmm_dir, full_path = True):
                 run_hmmsearch(args.input, hmm_file, 
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
         
         else:
@@ -1224,7 +1238,7 @@ elif args.workflow == "both":
                     else:   
                         run_hmmsearch(args.input, hmm_file, 
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
             else:
                 for hmm_file in file_generator(hmm_database_path, full_path = True):
@@ -1234,7 +1248,7 @@ elif args.workflow == "both":
                     else:   
                         run_hmmsearch(args.input, hmm_file, 
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type,
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)     
 
             for file in file_generator(hmmsearch_results_path):

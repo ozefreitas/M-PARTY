@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 from command_run import run_command
-
+from mparty_util import compress_fasta, return_fasta_content
 
 def build_diamond_DB(input_fasta: str, output_path: str, verbose: bool = False) -> str:
 	"""Builds a dmnd database file from a fasta file to run with DIAMOND.
@@ -28,14 +28,14 @@ def run_DIAMOND(query: str, outpath: str, database: str, threads: int) -> str:
 
     Args:
         query (str): Database path to be searched on by DIAMOND.
-        outpath (str): Output directory.
+        outpath (str): Output path for the resulting .TSV file.
         database (str): Sequence list to be searched against the database.
         threads (int): Number of threads.
 
     Returns:
         str: Path to the final TSV file.
     """
-    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{database}`--threads`{threads}`--very-sensitive`--outfmt`6`--unal`1`-b`0.36036930084228513`-c`4`--evalue`0.001', sep = "`")
+    run_command(f'diamond`blastp`-q`{query}`-o`{outpath}`-d`{database}`--threads`{threads}`--fast`--outfmt`6`-b`0.36036930084228513`-k`1`-c`4`--evalue`0.001', sep = "`")
     return outpath
 
 
@@ -45,7 +45,7 @@ def DIAMOND_parser(filepath: str):
     return DIAMOND_outfile
 
 
-def DIAMOND_iter_per_sim(dataframe: pd.DataFrame) -> dict:
+def DIAMOND_iter_per_sim(dataframe: pd.DataFrame, expasion: bool = False, cut_off: float = None) -> dict or list:
     """Given a pandas DataFrame, return a dictionary with a list of sequences form the iteration of the sequence similarity between queries and database sequences.
 
     Args:
@@ -53,24 +53,43 @@ def DIAMOND_iter_per_sim(dataframe: pd.DataFrame) -> dict:
 
     Returns:
         dict: A dictionary where the keys are intervals of sequence similarity, and values are lists of UniProtKB queries.
+        list: 
     """
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
     # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
-    print(seq_id)
-    # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
-    target_enzymes = {}
-    for perc in range(60, 91, 5):
-        # chave = str(perc)+"-"+str(perc+5)
-        for index, seq in seq_id.iterrows():
-            # print(type(seq["pident"]))
-            # if seq["pident"] >= perc and seq["pident"] < perc+5:
-            if seq["pident"] >= perc:
-                ident = re.findall("\|.*\|", seq["qseqid"])
-                ident = re.sub("\|", "", ident[0])
-                if perc not in target_enzymes.keys():
-                    target_enzymes[perc] = [ident]
-                else:
-                    target_enzymes[perc].append(ident)
-    return target_enzymes
+    if expasion:
+        # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
+        target_enzymes = {}
+        for perc in range(60, 91, 5):
+            # chave = str(perc)+"-"+str(perc+5)
+            for index, seq in seq_id.iterrows():
+                # print(type(seq["pident"]))
+                # if seq["pident"] >= perc and seq["pident"] < perc+5:
+                if seq["pident"] >= perc:
+                    ident = re.findall("\|.*\|", seq["qseqid"])
+                    ident = re.sub("\|", "", ident[0])
+                    if perc not in target_enzymes.keys():
+                        target_enzymes[perc] = [ident]
+                    else:
+                        target_enzymes[perc].append(ident)
+        return target_enzymes
+    else:
+        target_enzymes = []
+        if cut_off:
+            for index, seq in seq_id.iterrows():
+                if seq["pident"] >= cut_off:
+                    target_enzymes.append(seq["qseqid"])
+        else:
+            for index, seq in seq_id.iterrows():
+                target_enzymes.append(seq["qseqid"])
+        return target_enzymes
 
+
+# build_diamond_DB("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_test.fasta", "/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/DataBases/", verbose = True)
+
+# # handle = run_DIAMOND("/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/SRR3962293.faa", "/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/Tables/SRR3962293_DIA.tsv", "/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/DataBases/KEGG_test.dmnd", 4)
+# file = DIAMOND_parser("/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/Tables/SRR3962293_DIA.tsv")
+# dictionary = DIAMOND_iter_per_sim(file)
+# # compress_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/SRR3962293.faa")
+# return_fasta_content("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/SRR3962293.faa", "/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/", dictionary)
