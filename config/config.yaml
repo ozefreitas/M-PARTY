@@ -1,10 +1,16 @@
+InterPro_ID: null
+KEGG_ID:
+- K21104
 alignment_method: upimapi
 concat_models: true
-database: swissprot
-hmm_database_name: testing_with_UniP
+consensus: false
+database: UniProt
+expansion: false
+hmm_database_name: KEGG_21104
+hmm_validation: true
 hmmsearch_out_type: tsv
 input_file: null
-input_file_db_const: ci/sequences_PE.fasta
+input_file_db_const: null
 input_type: protein
 metagenomic: false
 msa_aligner: tcoffee
@@ -12,15 +18,7 @@ out_table_format: tsv
 output_directory: MPARTY_results
 overwrite: false
 seqids: []
-threads: 4
-thresholds:
-- 60
-- 65
-- 70
-- 75
-- 80
-- 85
-- 90
-validation: true
+threads: 12
+thresholds: false
 verbose: true
 workflow: database_construction

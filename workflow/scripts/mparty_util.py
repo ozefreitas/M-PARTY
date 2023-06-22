@@ -11,6 +11,7 @@ import time
 from hmm_vali import delete_inter_files
 from pathlib import Path
 import fileinput
+from tqdm import tqdm
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -265,6 +266,29 @@ def concat_code_hmm(db_name: str, model_name: str):
 
 def delete_previous_same_run(dir_path: str):
 	shutil.rmtree(dir_path)
+
+
+def check_id(filepath: str, outpath: str, id_list: list):
+    num_lines = sum(1 for line in open(filepath, "r"))
+    sequence = ""
+    in_seq = False
+    with open(outpath + "aligned.fasta", "w") as wf:
+        with open(filepath, "r") as rf:
+            for line in tqdm(rf, desc = "Searching for matched sequences in input file (this migth take a while)", total = num_lines, unit = "B", unit_scale = True):
+                if line.startswith(">") and in_seq == False:
+                    for id in id_list:
+                        if id in line:
+                            in_seq = True
+                            sequence += line
+                            break
+                elif line.startswith(">") and in_seq == True:
+                    in_seq = False
+                    wf.write(sequence)
+                    sequence = ""
+                elif not line.startswith(">") and in_seq == True:
+                    sequence += line
+        rf.close()
+    wf.close()
 
 
 def compress_fasta(filepath: str) -> str:

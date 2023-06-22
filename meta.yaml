@@ -30,7 +30,7 @@ requirements:
     - muscle
     - beautifulsoup4
     - kma
-    - sra-tools
+    - tqdm
 
 test:
   commands:

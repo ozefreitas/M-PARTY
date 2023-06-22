@@ -1,6 +1,8 @@
 import pandas as pd
 import re
 from command_run import run_command
+from mparty_util import save_as_tsv
+from seq_download import get_fasta_sequences2
 
 
 def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> str:
@@ -24,7 +26,7 @@ def UPIMAPI_parser(filepath: str):
     return UPIMAPI_outfile
 
 
-def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
+def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame, search: bool = False, expansion: bool = False, cutoff: float = None) -> dict or list:
     """Given a pandas DataFrame, return a dictionary with a list of sequences form the iteration of the sequence similarity between queries and database sequences.
 
     Args:
@@ -34,26 +36,50 @@ def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame) -> dict:
         dict: A dictionary where the keys are intervals of sequence similarity, and values are lists of UniProtKB queries.
     """
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
-    # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
-    # print(seq_id)
-    # retirar os grupos de enzimas com similaridade de no minimo 60% a 90% com incrementos de 5%
-    target_enzymes = {}
-    for perc in range(60, 91, 5):
-        # chave = str(perc)+"-"+str(perc+5)
-        for index, seq in seq_id.iterrows():
-            # print(type(seq["pident"]))
-            # if seq["pident"] >= perc and seq["pident"] < perc+5:
-            if seq["pident"] >= perc:
-                ident = re.findall("\|.*\|", seq["qseqid"])
-                ident = re.sub("\|", "", ident[0])
-                if perc not in target_enzymes.keys():
-                    target_enzymes[perc] = [ident]
+    if expansion:
+        target_enzymes = {}
+        for perc in range(60, 91, 5):
+            for index, seq in seq_id.iterrows():
+                if seq["pident"] >= perc:
+                    ident = re.findall("\|.*\|", seq["qseqid"])
+                    ident = re.sub("\|", "", ident[0])
+                    if perc not in target_enzymes.keys():
+                        target_enzymes[perc] = [ident]
+                    else:
+                        target_enzymes[perc].append(ident)
+        return target_enzymes
+    else:
+        target_enzymes = []
+        if cutoff:
+            for index, seq in seq_id.iterrows():
+                if seq["pident"] >= cutoff:
+                    if search:
+                        ident = re.findall("\|.*\|", seq["qseqid"])
+                        ident = re.sub("\|", "", ident[0])
+                    else:
+                        ident = seq["sseqid"]
+                    target_enzymes.append(ident)
+        else:
+            for index, seq in seq_id.iterrows():
+                if search:
+                    ident = re.findall("\|.*\|", seq["qseqid"])
+                    ident = re.sub("\|", "", ident[0])
                 else:
-                    target_enzymes[perc].append(ident)
-    return target_enzymes
+                    ident = seq["sseqid"]
+                target_enzymes.append(ident)
+        return [*set(target_enzymes)]       
 
 
-# handle = UPIMAPI_parser(snakemake.input[0])
+def sigasiga(listinha, outpath):
+    df = pd.DataFrame(listinha, columns=["IDs"])
+    df.to_csv(outpath, index=False, sep = "\t")
+
+
+# handle = UPIMAPI_parser("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/UPIMAPI_results.tsv")
+# print(handle)
 # dicionario_identidades = UPIMAPI_iter_per_sim(handle)
-# save_as_tsv(dicionario_identidades)
+# print(len(dicionario_identidades))
+# sigasiga(dicionario_identidades, "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/upimapi_all_IDS.tsv")
+# get_fasta_sequences2("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/upimapi_all_IDS.tsv", 
+#                     "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/matched_seqs.fasta")

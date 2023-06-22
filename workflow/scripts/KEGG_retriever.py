@@ -76,7 +76,6 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                     else:
                         for x in range(len(indiv)) + 1:
                             genes2.append(indiv[0] + indiv[x])
-                print(genes2)
                 for i in tqdm(range(len(genes)), desc = "Downloading genes"):
                     genes[i] = genes[i].replace(" ", "")
                     genes[i] = re.findall(".*:", genes[i])[0].lower() + re.findall(":.*", genes[i])[0][1:]

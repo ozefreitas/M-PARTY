@@ -11,7 +11,7 @@ M-PARTY is a free to use, open source user friendly CLI (early release) implemen
 
 1. [Introduction](https://github.com/ozefreitas/M-PARTY#introduction)
 2. [Installation](https://github.com/ozefreitas/M-PARTY#installation)
-    1. [GitHub](https://github.com/ozefreitas/M-PARTY#github)
+    1. [GitHub](https://github.com/ozefreitas/M-PARTY#github-clonning)
     2. [Bioconda](https://github.com/ozefreitas/M-PARTY#bioconda)
 3. [Usage](https://github.com/ozefreitas/M-PARTY#usage)
     1. [Annotation](https://github.com/ozefreitas/M-PARTY#annotation-workflow)
@@ -21,15 +21,12 @@ M-PARTY is a free to use, open source user friendly CLI (early release) implemen
     5. [Metagenomic Analisys](https://github.com/ozefreitas/M-PARTY#metagenomic-analisys)
 4. [Output](https://github.com/ozefreitas/M-PARTY#output)
 5. [Additional arguments](https://github.com/ozefreitas/M-PARTY#additional-arguments)
-
 <br>
 
 ## Introduction 
 
 M-PARTY is a free to use, open source user friendly CLI implemented workflow and database for the detection of plastic degrading enzymes in metagenomic samples, through structural annotation using Hidden Markov Models, that allows the user to freely interacte with the tool in-built databases and backbone. <p>
-M-PARTY compreends a extensive HMM database, built with state of the art checked enzymatic sequences able to degrade plastic polymers, which is used to carry the structural annotation of given sequences. <p>
-First version of M-PARTY is only available for mining PE (polyethylene), as latter version will compreend a more vast list of plastics to analyse. <p>
-Also, M-PARTY is meant to analyse metagenomic sequences, but version 0.1.0 only accepts single FASTA aminoacidic sequences. Basic steps of M-PARTY annotation workflow in its frist stages are: 
+Basic steps of M-PARTY annotation workflow in its frist stages are: 
 
 1. The acceptence of any number of protein sequences in a single FASTA file as query; also an KEGG ID representing the protein 
 sequences involved in certain reaction; an InterPro ID or a set of protein IDs of interest from latter database;
@@ -44,6 +41,7 @@ sequences involved in certain reaction; an InterPro ID or a set of protein IDs o
     - HMM IDs (Degraded plastic + number)
     - Bit scores
     - E-values
+6. A validation workflow for the results.
 
 <br>
 
@@ -93,7 +91,8 @@ due to possible compatibility issues that may occur.
 ## Usage
 <p>
 
-#### Annotation workflow
+### Annotation workflow
+<p>
 
 The main and most basic use for M-PARTY is the annotation with Hidden Markov Models (must be previously created by the user):<p>
 
@@ -105,7 +104,8 @@ where the **`-i` input file** must be in FASTA format and contain only (for the 
 
 <br>
 
-### Database Construction <p>
+### Database Construction 
+<p>
 
 M-PARTY does not have any pre-built database, and so, all HMMs must be generated from scratch from a given set of proteins/nucleotides. M-PARTY accepts this input from 3 distinct methods:
 
@@ -148,7 +148,7 @@ m-party.py -w database_construction --input_seqs_db_const path/to/interest_seque
 
 **InterPro**
 
-As for the case of InterPro retriver, just change the argument kegg for **`--interpro´**:
+As for the case of InterPro retriver, just change the argument kegg for **`--interpro`**:
 
 ```
 m-party.py -w database_construction --interpro <IPR> --hmm_db_name <db_name>
@@ -166,7 +166,9 @@ Interpro its not a curated database and so most of his entries are unreviewed. T
 
 <br>
 
-### Validation <p>
+### Validation 
+<p>
+
 M-PARTY also has available a validation workflow, as some models can be false positive and give deceiving results. So giving the name where the HMM are stored:
 ```
 m-party.py --hmm_validation --hmm_db_name <db_name>
@@ -183,16 +185,20 @@ Now, if you want, you can instantly run the annotation workflow from a set of pr
 ```
 m-party -i path/to/input_file -o path/to/output_folder -rt --output_type excel --hmm_db_name <db_name> --hmm_validation 
 ```
+<br>
 
-**Full MPARTY Execution** <p>
+**Full MPARTY Execution**
+<p>
 
 How could not miss, all this can be done with a single command, from the construction of the models, to the annotation of the unknown sequence file.
 
 ```
 m-party.py -w both -i path/to/input_file (--input_seqs_db_const path/to/interest_sequences OR --kegg <EC/KO> OR --interpro <IPR>) -o path/to/output_folder -rt --output_type excel --hmm_db_name <db_name> --verbose 
 ```
+<br>
 
-### Metagenomic Analisys <p>
+### Metagenomic Analisys
+<p>
 
 M-PARTY also suports the search of genes in metagenome samples:
 
@@ -218,6 +224,13 @@ Note that instead of **`--kegg`** you can put instead the **`--input_seqs_db_con
 
 <br>
 
+### Database Expansion (in development)
+
+<p>
+Sometimes, the amount of data for the interest sequences is not enough to make a roboust model. So M-PARTY is expected to implement a workflow that will allow the user to expand the initial dataset, in order to build a more diverse dataset. This methodology is based on XXXXXXXXXXXXX:
+
+
+
 ## Output
 <p>
 
@@ -226,6 +239,10 @@ M-PARTY will result in three distinct outputs: **report table**, **text report**
 Optional output file is the *config file*, a file with all parameters used in each M-PARTY run, and that can be useful to traceback error. If you are having trouble generating the expect content in the other output files, you can add the **`--diplay_config`** flag to every command you execute.
 
 <br>
+
+### Results Validation (in development)
+<p>
+
 
 ## Aditional arguments
 <p>

@@ -56,16 +56,11 @@ def DIAMOND_iter_per_sim(dataframe: pd.DataFrame, expasion: bool = False, cut_of
         list: 
     """
     # selecionar colunas com perc. identity juntamente com os IDs das sequencias
-    # print(dataframe.columns)
     seq_id = dataframe[["qseqid", "sseqid", "pident"]]
     if expasion:
-        # retirar os grupos de enzimas com similaridade de 60% a 90% com incrementos de 5%
         target_enzymes = {}
         for perc in range(60, 91, 5):
-            # chave = str(perc)+"-"+str(perc+5)
             for index, seq in seq_id.iterrows():
-                # print(type(seq["pident"]))
-                # if seq["pident"] >= perc and seq["pident"] < perc+5:
                 if seq["pident"] >= perc:
                     ident = re.findall("\|.*\|", seq["qseqid"])
                     ident = re.sub("\|", "", ident[0])

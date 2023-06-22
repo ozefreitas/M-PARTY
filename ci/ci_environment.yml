@@ -17,3 +17,4 @@ dependencies:
   - muscle
   - beautifulsoup4
   - kma
+  - tqdm
