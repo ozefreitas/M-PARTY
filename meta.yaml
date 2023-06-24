@@ -1,5 +1,5 @@
 {% set name = "M-PARTY" %}
-{% set version = "0.2.2" %}
+{% set version = "1.0.0" %}
 {% set sha256 = "d3e6cf0ea470ccba9ea0b286d94e86c156c050dbed43c82b006504b091fd4c9d" %}
 
 package:

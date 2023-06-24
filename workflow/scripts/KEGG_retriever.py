@@ -32,7 +32,7 @@ def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number = None, ko = N
         for ec in ec_number:
             ec_urlist.append(f'https://rest.kegg.jp/get/{ec}')
             if verbose:
-                print(f'Downloading {ec} gene')
+                print(f'Downloading {ec} genes')
         for link in ec_urlist:
             get_kegg_kosequences(filepath, link, korec = "ec", type_seq = type_seq, verbose=verbose)
     return filepath
@@ -58,6 +58,7 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                     else:
                         end_line = True
             # case of EC numbers with no acess to api genes
+            # print(genes)
             if genes == []:
                 if verbose:
                     print(f'Sequences from {url} not found. Trying in RefGene')
@@ -71,14 +72,14 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                 for entry in genes:
                     indiv = entry.split(" ")
                     indiv[0] = indiv[0].lower()
-                    if len(indiv) == 2:
+                    if len(indiv) <= 2:
                         genes2.append("".join(indiv))
                     else:
-                        for x in range(len(indiv)) + 1:
+                        for x in range(1, len(indiv)):
                             genes2.append(indiv[0] + indiv[x])
-                for i in tqdm(range(len(genes)), desc = "Downloading genes"):
-                    genes[i] = genes[i].replace(" ", "")
-                    genes[i] = re.findall(".*:", genes[i])[0].lower() + re.findall(":.*", genes[i])[0][1:]
+                for i in tqdm(range(len(genes2)), desc = "Downloading genes", unit = "sequence"):
+                    # genes[i] = genes[i].replace(" ", "")
+                    # genes[i] = re.findall(".*:", genes[i])[0].lower() + re.findall(":.*", genes[i])[0][1:]
                     if type_seq == "AA":
                         url2 = f'https://rest.kegg.jp/get/{genes[i]}/aaseq'
                     else:
@@ -91,7 +92,8 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                     print(f'Checking the existance of other genes for {url.split("/")[-1]} in RefSeq')
                 get_kegg_refgene_sequences(filepath, url, korec, type_seq, verbose)
             wf.close()
-    except:
+    except Exception as e:
+        print(e)
         print(f"[WARNING] Sequence for {url} not found")
     
 def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False):

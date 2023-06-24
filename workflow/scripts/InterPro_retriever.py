@@ -2,6 +2,7 @@ import requests
 from requests.exceptions import HTTPError
 import re
 import time
+from tqdm import tqdm
 
 
 def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str:
@@ -47,6 +48,7 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
             time.sleep(1)
         list_prot = {}
         counter = 0
+        pbar = tqdm(total=number)
         while url:
             response = requests.get(url)
             if response.status_code == 408:
@@ -72,6 +74,8 @@ def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = Fa
                 list_prot[name4fasta] = seq
                 counter += 1
             url = json_resp["next"]
+            pbar.update(1)
+        pbar.close()
     with open(filepath, "w") as wf:
         for k, v in list_prot.items():
             wf.write(k + "\n")

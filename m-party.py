@@ -721,16 +721,26 @@ elif args.workflow == "database_construction":
     time.sleep(2)
     if os.path.exists(os.path.join(sys.path[1], f'resources/Data/FASTA/{args.hmm_db_name}/')):
         if args.overwrite:
-            shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-            shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-            shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+            if args.verbose:
+                print(f"Deleting previously created files from {args.hmm_db_name}\n")
+            try:
+                shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
+                shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
+                shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+            except:
+                pass
         else:
             ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
                     f'[TIP] if yes, use --overwrite flag next time [y/n] ')
             if ask in ["Y", "y", "yes", "YES"]:
-                shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                if args.verbose:
+                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
+                try:
+                    shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
+                    shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
+                    shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                except:
+                    pass
 
     if args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
         raise TypeError("Missing input sequences to build HMM database!")
@@ -1009,17 +1019,19 @@ elif args.workflow == "database_construction":
         remove_fp_models(to_remove, pathing)
         concat_final_model(pathing)
         time.sleep(2)
-        print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder")
+        print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
 
 
 elif args.workflow == "both":
     if args.hmm_db_name is None:
         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
     else:
-        print("HMM database construction workflow from user input started...")
+        print("HMM database construction workflow from user input started...\n")
     time.sleep(2)
     if os.path.exists(os.path.join(sys.path[1], f'resources/Data/FASTA/{args.hmm_db_name}/')):
         if args.overwrite:
+            if args.verbose:
+                print(f"Deleting previously created files from {args.hmm_db_name}\n")
             shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
             shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
             shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
@@ -1027,6 +1039,8 @@ elif args.workflow == "both":
             ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
                     f'[TIP] if yes, use --overwrite flag next time [y/n] ')
             if ask in ["Y", "y", "yes", "YES"]:
+                if args.verbose:
+                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
                 shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
                 shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
                 shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
@@ -1078,7 +1092,7 @@ elif args.workflow == "both":
             f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
             f'{" --unlock" if args.unlock else ""}')
 
-        print("HMM database created!")
+        print("HMM database created!\n")
 
         files = [f for f in os.listdir('.') if os.path.isfile(f)]
         for file in files:
@@ -1128,7 +1142,7 @@ elif args.workflow == "both":
                                         f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
                     except:
                         if args.verbose:
-                            print(f'[WARNING] T-COFFEE for file {file} not working')
+                            print(f'[WARNING] T-COFFEE for file {file} not working\n')
                         continue
                 
                 for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
@@ -1184,7 +1198,7 @@ elif args.workflow == "both":
                                 f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln')
                 except:
                     if args.verbose:
-                        print(f'[WARNING] T-COFFEE for file {file} not working')
+                        print(f'[WARNING] T-COFFEE for file {file} not working\n')
 
             for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/'):
                 run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{msa}',
@@ -1238,7 +1252,7 @@ elif args.workflow == "both":
                 delete_inter_files(file)
 
     if args.hmm_validation:
-        print("Starting HMM validation procedures...")
+        print("Starting HMM validation procedures...\n")
         time.sleep(2)
         if args.hmm_db_name is None:
             raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
@@ -1249,9 +1263,9 @@ elif args.workflow == "both":
         remove_fp_models(to_remove, pathing)
         concat_final_model(pathing)
         time.sleep(2)
-        print("M-PARTY has concluded model validation! Will now switch to the newlly created models")
+        print("M-PARTY has concluded model validation! Will now switch to the newlly created models\n")
 
-    print("Annotation workflow started...")
+    print("Annotation workflow started...\n")
     time.sleep(2)
 
     if args.input_type == "metagenome":
