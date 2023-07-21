@@ -162,7 +162,7 @@ def get_match_IDS(dataframe: pd.DataFrame, to_list:bool = False, only_relevant: 
             return dataframe["identifier"]["target_name"]
 
 
-def get_models_names(dataframe: pd.DataFrame, to_list: bool = False, only_relevant:bool = False) -> pd.Series:
+def get_models_names(dataframe: pd.DataFrame, to_list: bool = False, only_relevant: bool = False, unique: bool = False) -> pd.Series:
     """Given a Dataframe with data from hmmsearch execution (post processed into a pd.Dataframe), 
     returns all model's names that were used as a databased to run against the query sequences.
     Can also be given a dataframe after beeing cut down to only the relevant data.
@@ -171,7 +171,7 @@ def get_models_names(dataframe: pd.DataFrame, to_list: bool = False, only_releva
         dataframe (pd.DataFrame): A processed txt file resulting from hmmsearch into pandas dataframe.
         to_list (bool, optional): Coverts Series values to list format. Defaults to False.
         only_relevant (bool, optional): Set to True if given Dataframe is already in its small format. Defaults to False.
-
+        unique (bool, optional): Set to True to only return one occurence of each model. Defaults to False
     Returns:
         pd.Series: The column containg all HMM's names.
     """
@@ -183,6 +183,9 @@ def get_models_names(dataframe: pd.DataFrame, to_list: bool = False, only_releva
                     lst[i] = lst[i].split(".")[0]
                 except:
                     continue
+            if unique:
+                list_set = set(lst)
+                lst = list(list_set)
             return lst
         else:
             return dataframe["identifier"]["query_name"].tolist()

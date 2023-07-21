@@ -76,10 +76,10 @@ def sigasiga(listinha, outpath):
     df.to_csv(outpath, index=False, sep = "\t")
 
 
-# handle = UPIMAPI_parser("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR1185960/UPIMAPI_results.tsv")
+# handle = UPIMAPI_parser("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR5976595/UPIMAPI_results.tsv")
 # # print(handle)
 # dicionario_identidades = UPIMAPI_iter_per_sim(handle)
 # print(len(dicionario_identidades))
-# sigasiga(dicionario_identidades, "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR1185960/upimapi_all_IDS.tsv")
-# get_fasta_sequences2("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR1185960/upimapi_all_IDS.tsv", 
-#                     "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR1185960/matched_seqs.fasta")
+# sigasiga(dicionario_identidades, "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR5976595/upimapi_all_IDS.tsv")
+# get_fasta_sequences2("/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR5976595/upimapi_all_IDS.tsv", 
+#                     "/mnt/c/Users/jpsfr/OneDrive/Ambiente de Trabalho/M-PARTY/M-PARTY/.tests/ze_e_diogo_aligned/SRR5976595/matched_seqs.fasta")

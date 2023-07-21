@@ -42,9 +42,9 @@ def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
                     clean = re.sub(">", "", target_seq[0])
                     clean = re.sub("\|*", "", clean)
                 if kegg:
-                    target_seq = re.findall(">.*.", line)
+                    target_seq = re.findall(">.*\.\.\.", line)
                     clean = re.sub(">", "", target_seq[0])
-                    clean = re.sub("\..*", "", clean)    
+                    clean = re.sub("\.\.\..*", "", clean) 
                 if ip == False and kegg == False:     
                     try:              
                         target_seq = re.findall("\|.*\|", line)

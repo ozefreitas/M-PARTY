@@ -12,6 +12,8 @@ from hmm_vali import delete_inter_files
 from pathlib import Path
 import fileinput
 from tqdm import tqdm
+from requests.exceptions import HTTPError
+from bs4 import BeautifulSoup
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -152,6 +154,12 @@ def ask_for_overwrite(path: str, verbose: bool = False) -> bool:
 
 
 def download_with_progress_bar(url: str, database_folder: str):
+	"""Function that builds a progress bar given an url
+
+	Args:
+		url (str): link to get the data
+		database_folder (str): path to the folder 
+	"""
 	r = requests.get(url, stream=True)
 	path = f'{database_folder}/{url.split("/")[-1]}'
 	with open(path, "wb") as wf:
@@ -164,6 +172,11 @@ def download_with_progress_bar(url: str, database_folder: str):
 
 
 def download_uniprot(database_folder: str):
+	"""will download and read the content of the compressed output, without actually decompresing
+
+	Args:
+		database_folder (str): path to the folder
+	"""
 	for url in [
 	"https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", 
 	"https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.fasta.gz",
@@ -173,6 +186,19 @@ def download_uniprot(database_folder: str):
 
 
 def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool = False) -> str:
+	"""Function that will download the database from uniprot to a specified folder.
+
+	Args:
+		database_folder (str): name for the output folder
+		config (str, optional): path to the config file. Defaults to None.
+		verbose (bool, optional): flag to print what is going on. Defaults to False.
+
+	Raises:
+		TypeError: if database to be downloaded is not unipror, swissprot or a FASTA file
+
+	Returns:
+		str: path for the new database
+	"""
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
 	if database.lower() == "uniprot":
@@ -253,6 +279,12 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 
 
 def concat_code_hmm(db_name: str, model_name: str):
+	"""Will concat the created HMMs
+
+	Args:
+		db_name (str): name given by the user to his database
+		model_name (str): name to give to the concatenated model
+	"""
 	Path(f'resources/Data/HMMs/{db_name}/concat_model/').mkdir(parents = True, exist_ok = True)
 	with open(f'resources/Data/HMMs/{db_name}/concat_model/{model_name}.hmm', "w") as wf:
 		for hmm in os.listdir(f'resources/Data/HMMs/{db_name}/'):
@@ -323,7 +355,31 @@ def return_fasta_content(filepath: str, outpath: str, identifier: list = None):
 								wf.write(x)
 						else:
 							wf.write(new[1])
-						
+
+
+def get_soup(url: str, status: int = 200):
+    try:
+        response = requests.get(url)
+    except HTTPError as http_err:
+        print(f'HTTP error occurred: {http_err}')
+    except Exception as err:
+        print(f'Other error occurred: {err}')
+    soup = BeautifulSoup(response.text, "html.parser")
+    return soup
+
+
+def retry(tries: int, url: str):
+	connected = False
+	i = 0
+	while not connected and i < tries:
+		try:
+			response = requests.get(url, timeout = 10)
+			connected = True
+		except Exception as e:
+			print(e)
+			i += 1
+			time.sleep(2)
+	return response		
 
 # compress_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/SRR3962293.faa")
 # return_fasta_content("/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/ERR476942.faa")

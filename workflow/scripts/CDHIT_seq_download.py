@@ -13,8 +13,6 @@ def fasta_retriever_from_cdhit(tsv_file: str, out_dir: str):
     """
     df = pd.read_csv(tsv_file, sep="\t", index_col=0)
     clusters = get_clusters(tsv_file)
-    # print(tsv_file)
-    # print(out_file)
     for index, content in df.iterrows():
         # print(index, type(index))
         # abre o ficheiro no modo write

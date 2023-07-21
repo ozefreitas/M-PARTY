@@ -12,10 +12,9 @@ Jun 2023
 import argparse
 import sys
 import shutil
-sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
-sys.path.append(f'{sys.path[1]}/workflow/scripts')
+# sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
+sys.path.append(f'{sys.path[0]}/workflow/scripts')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
-# print(sys.path)
 import os
 from pathlib import Path, PureWindowsPath
 import time
@@ -107,12 +106,12 @@ args = parser.parse_args()
 # print(vars(args))
 
 
-snakefile_path = sys.path[1].replace("\\", "/")+"/workflow/Snakefile"
+snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
 # config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
-config_path = sys.path[1] + "/config/"  # for Linux
+config_path = sys.path[0] + "/config/"  # for Linux
 # hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/'
-hmm_database_path = f'{sys.path[1]}/resources/Data/HMMs/{args.hmm_db_name}/'
-validated_hmm_dir = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
+hmm_database_path = f'{sys.path[0]}/resources/Data/HMMs/{args.hmm_db_name}/'
+validated_hmm_dir = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
 
 def read_config_yaml(filename: str) -> tuple:
@@ -338,7 +337,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     """
     prefix_model = db_name + "_"
     summary_dic = {
-        "models": [prefix_model + model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
+        "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
         "querys": get_match_IDS(dataframe, to_list = True, only_relevant = True),
         "bit_scores": get_bit_scores(dataframe, to_list = True, only_relevant = True),
         "e_values": get_e_values(dataframe, to_list = True, only_relevant = True)
@@ -354,18 +353,18 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
+        list_IDS_permodel = {}
         if not args.expansion:
-            # number_db = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')
-            # if len(number_db) > 1:
-            #     ask = input(f'[WARINING] {len(number_db)} in Data. Choose between {number_db} to track input sequences')
-            # else:
-            #     ask = os.listdir(f'{sys.path[1]}/resources/Data/FASTA/{db_name}')[0]
-            #     # print(ask)
-            # mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/{ask}/'
-            df.to_excel(f'{path}report_table.xlsx', sheet_name = "Table_Report", index = 0)
+            mother_seqs = f'{sys.path[0]}/resources/Data/FASTA/{db_name}/CDHIT/clusters/'
+            for model in tqdm(list(set(summary_dic["models"])), desc = "Tracebacking model's sequences", unit = "model"):
+                for file in file_generator(mother_seqs):
+                    if file.split(".")[0] == model:
+                        if model not in list_IDS_permodel:
+                            list_IDS_permodel[model] = parse_fasta(os.path.join(mother_seqs, file))
+                            break
+            # df.to_excel(f'{path}report_table.xlsx', sheet_name = "Table_Report", index = 0)
         else:
-            mother_seqs = f'{sys.path[1]}/resources/Data/FASTA/{db_name}/CDHIT/'
-            list_IDS_permodel = {}
+            mother_seqs = f'{sys.path[0]}/resources/Data/FASTA/{db_name}/CDHIT/'
             for val in summary_dic["models"]:
                 thresh = val.split("_")[0]
                 model = val.split("_")[-1]
@@ -378,12 +377,12 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
                                     list_IDS_permodel[key] = parse_fasta(mother_seqs + folder + "/" + file)
                                 # else:
                                 #     list_IDS_permodel[key].append(parse_fasta(mother_seqs + folder + "/" + file, meta_gen = True if args.input_type == "metagenome" else False))
-            writer = pd.ExcelWriter(path + "report_table.xlsx", engine = "openpyxl")
-            df.to_excel(writer, sheet_name = "Table_Report", index = 0)
-            df1 = pd.DataFrame.from_dict(list_IDS_permodel, orient = "index")
-            df1.to_excel(writer, sheet_name = "Model_Sequences")
-            writer.save()  # FutureWarning: save is not part of the public API, usage can give unexpected results and will be removed in a future version
-            writer.close()
+        writer = pd.ExcelWriter(path + "report_table.xlsx", engine = "openpyxl")
+        df.to_excel(writer, sheet_name = "Table_Report", index = 0)
+        df1 = pd.DataFrame.from_dict(list_IDS_permodel, orient = "index")
+        df1.to_excel(writer, sheet_name = "Model_Sequences")
+        writer.save()  # FutureWarning: save is not part of the public API, usage can give unexpected results and will be removed in a future version
+        writer.close()
     else:
         raise TypeError(f'Specified table format {type_format} is not available. Read documentation for --output_type.')
 
@@ -473,7 +472,7 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool
     annotation against the hmm models.
 
     Args:
-        hit_IDs_list (list): list of Uniprot IDs that hit.
+        hit_IDs_list (list): list of IDs that hit.
         path (str): ouput path.
         inputed_seqs (str): name of the initial input file.
     """
@@ -591,7 +590,7 @@ time.sleep(1)
 if args.hmm_db_name is None:
     raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
 else:
-    hmmsearch_results_path = sys.path[1].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
+    hmmsearch_results_path = sys.path[0].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
     Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
 
 st = time.time()
@@ -671,10 +670,16 @@ if args.workflow == "annotation" and args.input is not None:
         else:
         # se os modelos estiverem concatenados
             if args.concat_hmm_models:
+                pass
                 for hmm_file in file_generator(hmm_database_path + "concat_model/", full_path = True):
                     if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
-                        continue
+                        os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type)
+                        run_hmmsearch(args.input, hmm_file, 
+                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                            out_type = args.hmms_output_type)
                     else:
                         run_hmmsearch(args.input, hmm_file, 
                             hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
@@ -719,7 +724,7 @@ elif args.workflow == "database_construction":
     else:
         print("HMM database construction workflow from user input started...\n")
     time.sleep(2)
-    if os.path.exists(os.path.join(sys.path[1], f'resources/Data/FASTA/{args.hmm_db_name}/')):
+    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
         if args.overwrite:
             if args.verbose:
                 print(f"Deleting previously created files from {args.hmm_db_name}\n")
@@ -877,7 +882,7 @@ elif args.workflow == "database_construction":
                 Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                
+
                 run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
 
                 seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
@@ -896,7 +901,7 @@ elif args.workflow == "database_construction":
                         if args.verbose:
                             print(f'[WARNING] T-COFFEE for file {file} not working')
                         continue
-                
+
                 for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
                     run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
                         f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
@@ -935,13 +940,13 @@ elif args.workflow == "database_construction":
             Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/').mkdir(parents = True, exist_ok = True)
             Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
             Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-            
+
             run_CDHIT(InP_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc = 0.8)
 
             seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
             input_IDs = parse_fasta(InP_seqs, ip = True, verbose = args.verbose)
             get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', InP_seqs, input_IDs, "InP")
-            
+
             for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
                 try:
                     if args.input_type_db_const == "nucleic":
@@ -972,7 +977,7 @@ elif args.workflow == "database_construction":
                 Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
+                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
 
                 if args.input_type_db_const == "nucleic":
                     run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads, type_seq =  "nucleic")
@@ -983,7 +988,7 @@ elif args.workflow == "database_construction":
 
                 seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta.clstr')
                 get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', args.input_seqs_db_const, input_IDs, args.input_seqs_db_const.split("/")[-1].split(".")[0])
-                
+
                 for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
                     try:
                         run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
@@ -991,7 +996,7 @@ elif args.workflow == "database_construction":
                     except:
                         if args.verbose:
                             print(f'[WARNING] T-COFFEE for file {file} not working')
-                            
+
                 for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
                     run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
                                 f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
@@ -1028,7 +1033,7 @@ elif args.workflow == "both":
     else:
         print("HMM database construction workflow from user input started...\n")
     time.sleep(2)
-    if os.path.exists(os.path.join(sys.path[1], f'resources/Data/FASTA/{args.hmm_db_name}/')):
+    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
         if args.overwrite:
             if args.verbose:
                 print(f"Deleting previously created files from {args.hmm_db_name}\n")
@@ -1330,7 +1335,8 @@ elif args.workflow != "annotation" and args.workflow != "database_construction" 
 et = time.time()
 elapsed_time = et - st
 elapsed_time = elapsed_time * 1000
-print(f'Execution time: {elapsed_time:.4f} milliseconds!')
+minutes_time = (elapsed_time * 1000) / 60
+print(f'Execution time: {elapsed_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
 if args.workflow == "database_construction":
     if args.consensus:
         print("Consensus sequences generated!")

@@ -10,7 +10,7 @@ from pathlib import Path
 import subprocess
 import shutil
 import time
-sys.path.append("/".join(sys.path[1].split("/")[:-2]))
+sys.path.append("/".join(sys.path[0].split("/")[:-2]))
 
 
 def make_paths_dic(db_name:str) -> dict:
@@ -23,7 +23,7 @@ def make_paths_dic(db_name:str) -> dict:
     Returns:
         dict: a dictionary with an identifier of each path as key and the corresponding path as values
     """
-    caminho0 = sys.path[1]
+    caminho0 = sys.path[0]
     path_dict = {
         "sequences_by_cluster_path": f'{caminho0}/resources/Data/FASTA/{db_name}/CDHIT/',
         "HMM_directory": f'{caminho0}/resources/Data/HMMs/{db_name}/After_tcoffee_UPI/',
@@ -336,7 +336,7 @@ def negative_control(path_dictionary: dict, database: str = None):
     if database:
         controlo = database
     else:
-        controlo = f'{sys.path[1]}/resources/Data/FASTA/human_gut_metagenome.fasta'
+        controlo = f'{sys.path[0]}/resources/Data/FASTA/human_gut_metagenome.fasta'
     p = os.listdir(path_dictionary["sequences_by_cluster_path"])
     Path(path_dictionary["neg_control_dir"]).mkdir(parents = True, exist_ok = True)
     for thresh in p:
