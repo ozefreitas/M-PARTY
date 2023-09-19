@@ -5,11 +5,12 @@ BIN_FOLDER=$PREFIX/bin
 mkdir -p $INSTALL_FOLDER
 # mkdir -p $INSTALL_FOLDER/resources/Data/HMMs/PE/After_tcoffee_UPI
 # mkdir -p $INSTALL_FOLDER/resources/Data/FASTA/PE/CDHIT
-mkdir -p $BIN_FOLDER
+mkdir -p $BIN_FOLDER/workflow
 
 cp -r workflow/scripts $BIN_FOLDER/
+cp workflow/Snakefile $BIN_FOLDER/workflow
 cp -r config $BIN_FOLDER/
-cp -r results $BIN_FOLDER/
+# cp -r results $BIN_FOLDER/
 cp m-party.py $BIN_FOLDER/
 # ls -lt $INSTALL_FOLDER
 

@@ -154,11 +154,11 @@ def ask_for_overwrite(path: str, verbose: bool = False) -> bool:
 
 
 def download_with_progress_bar(url: str, database_folder: str):
-	"""Function that builds a progress bar given an url
+	"""Function that builds a progress bar given an url.
 
 	Args:
-		url (str): link to get the data
-		database_folder (str): path to the folder 
+		url (str): link to get the data.
+		database_folder (str): path to the folder.
 	"""
 	r = requests.get(url, stream=True)
 	path = f'{database_folder}/{url.split("/")[-1]}'
@@ -172,10 +172,10 @@ def download_with_progress_bar(url: str, database_folder: str):
 
 
 def download_uniprot(database_folder: str):
-	"""will download and read the content of the compressed output, without actually decompresing
+	"""will download and read the content of the compressed output, without actually decompresing.
 
 	Args:
-		database_folder (str): path to the folder
+		database_folder (str): path to the folder.
 	"""
 	for url in [
 	"https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz", 
@@ -189,15 +189,15 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 	"""Function that will download the database from uniprot to a specified folder.
 
 	Args:
-		database_folder (str): name for the output folder
+		database_folder (str): name for the output folder.
 		config (str, optional): path to the config file. Defaults to None.
 		verbose (bool, optional): flag to print what is going on. Defaults to False.
 
 	Raises:
-		TypeError: if database to be downloaded is not unipror, swissprot or a FASTA file
+		TypeError: If database to be downloaded is not unipror, swissprot or a FASTA file.
 
 	Returns:
-		str: path for the new database
+		str: Path for the new database.
 	"""
 	# database = "uniprot"
 	database = get_UPI_queryDB(config)
@@ -279,11 +279,11 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 
 
 def concat_code_hmm(db_name: str, model_name: str):
-	"""Will concat the created HMMs
+	"""Will concat the created HMMs.
 
 	Args:
-		db_name (str): name given by the user to his database
-		model_name (str): name to give to the concatenated model
+		db_name (str): name given by the user to his database.
+		model_name (str): name to give to the concatenated model.
 	"""
 	Path(f'resources/Data/HMMs/{db_name}/concat_model/').mkdir(parents = True, exist_ok = True)
 	with open(f'resources/Data/HMMs/{db_name}/concat_model/{model_name}.hmm', "w") as wf:
@@ -301,29 +301,44 @@ def delete_previous_same_run(dir_path: str):
 
 
 def check_id(filepath: str, outpath: str, id_list: list):
-    num_lines = sum(1 for line in open(filepath, "r"))
-    sequence = ""
-    in_seq = False
-    with open(outpath + "aligned.fasta", "w") as wf:
-        with open(filepath, "r") as rf:
-            for line in tqdm(rf, desc = "Searching for matched sequences in input file (this migth take a while)", total = num_lines, unit = "B", unit_scale = True):
-                if line.startswith(">") and in_seq == False:
-                    for id in id_list:
-                        if id in line:
-                            in_seq = True
-                            sequence += line
-                            break
-                elif line.startswith(">") and in_seq == True:
-                    in_seq = False
-                    wf.write(sequence)
-                    sequence = ""
-                elif not line.startswith(">") and in_seq == True:
-                    sequence += line
-        rf.close()
-    wf.close()
+	"""Checks the existance a number of IDs inside a list in a given file, and writes the respective found sequences in a output file.
+
+	Args:
+		filepath (str): path to the file to be checked on.
+		outpath (str): path to the file to be writen, which will be added "aligned.fasta".
+		id_list (list): list of IDs to find in the "filepath".
+	"""
+	num_lines = sum(1 for line in open(filepath, "r"))
+	sequence = ""
+	in_seq = False
+	with open(outpath + "aligned.fasta", "w") as wf:
+		with open(filepath, "r") as rf:
+			for line in tqdm(rf, desc = "Searching for matched sequences in input file (this migth take a while)", total = num_lines, unit = "B", unit_scale = True):
+				if line.startswith(">") and in_seq == False:
+					for id in id_list:
+						if id in line:
+							in_seq = True
+							sequence += line
+							break
+				elif line.startswith(">") and in_seq == True:
+					in_seq = False
+					wf.write(sequence)
+					sequence = ""
+				elif not line.startswith(">") and in_seq == True:
+					sequence += line
+		rf.close()
+	wf.close()
 
 
 def compress_fasta(filepath: str) -> str:
+	"""Given a large file, concatenate the sequences lines, so each line is a FASTA identifier followed by "|||" and the full sequence.
+
+	Args:
+		filepath (str): file to be concatenated.
+
+	Returns:
+		str: the same sime file, now with much less lines.
+	"""
 	separator = "|||"
 	for line in fileinput.input(filepath, inplace=True):
 		if line.startswith(">"):
@@ -335,6 +350,14 @@ def compress_fasta(filepath: str) -> str:
 
 
 def return_fasta_content(filepath: str, outpath: str, identifier: list = None):
+	"""Given a compressed FASTA from compress_fasta(), return the ID and the sequence of each given identifier, in fasta format
+	for a output file.
+
+	Args:
+		filepath (str): compressed file.
+		outpath (str): path to the file to be writen, which will be added "aligned.fasta".
+		identifier (list, optional): list of IDs to be checked. Defaults to None.
+	"""
 	with open(filepath, "r") as rf:
 		with open(outpath + "aligned.fasta", "w") as wf:
 			# uma linha do ficheiro de input em memória
@@ -358,17 +381,35 @@ def return_fasta_content(filepath: str, outpath: str, identifier: list = None):
 
 
 def get_soup(url: str, status: int = 200):
-    try:
-        response = requests.get(url)
-    except HTTPError as http_err:
-        print(f'HTTP error occurred: {http_err}')
-    except Exception as err:
-        print(f'Other error occurred: {err}')
-    soup = BeautifulSoup(response.text, "html.parser")
-    return soup
+	"""Simplified function to retrieve the content of a given URL in HTML format with the BeatifulSoup package
+
+	Args:
+		url (str): requested URL
+		status (int, optional): Defaults to 200.
+
+	Returns:
+		object: Return a BeautifulSoup object to be extracted posteriorly
+	"""
+	try:
+		response = requests.get(url)
+	except HTTPError as http_err:
+		print(f'HTTP error occurred: {http_err}')
+	except Exception as err:
+		print(f'Other error occurred: {err}')
+	soup = BeautifulSoup(response.text, "html.parser")
+	return soup
 
 
 def retry(tries: int, url: str):
+	"""Due to server overload, it's necessary to perform some tries and to connect to the URL.
+
+	Args:
+		tries (int): number of tries.
+		url (str): requested URL
+
+	Returns:
+		object: requests object with the URL's information
+	"""
 	connected = False
 	i = 0
 	while not connected and i < tries:

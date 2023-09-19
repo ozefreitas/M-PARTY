@@ -7,6 +7,22 @@ from mparty_util import get_soup
 
 
 def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str:
+    """Function that will retrieve the protein sequences from InterPro if a compatible ID is given.
+
+    Args:
+        filepath (str): path to the file where the output will be writen
+        interpro_ID (str, optional): ID for InterPro family. Defaults to None.
+        reviewed (bool, optional): decides wheter to retrieve only reviewed sequences. Defaults to False.
+        protein (list, optional): list of protein IDs of InterPro. Defaults to [].
+        verbose (bool, optional): decides to print more information. Defaults to False.
+
+    Raises:
+        ValueError: first ValueError is raised in case neither parameter is given
+        ValueError: second ValueError is raised in case neither parameter is given
+
+    Returns:
+        str: the path for the output file
+    """
     if interpro_ID == None and protein == []:
         raise ValueError("Either an InterPro ID or a list with protein IDs must be given")
     elif interpro_ID != None and protein != []:

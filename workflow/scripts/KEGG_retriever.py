@@ -7,16 +7,16 @@ import time
 from mparty_util import get_soup, retry
 
 
-def find_between(string, first, last):
-    """_summary_
+def find_between(string: str, first: str, last: str):
+    """Function that, given a string, returns the content between two points.
 
     Args:
-        string (_type_): _description_
-        first (_type_): _description_
-        last (_type_): _description_
+        string (str): whole string.
+        first (str): first character
+        last (str): last character
 
     Returns:
-        _type_: _description_
+        str: String between first and last.
     """
     try:
         start = string.index(first) + len(first)
@@ -25,7 +25,24 @@ def find_between(string, first, last):
     except ValueError:
         return ""
 
-def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number = None, ko = None, verbose: bool = False):
+
+def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number: str = None, ko: str = None, verbose: bool = False):
+    """Function that will connect to KEGG and find information based on what it's asked for, in distinct databases
+
+    Args:
+        filepath (str): 
+        type_seq (str, optional): _description_. Defaults to "AA".
+        ec_number (str, optional): _description_. Defaults to None.
+        ko (str, optional): _description_. Defaults to None.
+        verbose (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        ValueError: _description_
+        ValueError: _description_
+
+    Returns:
+        _type_: _description_
+    """
     if ko == None and ec_number == None:
         raise ValueError("Either an E.C. number or a KO must be given")
     elif ko != None and ec_number != None:
@@ -49,16 +66,17 @@ def get_kegg_genes(filepath: str, type_seq: str = "AA", ec_number = None, ko = N
             get_kegg_kosequences(filepath, link, korec = "ec", type_seq = type_seq, verbose=verbose)
     return filepath
 
+
 def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False, tries: int = 5):
-    """_summary_
+    """Function that will retrieve the genes (nucleic or protein) for a given KO or EC from KEGG directly
 
     Args:
-        filepath (str): _description_
-        url (str): _description_
-        korec (str, optional): _description_. Defaults to None.
-        type_seq (str, optional): _description_. Defaults to "AA".
-        verbose (bool, optional): _description_. Defaults to False.
-        tries (int, optional): _description_. Defaults to 5.
+        filepath (str): path to the file where the output will be writen
+        url (str): requested URL
+        korec (str, optional): argument that is passed depending on user input, either "KO" or "EC". Defaults to None.
+        type_seq (str, optional): type of sequence to be retrieved from KEGG databases, either "AA" or "NUC". Defaults to "AA".
+        verbose (bool, optional): Decides to print more information. Defaults to False.
+        tries (int, optional): number of tries to connect to KEGG. Defaults to 5.
     """
     soup = get_soup(url)
     genes = []
@@ -111,7 +129,18 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
             get_kegg_refgene_sequences(filepath, url, korec, type_seq, verbose)
         wf.close()
 
+
 def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_seq: str = "AA", verbose: bool = False, tries: int = 5):
+    """Function called to find more genes in the same run in other databases from KEGG
+
+    Args:
+        filepath (str): path to the file where the output will be writen
+        url (str): resquest URL
+        korec (str, optional): argument that is passed depending on user input, either "KO" or "EC". Defaults to None.
+        type_seq (str, optional): type of sequence to be retrieved from KEGG databases, either "AA" or "NUC". Defaults to "AA".
+        verbose (bool, optional): Decides to print more information. Defaults to False.
+        tries (int, optional): number of tries to connect to KEGG. Defaults to 5.
+    """
     url_list = []
     if korec == "ec":
         ec = url.split("/")[-1]
