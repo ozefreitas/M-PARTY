@@ -116,7 +116,7 @@ def get_kegg_kosequences(filepath: str, url: str, korec: str = None, type_seq: s
                 else:
                     for x in range(1, len(indiv)):
                         genes2.append(indiv[0] + indiv[x])
-            for i in tqdm(range(len(genes2)), desc = "Downloading genes", unit = "sequence"):
+            for i in tqdm(range(len(genes2)), desc = f'Downloading genes for {url.split("/")[-1]}', unit = "sequence"):
                 genes2[i] = re.sub("\\(.*\\)", "", genes2[i])
                 if type_seq == "AA":
                     url2 = f'https://rest.kegg.jp/get/{genes2[i]}/aaseq'
@@ -146,8 +146,11 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
         ec = url.split("/")[-1]
         url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ec:{ec}"
         soup = get_soup(url)
-        number_hits = soup.find(string = re.compile("Hits")) 
-        number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+        try:
+            number_hits = soup.find(string = re.compile("Hits")) 
+            number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+        except:
+            return
         if number_pages < 2:
             url_list.append(url)
         else:
@@ -157,8 +160,11 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
         ko = url.split("/")[-1]
         url = f"https://www.genome.jp/dbget-bin/get_linkdb?-t+refgene+ko:{ko}"
         soup = get_soup(url)
-        number_hits = soup.find(string = re.compile("Hits"))
-        number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+        try:
+            number_hits = soup.find(string = re.compile("Hits"))
+            number_pages = math.ceil(int(re.findall("[0-9]{2,}", number_hits)[0]) / 1000)
+        except:
+            return
         if number_pages < 2:
             url_list.append(url)
         else:
@@ -172,7 +178,7 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
             gene_ids = [a.text for a in soup.find_all("a")]
             # Use the KEGG API to get the sequence information for a given list of gene IDs
             fasta = ""
-            for gene_id in tqdm(gene_ids, desc = f"Downloading genes [{url_list.index(url2) + 1}/{len(url_list)}]", position = 0, leave = True, unit = "sequence"):
+            for gene_id in tqdm(gene_ids, desc = f'Downloading genes pag.{url_list.index(url2) + 1}/{len(url_list)} in RefGene', position = 0, leave = True, unit = "sequence"):
                 if gene_id.startswith("RG"):
                     if type_seq == "AA":
                         url3 = f"https://www.genome.jp/entry/-f+-n+a+{gene_id}"
@@ -200,9 +206,5 @@ def get_kegg_refgene_sequences(filepath: str, url: str, korec: str = None, type_
             print(f'{not_found} IDs not found')
         wf.close()
 
-
 # ec_number = ["3.1.1.101", "1.14.12.15", "1.18.1.-", "1.3.1.53"]
 # ko = ["K18251", "K18252", "K18253", "K18254"]
-
-# get_KEGG_sequences("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_nuc_test.fasta", type="nuc", ko=ko, verbose=True)
-# get_kegg_genes("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/KEGG_new_test.fasta", ec_number=ec_number, verbose = True)

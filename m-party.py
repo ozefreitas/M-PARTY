@@ -338,6 +338,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     """
     prefix_model = db_name + "_"
     summary_dic = {
+        # "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
         "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
         "querys": get_match_IDS(dataframe, to_list = True, only_relevant = True),
         "bit_scores": get_bit_scores(dataframe, to_list = True, only_relevant = True),
