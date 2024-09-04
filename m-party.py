@@ -23,7 +23,6 @@ import yaml
 import json
 import re
 import pandas as pd
-from collections import Counter
 from tqdm import tqdm 
 import snakemake
 import itertools
@@ -41,6 +40,7 @@ from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
 from InterPro_retriever import get_IP_sequences
 from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
+from config.arguments import process_arguments
 
 
 version = "1.0.0"
@@ -104,7 +104,6 @@ parser.add_argument("--display_config", default = False, action = "store_true",
                     help = "declare to output the written config file together with results. Useful in case of debug")
 parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
 args = parser.parse_args()
-# print(vars(args))
 
 
 snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
@@ -235,8 +234,6 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
     """
     if args.workflow == "database_construction" and args.input == None:
         seq_IDS = []
-    # if args.kegg != None or args.interpro != None:
-    #     seq_IDS = []
     if args.input != None:
         file_stats = os.stat(input_file)
         if file_stats.st_size / (1024 * 1024) > 400:
@@ -247,50 +244,28 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
         out_dir = None
     else:
         check_results_directory(out_dir)
-    dict_file = {"seqids": seq_IDS,
-                "database": args.database,
-                "input_file": None if seq_IDS == [] else args.input.split("/")[-1],
-                "input_file_db_const": args.input_seqs_db_const,
-                "consensus": args.consensus,
-                "KEGG_ID": args.kegg,
-                "InterPro_ID": args.interpro,
-                "hmm_database_name": args.hmm_db_name,
-                "alignment_method": args.align_method.lower(),
-                "msa_aligner": args.aligner,
-                "input_type": None if args.input == None else args.input_type,
-                "metagenomic": True if args.input_type == "metagenome" else False,
-                "hmm_validation": args.hmm_validation,
-                "expansion": args.expansion,
-                "concat_models": args.concat_hmm_models,
-                "output_directory": out_dir,
-                "out_table_format": args.output_type,
-                "hmmsearch_out_type": args.hmms_output_type,
-                "threads": args.threads,
-                "workflow": args.workflow,
-                "thresholds": [*range(60, 91, 5)] if args.expansion else False,
-                "verbose": args.verbose,
-                "overwrite": args.overwrite}
+        arguments = process_arguments(args, seq_IDS, out_dir)
     Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
     config_type = config_filename.split(".")[-1]
     if with_results:
         if config_type == "yaml":
             with open(f'{out_dir}/{config_filename}', "w") as file:
-                document = yaml.dump(dict_file, file)
+                document = yaml.dump(arguments, file)
                 file.close()
         else:
             with open(f'{out_dir}/{config_filename}', "w") as file:
-                document = json.dumps(dict_file)
+                document = json.dumps(arguments)
                 file.write(document)
                 file.close()
     else:
         if config_type == "yaml":
             with open(caminho, "w") as file:
-                document = yaml.dump(dict_file, file)
+                document = yaml.dump(arguments, file)
                 file.close()
         else:
             with open(caminho, "w") as file:
-                document = json.dumps(dict_file)
+                document = json.dumps(arguments)
                 file.write(document)
                 file.close()
     return document

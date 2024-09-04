@@ -79,20 +79,8 @@ def match_threshold_W_cluster(combinador, desired_combs) -> tuple:
     return match_threshold_W_cluster
 
 
-# desired = util(config["thresholds"], big_list_clusters)
-# inicializar função de combinação
-# filtered_product = match_threshold_W_cluster(product, desired)
-
-
-# def cat_hmms_input(wildcard, config_file):
-# 	list_clusters = get_all_clusters(config_file)[0]
-# 	return ["workflow/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm".format(threshold=config_file["thresholds"][x], 
-# 			cluster=list_clusters[x][y]) for x in range(len(config_file["thresholds"])) for y in range(len(list_clusters[x]))]
-
-
 def cat_hmms_input(wildcards):
 	return expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm", threshold=wildcards, cluster=threshold2clusters[wildcards])
-
 
 def get_target_db(config):
 	return config["hmm_database_name"]
@@ -421,6 +409,3 @@ def retry(tries: int, url: str):
 			i += 1
 			time.sleep(2)
 	return response		
-
-# compress_fasta("/mnt/c/Users/Ze/Desktop/M-PARTY/.tests/SRR3962293.faa")
-# return_fasta_content("/mnt/c/Users/Ze/Desktop/M-PARTY/resources/Data/FASTA/ERR476942.faa")
