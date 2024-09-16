@@ -37,7 +37,7 @@ def threshold2clusters(file_dic: dict) -> dict:
 	for thresh, path in file_dic.items():
 		try:
 			threshold2clusters[thresh] = get_clusters(path[0])
-		except:
+		except Exception:
 			print(f'No clusters were found for {thresh} threshold.')
 			continue
 	for k, v in threshold2clusters.items():
@@ -86,7 +86,7 @@ def get_target_db(config):
 	return config["hmm_database_name"]
 
 
-def get_UPI_queryDB(config):
+def get_upi_querydb(config):
 	return config["database"]
 
 
@@ -102,7 +102,7 @@ def get_output_dir(path: str, config: str, hmm: bool = False) -> str:
 	else:
 		try:
 			ind = c.index("FASTA")
-		except:
+		except Exception:
 			ind = c.index("Tables")
 	c.insert(ind + 1, config["hmm_database_name"])
 	return "/".join(c)
@@ -296,7 +296,7 @@ def check_id(filepath: str, outpath: str, id_list: list):
 		outpath (str): path to the file to be writen, which will be added "aligned.fasta".
 		id_list (list): list of IDs to find in the "filepath".
 	"""
-	num_lines = sum(1 for line in open(filepath, "r"))
+	num_lines = sum(1 for _ in open(filepath, "r"))
 	sequence = ""
 	in_seq = False
 	with open(outpath + "aligned.fasta", "w") as wf:

@@ -6,7 +6,7 @@ M-PARTY - Mining Protein dAtasets for Target EnzYmes
 
 by José Freitas
 
-Jun 2023
+Set 2024
 """
 
 import argparse
@@ -107,9 +107,7 @@ args = parser.parse_args()
 
 
 snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
-# config_path = "/".join(sys.path[0].split("\\")[:-1])+"/config/config.yaml"  # for WINDOWS
 config_path = sys.path[0] + "/config/"  # for Linux
-# hmm_database_path = f'{"/".join(sys.path[1].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/'
 hmm_database_path = f'{sys.path[0]}/resources/Data/HMMs/{args.hmm_db_name}/'
 validated_hmm_dir = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
 
@@ -152,61 +150,52 @@ def parse_fasta(filename: str, remove_excess_ID: bool = True, ip: bool = False, 
     Returns:
         list: A list containing IDs from all sequences
     """
-    unip_IDS = []
+    uniq_ids = []
     # if only validation, input sequences are not needed
     if args.hmm_validation == True and args.workflow == "annotation" and args.input == None:
         if verbose:
             print("No input file detected. Proceding to validation")
-        return unip_IDS
+        return uniq_ids
+    
     elif args.workflow == "database_construction" and args.input == None and args.kegg == None and args.interpro == None and args.input_seqs_db_const == None:
         if verbose:
-            print("No input file detected. Proceding to construct the models")
-        return unip_IDS
+            print("No input file detected. Proceding model construction")
+        return uniq_ids
             
     elif args.input_type == "metagenome" and kma_res == False:
-        return unip_IDS
+        return uniq_ids
     else:
         try:
-            with open(filename, "r") as f:
+            with open(filename, "r") as handlefile:
                 try:
-                    # lines = f.readlines()
-                    for line in f:
+                    for line in handlefile:
                         if line.startswith(">"):
                             if kegg:
-                                identi = re.findall(">.*?\s", line)
-                                identi = re.sub(">", "", identi[0])
-                                identi = re.sub(" ", "", identi)
-                                unip_IDS.append(identi)
+                                uniq_ids.append(re.search(r">(\S+)", line).group(1))
                                 continue
                             elif ip:
-                                identi = re.findall(">.*?\|", line)
-                                identi = re.sub(">", "", identi[0])
-                                identi = re.sub("\|", "", identi)
-                                unip_IDS.append(identi)
+                                uniq_ids.append(re.search(r">([^|]+)\|", line).group(1))
                                 continue
                             elif kma_res:
-                                unip_IDS.append(re.sub(">", "", line).strip())
+                                uniq_ids.append(line.replace(">", "").strip())
                                 continue
                             else: 
                                 if not remove_excess_ID:
-                                    unip_IDS.append(line.split(" ")[0][1:])
+                                    uniq_ids.append(line.split(" ")[0][1:])
                                 else:
                                     try:
-                                        identi = re.findall("\|.*\|", line)
-                                        identi = re.sub("\|", "", identi[0])
-                                        unip_IDS.append(identi)
-                                    except:
+                                        uniq_ids.append(re.search(r"\|(.*)\|", line).group(1))
+                                    except Exception:
                                         identi = line.split(" ")[0]
-                                        identi = re.sub(">", "", identi)
-                                        unip_IDS.append(identi)
+                                        uniq_ids.append(identi.replace(">", ""))
                     if verbose:
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
                         time.sleep(2)
-                except:
+                except Exception:
                     quit("File must be in FASTA format.")
         except TypeError:
             raise TypeError("Missing input file! Make sure -i option is filled")
-        return unip_IDS
+        return uniq_ids
 
 
 def check_results_directory(output: str) -> str:
@@ -228,23 +217,24 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
         input_file (str): Name for the input FASTA file
         out_dir (str): Name for the output directory where result shall be directed
         config_filename (str): Name to be given to the new config file
+        with_results (bool, optional): Weather to write or not 
 
     Returns:
         document: Returns a .yaml format config file, with the given arguments though the CLI
     """
     if args.workflow == "database_construction" and args.input == None:
-        seq_IDS = []
+        seq_ids = []
     if args.input != None:
         file_stats = os.stat(input_file)
         if file_stats.st_size / (1024 * 1024) > 400:
-            seq_IDS = "too_big"
+            seq_ids = "too_big"
         else:
-            seq_IDS = parse_fasta(input_file)
+            seq_ids = parse_fasta(input_file)
     if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
         out_dir = None
     else:
         check_results_directory(out_dir)
-        arguments = process_arguments(args, seq_IDS, out_dir)
+        arguments = process_arguments(args, seq_ids, out_dir)
     Path(config_path).mkdir(parents = True, exist_ok = True)
     caminho = config_path + "/" + config_filename
     config_type = config_filename.split(".")[-1]
@@ -271,7 +261,7 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
     return document
 
 
-def file_generator(path: str, full_path: bool = False) -> str:
+def file_generator(path: str, full_path: bool = False):
     """Function that yield the name of all and only files inside a directory in the given path, for iteration purposes
     Args:
         path (str): Path for the folder to be analyzed
@@ -311,9 +301,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     Raises:
         TypeError: Raises TypeError error if user gives an unsupported output format.
     """
-    prefix_model = db_name + "_"
-    summary_dic = {
-        # "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
+    summary_dic = { 
         "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
         "querys": get_match_IDS(dataframe, to_list = True, only_relevant = True),
         "bit_scores": get_bit_scores(dataframe, to_list = True, only_relevant = True),
@@ -330,14 +318,14 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     elif type_format == "csv":
         df.to_csv(path + table_name)
     elif type_format == "excel":
-        list_IDS_permodel = {}
+        list_ids_permodel = {}
         if not args.expansion:
             mother_seqs = f'{sys.path[0]}/resources/Data/FASTA/{db_name}/CDHIT/clusters/'
             for model in tqdm(list(set(summary_dic["models"])), desc = "Tracebacking model's sequences", unit = "model"):
                 for file in file_generator(mother_seqs):
                     if file.split(".")[0] == model:
-                        if model not in list_IDS_permodel:
-                            list_IDS_permodel[model] = parse_fasta(os.path.join(mother_seqs, file))
+                        if model not in list_ids_permodel:
+                            list_ids_permodel[model] = parse_fasta(os.path.join(mother_seqs, file))
                             break
             # df.to_excel(f'{path}report_table.xlsx', sheet_name = "Table_Report", index = 0)
         else:
@@ -350,13 +338,13 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
                         for file in os.listdir(os.path.join(mother_seqs, folder)):
                             if file.endswith(".fasta") and model == file.split(".")[0]:
                                 key = thresh + "_" + model
-                                if key not in list_IDS_permodel:
-                                    list_IDS_permodel[key] = parse_fasta(mother_seqs + folder + "/" + file)
+                                if key not in list_ids_permodel:
+                                    list_ids_permodel[key] = parse_fasta(mother_seqs + folder + "/" + file)
                                 # else:
-                                #     list_IDS_permodel[key].append(parse_fasta(mother_seqs + folder + "/" + file, meta_gen = True if args.input_type == "metagenome" else False))
+                                #     list_ids_permodel[key].append(parse_fasta(mother_seqs + folder + "/" + file, meta_gen = True if args.input_type == "metagenome" else False))
         writer = pd.ExcelWriter(path + "report_table.xlsx", engine = "openpyxl")
         df.to_excel(writer, sheet_name = "Table_Report", index = 0)
-        df1 = pd.DataFrame.from_dict(list_IDS_permodel, orient = "index")
+        df1 = pd.DataFrame.from_dict(list_ids_permodel, orient = "index")
         df1.to_excel(writer, sheet_name = "Model_Sequences")
         writer.save()  # FutureWarning: save is not part of the public API, usage can give unexpected results and will be removed in a future version
         writer.close()
@@ -380,15 +368,19 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
         if os.path.isdir(os.path.join(hmm_database_path, dir)):
             for _ in os.listdir(os.path.join(hmm_database_path, dir)):
                 number_init_hmms += 1
+
     if vali:
         for dir in os.listdir(validated_hmm_dir):
             if os.path.isdir(os.path.join(validated_hmm_dir, dir)):
                 for _ in os.listdir(os.path.join(validated_hmm_dir, dir)):
                     number_validated_hmms += 1
+
     # get the IDs from all hits after quality check
     query_names = get_match_IDS(dataframe, to_list = True, only_relevant = True)
+
     # get number of hits given for each sequence
     number_hits_perseq = get_number_hits_perseq(query_names)
+
     # get the unique sequences
     unique_seqs = get_unique_hits(query_names)
     inputed_seqs = config["seqids"]
@@ -401,7 +393,7 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
                     f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
                     f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
-            f.close
+            f.close()
     else:
         with open(path + "text_report.txt", "w") as f:
             f.write(f"M-PARTY hits report:\n \
@@ -410,25 +402,25 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
                     f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
                     f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
                     f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
-            f.close
+            f.close()
 
 
-def get_number_hits_perseq(hit_IDs_list: list) -> dict:
+def get_number_hits_perseq(hit_ids_list: list) -> dict:
     """Given a list of sequences IDs from the hits against the hmm models from hmmsearch, counts the number of each ID.
 
     Args:
-        hit_IDs_list (list): List of sequence IDs.
+        hit_ids_list (list): List of sequence IDs.
 
     Returns:
         dict: Dictionary containing each ID as key and the respective number of occurrences as value.
     """
     counter = {}
-    for i in hit_IDs_list:
+    for i in hit_ids_list:
         counter[i] = counter.get(i, 0) + 1
     return counter
 
 
-def get_unique_hits(hit_IDs_list: list) -> list:
+def get_unique_hits(hit_ids_list: list) -> list:
     """Given a list of sequence IDs from the hits against the hmm models from hmmsearch, return a new list with only the unique elements.
 
     Args:
@@ -437,11 +429,11 @@ def get_unique_hits(hit_IDs_list: list) -> list:
     Returns:
         list: List with only a single occurrence of each ID.
     """
-    unique_IDs_list = []
-    for x in hit_IDs_list:
-        if x not in unique_IDs_list:
-            unique_IDs_list.append(x)
-    return unique_IDs_list
+    unique_ids_list = []
+    for x in hit_ids_list:
+        if x not in unique_ids_list:
+            unique_ids_list.append(x)
+    return unique_ids_list
 
 
 def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile: str = None):
@@ -454,19 +446,17 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool
         inputed_seqs (str): name of the initial input file.
     """
     # returns a list the sequences that hit against the models (only one entry)
-    unique_IDS = get_unique_hits(hit_IDs_list)
+    unique_ids = get_unique_hits(hit_IDs_list)
 
     if config["seqids"] == "too_big":
-        # filestr = compress_fasta(inputed_seqs)
-        # return_fasta_content(filestr, path, unique_IDS)
-        check_id(inputed_seqs, path, unique_IDS)
+        check_id(inputed_seqs, path, unique_ids)
     
     else:
         with open(path + "aligned.fasta", "w") as wf:
             if args.input_type == "metagenome":
-                input_IDs = parse_fasta(kma_alignfile, remove_excess_ID = False, kma_res = True)
+                input_ids = parse_fasta(kma_alignfile, remove_excess_ID = False, kma_res = True)
             else:
-                input_IDs = parse_fasta(inputed_seqs, remove_excess_ID = False)
+                input_ids = parse_fasta(inputed_seqs, remove_excess_ID = False)
             
             if args.input_type == "metagenome":
                 inp_seqs = kma_alignfile
@@ -474,8 +464,8 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool
                 inp_seqs = inputed_seqs
             with open(inp_seqs, "r") as rf:
                 lines = rf.readlines()
-                for x in unique_IDS:
-                    if x in input_IDs:
+                for x in unique_ids:
+                    if x in input_ids:
                         iterador = iter(lines)
                         linha = next(iterador)
                         while linha is not None:
