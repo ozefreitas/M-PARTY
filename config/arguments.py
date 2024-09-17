@@ -1,4 +1,4 @@
-def process_arguments(args, sequences, output_dir):
+def process_arguments(args: dict, sequences: list, output_dir: str) -> dict:
     arguments = {"seqids": sequences,
                 "database": args.database,
                 "input_file": None if sequences == [] else args.input.split("/")[-1],
@@ -24,3 +24,20 @@ def process_arguments(args, sequences, output_dir):
                 "overwrite": args.overwrite
                 }
     return arguments
+
+
+def check_input_arguments(args: dict, verbose: bool, kma_res: bool) -> bool:
+    if args.hmm_validation == True and args.workflow == "annotation" and args.input == None:
+        if verbose:
+            print("No input file detected. Proceding to validation")
+        return False
+    
+    elif args.workflow == "database_construction" and args.input == None and args.kegg == None and args.interpro == None and args.input_seqs_db_const == None:
+        if verbose:
+            print("No input file detected. Proceding model construction")
+        return False
+            
+    elif args.input_type == "metagenome" and kma_res == False:
+        return False
+    
+    else: return True

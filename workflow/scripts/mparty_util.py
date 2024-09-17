@@ -82,6 +82,7 @@ def match_threshold_W_cluster(combinador, desired_combs) -> tuple:
 def cat_hmms_input(wildcards):
 	return expand("resources/Data/HMMs/After_tcoffee_UPI/{threshold}/{cluster}.hmm", threshold=wildcards, cluster=threshold2clusters[wildcards])
 
+
 def get_target_db(config):
 	return config["hmm_database_name"]
 

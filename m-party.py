@@ -40,7 +40,7 @@ from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
 from InterPro_retriever import get_IP_sequences
 from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
-from config.arguments import process_arguments
+from config.arguments import process_arguments, check_input_arguments
 
 
 version = "1.0.0"
@@ -133,64 +133,68 @@ def read_config_yaml(filename: str) -> tuple:
     return config_file, config_type
 
 
-def parse_fasta(filename: str, remove_excess_ID: bool = True, ip: bool = False, kegg: bool = False, verbose: bool = False, kma_res: bool = False) -> list:
+def clean_sequence_ids(line: str, remove_excess_id: bool, ip: bool, kegg: bool, kma_res: bool) -> str:
+    """Function that receives a string and cleans it based on predefined patterns
+
+    Args:
+        line (str): line string
+        remove_excess_id (bool): Decide wether to remove the excess part of UniProt IDs
+        ip (bool): Set to True if sequences from filename were retrieved from InterPro, which has a specific nomenclature
+        for the FASTA entries
+        kegg (bool): Set to True if sequences from filenames were retrieved from KEGG, which has a specific nomenclature
+        for the FASTA entries.
+        kma_res (bool): Set to True if this function is set to run for the processing of KMA results
+
+    Returns:
+        str: Cleaned string
+    """
+    if kegg:
+        return re.search(r">(\S+)", line).group(1)
+    elif ip:
+        return re.search(r">([^|]+)\|", line).group(1)
+    elif kma_res:
+        return line.replace(">", "").strip()
+    else: 
+        if not remove_excess_id:
+            return line.split(" ")[0][1:]
+        else:
+            try:
+                return re.search(r"\|(.*)\|", line).group(1)
+            except Exception:
+                identi = line.split(" ")[0]
+                return identi.replace(">", "")
+
+
+def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, kegg: bool = False, kma_res: bool = False, verbose: bool = False) -> list:
     """Given a FASTA file, returns the IDs from all sequences in that file.
     If file not present, program will be quited and TypeError message raised.
 
     Args:
         filename (str): Name of FASTA file.
-        remove_excess_ID (bool, optional): Decide wether to remove the excess part of UniProt IDs. Defaults to True.
+        remove_excess_id (bool, optional): Decide wether to remove the excess part of UniProt IDs. Defaults to True.
         ip (bool, optional): Set to True if sequences from filename were retrieved from InterPro, which has a specific nomenclature
         for the FASTA entries.
         kegg (bool, optional): Set to True if sequences from filenames were retrieved from KEGG, which has a specific nomenclature
         for the FASTA entries.
-        verbose (bool, optional): Set to True to print aditional messages of wath is happening. Defaults to False.
         kma_res (bool, optional): Set to True if this function is set to run for the processing of KMA results. Defaults to False.
+        verbose (bool, optional): Set to True to print aditional messages of wath is happening. Defaults to False.
 
     Returns:
         list: A list containing IDs from all sequences
     """
-    uniq_ids = []
-    # if only validation, input sequences are not needed
-    if args.hmm_validation == True and args.workflow == "annotation" and args.input == None:
-        if verbose:
-            print("No input file detected. Proceding to validation")
-        return uniq_ids
-    
-    elif args.workflow == "database_construction" and args.input == None and args.kegg == None and args.interpro == None and args.input_seqs_db_const == None:
-        if verbose:
-            print("No input file detected. Proceding model construction")
-        return uniq_ids
-            
-    elif args.input_type == "metagenome" and kma_res == False:
-        return uniq_ids
+    uniq_ids = check_input_arguments(args, verbose=verbose,kma_res=kma_res)
+    if uniq_ids == False:
+        return []
     else:
         try:
             with open(filename, "r") as handlefile:
                 try:
                     for line in handlefile:
                         if line.startswith(">"):
-                            if kegg:
-                                uniq_ids.append(re.search(r">(\S+)", line).group(1))
-                                continue
-                            elif ip:
-                                uniq_ids.append(re.search(r">([^|]+)\|", line).group(1))
-                                continue
-                            elif kma_res:
-                                uniq_ids.append(line.replace(">", "").strip())
-                                continue
-                            else: 
-                                if not remove_excess_ID:
-                                    uniq_ids.append(line.split(" ")[0][1:])
-                                else:
-                                    try:
-                                        uniq_ids.append(re.search(r"\|(.*)\|", line).group(1))
-                                    except Exception:
-                                        identi = line.split(" ")[0]
-                                        uniq_ids.append(identi.replace(">", ""))
+                            uniq_ids.append(clean_sequence_ids(line, remove_excess_id, ip, kegg, kma_res))
                     if verbose:
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
-                        time.sleep(2)
+                        time.sleep(1)
                 except Exception:
                     quit("File must be in FASTA format.")
         except TypeError:
@@ -436,17 +440,17 @@ def get_unique_hits(hit_ids_list: list) -> list:
     return unique_ids_list
 
 
-def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile: str = None):
+def get_aligned_seqs(hit_ids_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile: str = None):
     """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
     Args:
-        hit_IDs_list (list): list of IDs that hit.
+        hit_ids_list (list): list of IDs that hit.
         path (str): ouput path.
         inputed_seqs (str): name of the initial input file.
     """
     # returns a list the sequences that hit against the models (only one entry)
-    unique_ids = get_unique_hits(hit_IDs_list)
+    unique_ids = get_unique_hits(hit_ids_list)
 
     if config["seqids"] == "too_big":
         check_id(inputed_seqs, path, unique_ids)
@@ -487,19 +491,19 @@ def get_aligned_seqs(hit_IDs_list: list, path: str, inputed_seqs: str, kma: bool
         wf.close()
 
 
-def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_seqs: str, bit_threshold: float = None, eval_threshold: float = None, kma: bool = False, kma_alignfile: str = None):
+def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_seqs: str, bit_threshold: float = None, eval_threshold: float = None, kma: bool = False, kma_alignfile: str = None):
     """Function that initializes the output files creation simultaneously, for now, only two files are generated:
     report and aligned sequences.
     Path will always be the output folder defined by the user when running tool in CLI, so no pat argument is required.
 
     Args:
         dataframe (pd.DataFrame): Dataframe with only the relevant information from hmmsearch execution.
-        hit_IDs_list (list): list of Uniprot IDs that hit.
+        hit_ids_list (list): list of Uniprot IDs that hit.
         inputed_seqs (str): name of the initial input file.
     """
     out_folder = args.output + "/"
     if kma:
-        get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs, kma = kma, kma_alignfile = kma_alignfile)
+        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs, kma = kma, kma_alignfile = kma_alignfile)
         dataframe.to_excel(f'{out_folder}report_table.xlsx', sheet_name = "Table_Report", index = 0)
     else:
         table_report(dataframe, out_folder, args.output_type, args.hmm_db_name)
@@ -508,7 +512,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_IDs_list: list, inputed_s
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold, vali = True)
             else:
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold)
-        get_aligned_seqs(hit_IDs_list, out_folder, inputed_seqs)
+        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs)
     if args.display_config:
         if args.config_file is not None:
             write_config(args.input, args.output, args.config_file, with_results = True)
