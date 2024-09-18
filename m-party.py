@@ -14,6 +14,7 @@ import sys
 import shutil
 # sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
 sys.path.append(f'{sys.path[0]}/workflow/scripts')
+sys.path.append(f'{sys.path[0]}/workflow/pathing_utils')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
 # print(sys.path)
 import os
@@ -43,16 +44,14 @@ from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
 from config.process_arguments import process_arguments, check_input_arguments, check_config, write_yaml_json
 import output_scripts.table_report_utils as table_report_utils
+from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 
 # get CLI arguments
 parser = get_parser()
 args = parser.parse_args()
 
-
-snakefile_path = sys.path[0].replace("\\", "/")+"/workflow/Snakefile"
-config_path = sys.path[0] + "/config/"  # for Linux
-hmm_database_path = f'{sys.path[0]}/resources/Data/HMMs/{args.hmm_db_name}/'
-validated_hmm_dir = f'{"/".join(sys.path[0].split("/"))}/resources/Data/HMMs/{args.hmm_db_name}/validated_HMM/'
+# initialize paths
+declare_fixed_paths(args)
 
 
 def read_config(filename: str) -> tuple:
@@ -179,7 +178,7 @@ def write_config(input_file: str, out_dir: str):
         check_results_directory(out_dir)
         arguments = process_arguments(args, seq_ids, out_dir)
 
-    Path(config_path).mkdir(parents = True, exist_ok = True)
+    Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
 
     config_type = "yaml"
     write_yaml_json(config_type=config_type, out_dir=out_dir, args_dict=arguments)
@@ -278,15 +277,15 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
     """
     # number of initial HMM profiles
     number_init_hmms, number_validated_hmms = 0, 0
-    for dir in os.listdir(hmm_database_path):
-        if os.path.isdir(os.path.join(hmm_database_path, dir)):
-            for _ in os.listdir(os.path.join(hmm_database_path, dir)):
+    for dir in os.listdir(PathManager.hmm_database_path):
+        if os.path.isdir(os.path.join(PathManager.hmm_database_path, dir)):
+            for _ in os.listdir(os.path.join(PathManager.hmm_database_path, dir)):
                 number_init_hmms += 1
 
     if vali:
-        for dir in os.listdir(validated_hmm_dir):
-            if os.path.isdir(os.path.join(validated_hmm_dir, dir)):
-                for _ in os.listdir(os.path.join(validated_hmm_dir, dir)):
+        for dir in os.listdir(PathManager.validated_hmm_dir):
+            if os.path.isdir(os.path.join(PathManager.validated_hmm_dir, dir)):
+                for _ in os.listdir(os.path.join(PathManager.validated_hmm_dir, dir)):
                     number_validated_hmms += 1
 
     # get the IDs from all hits after quality check
@@ -497,7 +496,7 @@ if args.workflow == "annotation" and args.input is not None:
     Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.hmm_validation:
 
-        if not os.path.exists(validated_hmm_dir):
+        if not os.path.exists(PathManager.validated_hmm_dir):
             print("Starting HMM validation procedures...\n")
             time.sleep(2)
 
@@ -538,7 +537,7 @@ if args.workflow == "annotation" and args.input is not None:
     # if input file is not a metagenome
     else:
         if args.hmm_validation:
-            for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+            for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
                 run_hmmsearch(args.input, hmm_file,
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
@@ -547,7 +546,7 @@ if args.workflow == "annotation" and args.input is not None:
         # se os modelos estiverem concatenados
             if args.concat_hmm_models:
                 # pass
-                for hmm_file in file_generator(hmm_database_path + "concat_model/", full_path = True):
+                for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
                     if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
                         os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
@@ -562,9 +561,9 @@ if args.workflow == "annotation" and args.input is not None:
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
             else:
-                p = os.listdir(hmm_database_path)
+                p = os.listdir(PathManager.hmm_database_path)
                 for thresh in p:
-                    path = os.path.join(hmm_database_path, thresh)
+                    path = os.path.join(PathManager.hmm_database_path, thresh)
                     Path(path).mkdir(parents = True, exist_ok = True)
                     for hmm_file in file_generator(path, full_path = True):
                         run_hmmsearch(args.input, hmm_file, 
@@ -1175,7 +1174,7 @@ elif args.workflow == "both":
     # if input file is not a metagenome
     else:
         if args.hmm_validation:
-            for hmm_file in file_generator(validated_hmm_dir, full_path = True):
+            for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
                 run_hmmsearch(args.input, hmm_file,
                             hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
@@ -1184,7 +1183,7 @@ elif args.workflow == "both":
         # se os modelos estiverem concatenados
             if args.concat_hmm_models:
                 # pass
-                for hmm_file in file_generator(hmm_database_path + "concat_model/", full_path = True):
+                for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
                     if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
                         os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
@@ -1199,9 +1198,9 @@ elif args.workflow == "both":
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
                             out_type = args.hmms_output_type)
             else:
-                p = os.listdir(hmm_database_path)
+                p = os.listdir(PathManager.hmm_database_path)
                 for thresh in p:
-                    path = os.path.join(hmm_database_path, thresh)
+                    path = os.path.join(PathManager.hmm_database_path, thresh)
                     Path(path).mkdir(parents = True, exist_ok = True)
                     for hmm_file in file_generator(path, full_path = True):
                         run_hmmsearch(args.input, hmm_file, 
