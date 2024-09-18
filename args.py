@@ -53,8 +53,7 @@ def get_parser():
                         between "annotation", "database_construction" and "both". Latter keyword makes the database construction\
                         first and posterior annotation. Defaults to "annotation"')
     parser.add_argument("-c", "--config_file", help = "user defined config file. Only recommended for\
-                        advanced users. Defaults to 'config.yaml'. If given, overrides config file construction\
-                        from input", default = None)
+                        advanced users.", default = None)
     parser.add_argument("--clean", default = False, action = "store_true", help = "could be required after running tool multiple times and files inside \
                         databases start to mix up. Defaults to False")
     parser.add_argument("--overwrite", action = "store_true", default = False, help = "Call to overwrite inputted files. Defaults to False")

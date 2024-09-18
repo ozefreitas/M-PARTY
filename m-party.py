@@ -34,14 +34,14 @@ from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
 from CDHIT_parser import *
-from mparty_util import build_UPI_query_DB, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id
+from mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id
 from BLAST_parser import *
 from DIAMOND_parser import *
 from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
 from InterPro_retriever import get_IP_sequences
 from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
-from config.process_arguments import process_arguments, check_input_arguments
+from config.process_arguments import process_arguments, check_input_arguments, check_config, write_yaml_json
 import output_scripts.table_report_utils as table_report_utils
 
 # get CLI arguments
@@ -156,7 +156,7 @@ def check_results_directory(output: str) -> str:
     Path(output).mkdir(exist_ok=True, parents=True)
 
 
-def write_config(input_file: str, out_dir: str, config_filename: str, with_results: bool = False) -> yaml:
+def write_config(input_file: str, out_dir: str):
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
     accordingly to the given arguments
 
@@ -164,10 +164,6 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
         input_file (str): Name for the input FASTA file
         out_dir (str): Name for the output directory where result shall be directed
         config_filename (str): Name to be given to the new config file
-        with_results (bool, optional): Weather to write or not 
-
-    Returns:
-        document: Returns a .yaml format config file, with the given arguments though the CLI
     """
     if args.workflow == "database_construction" and args.input == None:
         seq_ids = []
@@ -182,30 +178,11 @@ def write_config(input_file: str, out_dir: str, config_filename: str, with_resul
     else:
         check_results_directory(out_dir)
         arguments = process_arguments(args, seq_ids, out_dir)
+
     Path(config_path).mkdir(parents = True, exist_ok = True)
-    caminho = config_path + "/" + config_filename
-    config_type = config_filename.split(".")[-1]
-    if with_results:
-        if config_type == "yaml":
-            with open(f'{out_dir}/{config_filename}', "w") as file:
-                document = yaml.dump(arguments, file)
-                file.close()
-        else:
-            with open(f'{out_dir}/{config_filename}', "w") as file:
-                document = json.dumps(arguments)
-                file.write(document)
-                file.close()
-    else:
-        if config_type == "yaml":
-            with open(caminho, "w") as file:
-                document = yaml.dump(arguments, file)
-                file.close()
-        else:
-            with open(caminho, "w") as file:
-                document = json.dumps(arguments)
-                file.write(document)
-                file.close()
-    return document
+
+    config_type = "yaml"
+    write_yaml_json(config_type=config_type, out_dir=out_dir, args_dict=arguments)
 
 
 def file_generator(path: str, full_path: bool = False):
@@ -373,7 +350,7 @@ def get_unique_hits(hit_ids_list: list) -> list:
     return unique_ids_list
 
 
-def get_aligned_seqs(hit_ids_list: list, path: str, inputed_seqs: str, kma: bool = False, kma_alignfile: str = None):
+def get_aligned_seqs(hit_ids_list: list, path: str, inputed_seqs: str, kma_alignfile: str = None):
     """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
@@ -436,7 +413,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_s
     """
     out_folder = args.output + "/"
     if kma:
-        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs, kma = kma, kma_alignfile = kma_alignfile)
+        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs, kma_alignfile = kma_alignfile)
         dataframe.to_excel(f'{out_folder}report_table.xlsx', sheet_name = "Table_Report", index = 0)
     else:
         table_report(dataframe, out_folder, args.output_type, args.hmm_db_name)
@@ -447,10 +424,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_s
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold)
         get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs)
     if args.display_config:
-        if args.config_file is not None:
-            write_config(args.input, args.output, args.config_file, with_results = True)
-        else:
-            write_config(args.input, args.output, "config.yaml", with_results = True)
+        write_config(args.input, args.output)
 
 
 if args.clean:
@@ -482,11 +456,9 @@ t = threading.Thread(target=animate)
 t.start()
 
 if args.config_file is not None:
-    doc = write_config(args.input, args.output, args.config_file)
     config, config_format = read_config(args.config_file)
 else:
-    doc = write_config(args.input, args.output, "config.yaml")
-    config, config_format = read_config(config_path + "config.yaml")
+    write_config(args.input, args.output)
 
 done = True
 time.sleep(1)
@@ -574,7 +546,7 @@ if args.workflow == "annotation" and args.input is not None:
         else:
         # se os modelos estiverem concatenados
             if args.concat_hmm_models:
-                pass
+                # pass
                 for hmm_file in file_generator(hmm_database_path + "concat_model/", full_path = True):
                     if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                             "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
@@ -636,8 +608,9 @@ elif args.workflow == "database_construction":
                 shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
                 shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
                 shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
-            except:
-                pass
+            except Exception as exc:
+                print(exc)
+                # pass
         else:
             ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
                     f'[TIP] if yes, use --overwrite flag next time [y/n] ')
@@ -648,8 +621,9 @@ elif args.workflow == "database_construction":
                     shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
                     shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
                     shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
-                except:
-                    pass
+                except Exception as exc:
+                    print(exc)
+                    # pass
 
     if args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
         raise TypeError("Missing input sequences to build HMM database!")
@@ -658,7 +632,7 @@ elif args.workflow == "database_construction":
     if args.expansion:
         Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
         Path(f'resources/Data/Tables/{args.hmm_db_name}').mkdir(parents = True, exist_ok = True)
-        query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
+        query_DB = build_upi_query_db("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
 
         if config["alignment_method"] == "diamond":
             ### FASTA to DMND
@@ -704,7 +678,8 @@ elif args.workflow == "database_construction":
                 print(f'Retrieving sequences from {thresh} range\n')
             try:
                 get_fasta_sequences(f'resources/Data/Tables/{args.hmm_db_name}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta')
-            except:
+            except Exception as exc:
+                print(exc)
                 raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
             ### run CDHIT
             if config["verbose"]:
@@ -721,7 +696,8 @@ elif args.workflow == "database_construction":
                     print("Retrieving sequences divided by clusters from CDHIT\n")
                 fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
                                             f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
-            except:
+            except Exception as exc:
+                print(exc)
                 if config["verbose"]:
                     print(f'[WARNING] Minimum cutoff of {thresh} of similarity not detected.\n')
                 time.sleep(2)
@@ -745,8 +721,6 @@ elif args.workflow == "database_construction":
                 else:
                     newthresh.append(thresh)
             config["thresholds"] = newthresh
-        elif config_format == "json":
-            pass
 
         with open("config/config.yaml", "w") as dump_file:
             yaml.dump(config, dump_file)
@@ -960,7 +934,7 @@ elif args.workflow == "both":
     if args.expansion:
         ### UPIMAPI run DIAMOND
         Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
-        query_DB = build_UPI_query_DB("resources/Data/FASTA/DataBases", config = config)
+        query_DB = build_upi_query_db("resources/Data/FASTA/DataBases", config = config)
         aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_results/DIAMOND_results.out', args.input_seqs_db_const, args.threads)
         handle = UPIMAPI_parser(aligned_TSV)
         dic_enzymes = UPIMAPI_iter_per_sim(handle)
@@ -992,8 +966,6 @@ elif args.workflow == "both":
                 for c in range(len(cluster)):
                     cluster[c] = str(cluster[c])
                 config[thresh] = cluster
-        elif config_format == "json":
-            pass
 
         with open("config/config.yaml", "w") as dump_file:
             yaml.dump(config, dump_file)

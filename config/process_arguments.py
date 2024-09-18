@@ -1,3 +1,6 @@
+import yaml
+import json
+
 def process_arguments(args: dict, sequences: list, output_dir: str) -> dict:
     arguments = {"seqids": sequences,
                 "database": args.database,
@@ -41,3 +44,18 @@ def check_input_arguments(args: dict, verbose: bool, kma_res: bool) -> bool:
         return False
     
     else: return True
+
+def check_config(args: dict):
+    if args.config != None and (args.input != None or args.kegg != None or args.interpro != None):
+        raise ValueError("config file cannot be given with other arguments")
+    
+def write_yaml_json(config_type: str, out_dir: str, args_dict: dict):
+    if config_type == "yaml":
+        with open(f'{out_dir}/config.yaml', "w") as file:
+            yaml.dump(args_dict, file)
+            file.close()
+    else:
+        with open(f'{out_dir}/config.json', "w") as file:
+            document = json.dumps(args_dict)
+            file.write(document)
+            file.close()

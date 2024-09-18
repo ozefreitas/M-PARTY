@@ -174,7 +174,7 @@ def download_uniprot(database_folder: str):
 	run_command(f'zcat {database_folder}/{url[0].split("/")[-1]} {database_folder}/{url[1].split("/")[-1]} > {database_folder}/uniprot.fasta')
 
 
-def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool = False) -> str:
+def build_upi_query_db(database_folder: str, config: str = None, verbose: bool = False) -> str:
 	"""Function that will download the database from uniprot to a specified folder.
 
 	Args:
@@ -189,7 +189,7 @@ def build_UPI_query_DB(database_folder: str, config: str = None, verbose: bool =
 		str: Path for the new database.
 	"""
 	# database = "uniprot"
-	database = get_UPI_queryDB(config)
+	database = get_upi_querydb(config)
 	if database.lower() == "uniprot":
 		if not os.path.exists(database_folder + "/uniprot.fasta"):
 			print(f'Download of {database} database started...\n')
