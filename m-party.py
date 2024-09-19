@@ -43,6 +43,7 @@ from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
 from config.process_arguments import process_arguments, check_input_arguments, check_config, write_yaml_json
 import output_scripts.table_report_utils as table_report_utils
+import output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 
 # get CLI arguments
@@ -300,6 +301,10 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
     # get the unique sequences
     unique_seqs = get_unique_hits(query_names)
     inputed_seqs = config["seqids"]
+    
+    # variables = text_report_utils.write_var_file()
+    # text_report_utils.write_text_report(config, path, args, variables)
+
     if config["hmm_validation"] == True:
         with open(path + "text_report.txt", "w") as f:
             f.write(f"M-PARTY hits report:\n \

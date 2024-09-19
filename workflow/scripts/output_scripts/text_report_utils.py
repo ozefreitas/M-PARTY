@@ -1,5 +1,15 @@
+def write_var_file():
+    variables = {"number_init_hmms": 0, 
+            "query_names": "", 
+            "number_validated_hmms": 0, 
+            "bit_threshold": 0, 
+            "eval_threshold": 0, 
+            "inputed_seqs": 0, 
+            "unique_seqs": 0}
+    return variables
 
-def write_text_report(config, path):
+
+def write_text_report(config, path, args, variables):
 
     if config["hmm_validation"] == True:
         with open(path + "text_report.txt", "w") as f:
