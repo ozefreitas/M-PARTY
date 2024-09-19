@@ -9,7 +9,6 @@ by José Freitas
 Set 2024
 """
 
-import argparse
 import sys
 import shutil
 # sys.path.insert(0, f'{"/".join(sys.path[0].split("/")[:-1])}/share')
@@ -18,7 +17,7 @@ sys.path.append(f'{sys.path[0]}/workflow/pathing_utils')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
 # print(sys.path)
 import os
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 import time
 import yaml
 import json
@@ -49,6 +48,9 @@ from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 # get CLI arguments
 parser = get_parser()
 args = parser.parse_args()
+
+# check arguments
+check_config(args=args)
 
 # initialize paths
 declare_fixed_paths(args)
@@ -124,9 +126,9 @@ def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, 
     Returns:
         list: A list containing IDs from all sequences
     """
-    uniq_ids = check_input_arguments(args, verbose=verbose,kma_res=kma_res)
-    if uniq_ids == False:
-        return []
+    uniq_ids = []
+    if check_input_arguments(args, verbose=verbose,kma_res=kma_res) == False:
+        return uniq_ids
     else:
         try:
             with open(filename, "r") as handlefile:
@@ -137,7 +139,8 @@ def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, 
                     if verbose:
                         print(f'Input file {filename} detected and sequence IDs retrieved\n')
                         time.sleep(1)
-                except Exception:
+                except Exception as exc:
+                    print(exc)
                     quit("File must be in FASTA format.")
         except TypeError:
             raise TypeError("Missing input file! Make sure -i option is filled")
@@ -1244,5 +1247,7 @@ if args.workflow == "database_construction":
         print("Consensus sequences generated!")
     else:
         print("HMMs generated!")
+        print("Next step should be annotation with the just created HMM database.\n If you need further guidance, refer to M-PARTY documentation in GitHub")
 else:
     print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')
+print("Thank you for using M-PARTY! ")
