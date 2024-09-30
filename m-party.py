@@ -45,6 +45,7 @@ from config.process_arguments import process_arguments, check_input_arguments, c
 import output_scripts.table_report_utils as table_report_utils
 import output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
+from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover
 
 # get CLI arguments
 parser = get_parser()
@@ -202,16 +203,6 @@ def file_generator(path: str, full_path: bool = False):
                 yield os.path.join(path, file)
             else:
                 yield file
-
-
-def dir_generator(list_paths: list):
-    """Given a list of paths, create those directories of still not present, with all parent directories
-
-    Args:
-        list_paths (list): list of paths to be created
-    """
-    for path in list_paths:
-        Path(path).mkdir(parents = True, exist_ok = True)
 
 
 def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: str):
@@ -476,7 +467,7 @@ if args.workflow == "annotation" and args.input is not None:
     print("Annotation workflow started...\n")
     time.sleep(2)
 
-    Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
+    # Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
     if args.hmm_validation:
 
         if not os.path.exists(PathManager.validated_hmm_dir):
@@ -586,9 +577,7 @@ elif args.workflow == "database_construction":
             if args.verbose:
                 print(f"Deleting previously created files from {args.hmm_db_name}\n")
             try:
-                shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
             except Exception as exc:
                 print(exc)
                 # pass
@@ -599,9 +588,10 @@ elif args.workflow == "database_construction":
                 if args.verbose:
                     print(f"Deleting previously created files from {args.hmm_db_name}\n")
                 try:
-                    shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-                    shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-                    shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                    # shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
+                    # shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
+                    # shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
                 except Exception as exc:
                     print(exc)
                     # pass
@@ -899,18 +889,14 @@ elif args.workflow == "both":
         if args.overwrite:
             if args.verbose:
                 print(f"Deleting previously created files from {args.hmm_db_name}\n")
-            shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-            shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-            shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+            dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
         else:
             ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
                     f'[TIP] if yes, use --overwrite flag next time [y/n] ')
             if ask in ["Y", "y", "yes", "YES"]:
                 if args.verbose:
                     print(f"Deleting previously created files from {args.hmm_db_name}\n")
-                shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-                shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
+                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
 
     if args.expansion:
         ### UPIMAPI run DIAMOND
