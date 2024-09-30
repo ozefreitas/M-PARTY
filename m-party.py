@@ -228,12 +228,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     Raises:
         TypeError: Raises TypeError error if user gives an unsupported output format.
     """
-    summary_dic = { 
-        "models": [model for model in get_models_names(dataframe, to_list = True, only_relevant = True)], 
-        "querys": get_match_IDS(dataframe, to_list = True, only_relevant = True),
-        "bit_scores": get_bit_scores(dataframe, to_list = True, only_relevant = True),
-        "e_values": get_e_values(dataframe, to_list = True, only_relevant = True)
-        }
+    summary_dic = create_summary_dict(dataframe=dataframe)
     
     if args.expansion:
         indexes = dataframe.index.values.tolist()
@@ -293,7 +288,7 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
                     number_validated_hmms += 1
 
     # get the IDs from all hits after quality check
-    query_names = get_match_IDS(dataframe, to_list = True, only_relevant = True)
+    query_names = get_match_ids(dataframe, to_list = True, only_relevant = True)
 
     # get number of hits given for each sequence
     number_hits_perseq = get_number_hits_perseq(query_names)
@@ -302,28 +297,8 @@ def text_report(dataframe: pd.DataFrame, path: str, bit_threshold: float, eval_t
     unique_seqs = get_unique_hits(query_names)
     inputed_seqs = config["seqids"]
     
-    # variables = text_report_utils.write_var_file()
-    # text_report_utils.write_text_report(config, path, args, variables)
-
-    if config["hmm_validation"] == True:
-        with open(path + "text_report.txt", "w") as f:
-            f.write(f"M-PARTY hits report:\n \
-                    \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                    f"for the final report.\nUser defined validation to true with {args.negative_db} database, from which resulted"
-                    f"in {number_validated_hmms}. After annotation, another filtering process was performed considering the values from bit score and E-value from the HMM search run, \n"
-                    f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
-                    f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
-            f.close()
-    else:
-        with open(path + "text_report.txt", "w") as f:
-            f.write(f"M-PARTY hits report:\n \
-                    \nFrom a total number of {number_init_hmms} HMM profiles initially considered, only {len(query_names)} where considered"
-                    "for the final report.\nFiltering process was performed considering the values from bit score and E-value from the HMM search run, \n"
-                    f"in which the considered bit score threshold was {bit_threshold} and E-value was {eval_threshold}.\n"
-                    f"Also, {len(inputed_seqs)} initial query sequences where inputed form {args.input} file, from which {len(unique_seqs)}\n"
-                    f"out of these {len(inputed_seqs)} were considered to have a hit against the HMM database.")
-            f.close()
+    variables = text_report_utils.write_var_file()
+    text_report_utils.write_text_report(config, path, args, variables)
 
 
 def get_number_hits_perseq(hit_ids_list: list) -> dict:
@@ -514,7 +489,6 @@ if args.workflow == "annotation" and args.input is not None:
                 pathing = make_paths_dic(args.hmm_db_name)
             exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
             to_remove = hmm_filtration(pathing, verbose = config["verbose"])
-            print(to_remove)
             remove_fp_models(to_remove, pathing, config["verbose"])
             concat_final_model(pathing)
             if args.verbose:
@@ -589,7 +563,7 @@ if args.workflow == "annotation" and args.input is not None:
             final_df = concat_df_byrow(df_dict = lista_dataframes)
             rel_df = relevant_info_df(final_df)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
             generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
         else:
@@ -598,7 +572,7 @@ if args.workflow == "annotation" and args.input is not None:
                     dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
             rel_df = relevant_info_df(dataframe)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
             generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
 elif args.workflow == "database_construction":
@@ -1226,7 +1200,7 @@ elif args.workflow == "both":
             final_df = concat_df_byrow(df_dict = lista_dataframes)
             rel_df = relevant_info_df(final_df)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
             generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
         else:
@@ -1235,7 +1209,7 @@ elif args.workflow == "both":
                     dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
             rel_df = relevant_info_df(dataframe)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_IDS(quality_df, to_list = True, only_relevant = True)
+            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
             generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
 
 elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
