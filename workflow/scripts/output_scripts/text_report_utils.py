@@ -1,4 +1,13 @@
-def write_var_file(variable_to_update: str, value: str or int):
+def write_var_file(variable_to_update: str, value) -> dict:
+    """_summary_
+
+    Args:
+        variable_to_update (str): key refering to the cariable to be updated
+        value (str or int): value to be assigned to the 
+
+    Returns:
+        dict: _description_
+    """
     variables = {"number_init_hmms": 0, 
             "query_names": "", 
             "number_validated_hmms": 0, 
