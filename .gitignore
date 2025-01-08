@@ -27,7 +27,12 @@ resources/Alignments/PE/BLAST/upimapi_results/*.blast
 **/__pycache__
 
 # snakemake logs #
+############
 logs/**
 */.snakemake/log/
 .snakemake
 .snakemake/**
+
+# results #
+############
+/results/
