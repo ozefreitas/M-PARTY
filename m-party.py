@@ -15,7 +15,6 @@ import shutil
 sys.path.append(f'{sys.path[0]}/workflow/scripts')
 sys.path.append(f'{sys.path[0]}/workflow/pathing_utils')
 # sys.path.append(f'{sys.path[0]}/M-PARTY')
-# print(sys.path)
 import os
 from pathlib import Path
 import time
@@ -45,7 +44,7 @@ from config.process_arguments import process_arguments, check_input_arguments, c
 import output_scripts.table_report_utils as table_report_utils
 import output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
-from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover
+from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory
 
 # get CLI arguments
 parser = get_parser()
@@ -149,18 +148,7 @@ def parse_fasta(filename: str, remove_excess_id: bool = True, ip: bool = False, 
         return uniq_ids
 
 
-def check_results_directory(output: str) -> str:
-    """Automatically creats the path where output should appear. Checks if folder already exists or not in the 
-    execution path
-    Args:
-        output (str): Name for the output folder
-    Returns:
-        str: Path for the output folder
-    """
-    Path(output).mkdir(exist_ok=True, parents=True)
-
-
-def write_config(input_file: str, out_dir: str):
+def write_config(input_file: str, out_dir: str, to_output: bool  = False):
     """Given a input file, output directory, and a name to assign to the new config file, write that same config file
     accordingly to the given arguments
 
@@ -184,9 +172,7 @@ def write_config(input_file: str, out_dir: str):
         arguments = process_arguments(args, seq_ids, out_dir)
 
     Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
-
-    config_type = "yaml"
-    write_yaml_json(config_type=config_type, out_dir=out_dir, args_dict=arguments)
+    write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
 
 
 def file_generator(path: str, full_path: bool = False):
@@ -219,7 +205,7 @@ def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: 
     Raises:
         TypeError: Raises TypeError error if user gives an unsupported output format.
     """
-    summary_dic = create_summary_dict(dataframe=dataframe)
+    summary_dic = table_report_utils.create_summary_dict(dataframe=dataframe)
     
     if args.expansion:
         indexes = dataframe.index.values.tolist()
@@ -323,7 +309,7 @@ def get_unique_hits(hit_ids_list: list) -> list:
     return unique_ids_list
 
 
-def get_aligned_seqs(hit_ids_list: list, path: str, inputed_seqs: str, kma_alignfile: str = None):
+def get_aligned_seqs(config, hit_ids_list: list, path: str, inputed_seqs: str, kma_alignfile: str = None):
     """Writes an ouput Fasta file with the sequences from the input files that had a hit in hmmsearch 
     annotation against the hmm models.
 
@@ -374,7 +360,14 @@ def get_aligned_seqs(hit_ids_list: list, path: str, inputed_seqs: str, kma_align
         wf.close()
 
 
-def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_seqs: str, bit_threshold: float = None, eval_threshold: float = None, kma: bool = False, kma_alignfile: str = None):
+def generate_output_files(dataframe: pd.DataFrame, 
+                          hit_ids_list: list, 
+                          inputed_seqs: str,
+                          config_file,
+                          bit_threshold: float = None, 
+                          eval_threshold: float = None, 
+                          kma: bool = False,
+                          kma_alignfile: str = None):
     """Function that initializes the output files creation simultaneously, for now, only two files are generated:
     report and aligned sequences.
     Path will always be the output folder defined by the user when running tool in CLI, so no pat argument is required.
@@ -386,7 +379,7 @@ def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_s
     """
     out_folder = args.output + "/"
     if kma:
-        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs, kma_alignfile = kma_alignfile)
+        get_aligned_seqs(config_file, hit_ids_list, out_folder, inputed_seqs, kma_alignfile = kma_alignfile)
         dataframe.to_excel(f'{out_folder}report_table.xlsx', sheet_name = "Table_Report", index = 0)
     else:
         table_report(dataframe, out_folder, args.output_type, args.hmm_db_name)
@@ -395,9 +388,9 @@ def generate_output_files(dataframe: pd.DataFrame, hit_ids_list: list, inputed_s
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold, vali = True)
             else:
                 text_report(dataframe, out_folder, bit_threshold, eval_threshold)
-        get_aligned_seqs(hit_ids_list, out_folder, inputed_seqs)
+        get_aligned_seqs(config_file, hit_ids_list, out_folder, inputed_seqs)
     if args.display_config:
-        write_config(args.input, args.output)
+        write_config(args.input, args.output, to_output=True)
 
 
 if args.clean:
@@ -432,6 +425,7 @@ if args.config_file is not None:
     config, config_format = read_config(args.config_file)
 else:
     write_config(args.input, args.output)
+    config, config_format = read_config("config/config.yaml")
 
 done = True
 time.sleep(1)
@@ -505,7 +499,7 @@ if args.workflow == "annotation" and args.input is not None:
                     
         df = kma_parser(kma_out + ".res")
         hit_seqs = get_hit_sequences(df, to_list = True)
-        generate_output_files(df, hit_seqs, kma_out, kma = True, kma_alignfile = kma_out + ".fsa")
+        generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
 
     # if input file is not a metagenome
     else:
@@ -555,7 +549,7 @@ if args.workflow == "annotation" and args.input is not None:
             rel_df = relevant_info_df(final_df)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
             hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
         else:
             for file in file_generator(hmmsearch_results_path):
@@ -564,7 +558,7 @@ if args.workflow == "annotation" and args.input is not None:
             rel_df = relevant_info_df(dataframe)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
             hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
 elif args.workflow == "database_construction":
     if args.hmm_db_name is None:
@@ -1137,7 +1131,7 @@ elif args.workflow == "both":
                     
         df = kma_parser(kma_out + ".res")
         hit_seqs = get_hit_sequences(df, to_list = True)
-        generate_output_files(df, hit_seqs, kma_out, kma = True, kma_alignfile = kma_out + ".fsa")
+        generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
 
     # if input file is not a metagenome
     else:
@@ -1187,7 +1181,7 @@ elif args.workflow == "both":
             rel_df = relevant_info_df(final_df)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
             hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
         else:
             for file in file_generator(hmmsearch_results_path):
@@ -1196,7 +1190,7 @@ elif args.workflow == "both":
             rel_df = relevant_info_df(dataframe)
             quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
             hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, bs_thresh, eval_thresh)
+            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
 elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
     raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")

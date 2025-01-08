@@ -36,3 +36,14 @@ def dir_remover(parent_path_list: list, run_specific_dirname: str) -> None:
         run_specific_dirname (str): hmm_database_name argument, basically all files from a run are all assigned inside this dir
     """
     shutil.rmtree(f'{parent_path_list}/{run_specific_dirname}/')
+
+
+def check_results_directory(output: str) -> str:
+    """Automatically creats the path where output should appear. Checks if folder already exists or not in the 
+    execution path
+    Args:
+        output (str): Name for the output folder
+    Returns:
+        str: Path for the output folder
+    """
+    Path(output).mkdir(exist_ok=True, parents=True)
