@@ -36,3 +36,5 @@ logs/**
 # results #
 ############
 /results/
+/output*/
+/test_*/
