@@ -1,7 +1,7 @@
 import yaml
 import json
 
-def process_arguments(args: dict, sequences: list, output_dir: str) -> dict:
+def get_arguments(args: dict, sequences: list, output_dir: str) -> dict:
     """Converts the arguments given by the CLI to a dictionary"""
     arguments = {"seqids": sequences,
                 "database": args.database,
@@ -40,7 +40,7 @@ def check_input_arguments(args: dict, verbose: bool, kma_res: bool) -> bool:
         if verbose:
             print("No input file detected. Proceding to model construction")
         return False
-            
+    
     elif args.input_type == "metagenome" and kma_res == False:
         return False
     

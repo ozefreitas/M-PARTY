@@ -27,11 +27,13 @@ import snakemake
 import itertools
 import threading
 
-from args import get_parser
-from hmmsearch_run import run_hmmsearch
-from hmm_process import *
-from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
+from args import get_parser, process_arguments
+from workflow.scripts.hmmsearch_run import run_hmmsearch
+from workflow.scripts.hmm_process import *
+from workflow.scripts.hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
 from UPIMAPI_parser import *
+from seq_download import get_fasta_sequences
+from CDHIT_seq_download import fasta_retriever_from_cdhit
 from CDHIT_parser import *
 from mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id
 from BLAST_parser import *
@@ -40,21 +42,11 @@ from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
 from InterPro_retriever import get_IP_sequences
 from KEGG_retriever import get_kegg_genes
 from KMA_parser import run_KMA, kma_parser, get_hit_sequences
-from config.process_arguments import process_arguments, check_input_arguments, check_config, write_yaml_json
+from config.process_arguments import get_arguments, check_input_arguments, check_config, write_yaml_json
 import output_scripts.table_report_utils as table_report_utils
 import output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory
-
-# get CLI arguments
-parser = get_parser()
-args = parser.parse_args()
-
-# check arguments
-check_config(args=args)
-
-# initialize paths
-declare_fixed_paths(args)
 
 
 def read_config(filename: str) -> tuple:
@@ -169,7 +161,7 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         out_dir = None
     else:
         check_results_directory(out_dir)
-        arguments = process_arguments(args, seq_ids, out_dir)
+        arguments = get_arguments(args, seq_ids, out_dir)
 
     Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
     write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
@@ -393,820 +385,825 @@ def generate_output_files(dataframe: pd.DataFrame,
         write_config(args.input, args.output, to_output=True)
 
 
-if args.clean:
-    count = 0
-    for root_dir, cur_dir, files in os.walk(f'resources/Data/FASTA/{args.hmm_db_name}/'):
-        count += len(files)
-    for root_dir, cur_dir, files in os.walk(f'resources/Alignments/{args.hmm_db_name}/'):
-        count += len(files)
-    for root_dir, cur_dir, files in os.walk(f'resources/Data/HMMs/{args.hmm_db_name}/'):
-        count += len(files)
-    for i in tqdm(count, desc = f'Deleting {count} files'):
-        shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-        shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-        shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
-
-
-done = False
-def animate():
-    for c in itertools.cycle(['|', '/', '-', '\\']):
-        if done:
-            break
-        sys.stdout.write('\rParsing input sequences IDs ' + c)
-        sys.stdout.flush()
-        time.sleep(0.1)
-    time.sleep(0.5)
-    sys.stdout.write('\nDone!\n')
-
-t = threading.Thread(target=animate)
-t.start()
-
-if args.config_file is not None:
-    config, config_format = read_config(args.config_file)
-else:
-    write_config(args.input, args.output)
-    config, config_format = read_config("config/config.yaml")
-
-done = True
-time.sleep(1)
-
-if args.hmm_db_name is None:
-    raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-else:
-    hmmsearch_results_path = sys.path[0].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
-    Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
-
-st = time.time()
-
-# first only runs for if user flags --validation alone without input sequences, will validate the models inside database only
-if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
-
-    print("Starting HMM validation procedures...\n")
-    time.sleep(2)
-
-    if args.hmm_db_name is None:
-        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-    else:
-        pathing = make_paths_dic(args.hmm_db_name)
-    exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
-    to_remove = hmm_filtration(pathing, verbose = config["verbose"])
-    remove_fp_models(to_remove, pathing, config["verbose"])
-    concat_final_model(pathing)
-    time.sleep(2)
-    print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
-
-# runs if input sequences are given
-if args.workflow == "annotation" and args.input is not None:
-
-    print("Annotation workflow started...\n")
-    time.sleep(2)
-
-    # Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
-    if args.hmm_validation:
-
-        if not os.path.exists(PathManager.validated_hmm_dir):
-            print("Starting HMM validation procedures...\n")
-            time.sleep(2)
-
-            if args.hmm_db_name is None:
-                raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-            else:
-                pathing = make_paths_dic(args.hmm_db_name)
-            exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
-            to_remove = hmm_filtration(pathing, verbose = config["verbose"])
-            remove_fp_models(to_remove, pathing, config["verbose"])
-            concat_final_model(pathing)
-            if args.verbose:
-                print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
-            time.sleep(1)
-        else:
-            if args.verbose:
-                print("Validated HMM already up, proceding to annotation...\n")
-            time.sleep(1)
-            
-    # if a metagenome is given, runs KMA
-    if args.input_type == "metagenome":
-        Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
-        Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
-        if args.consensus:
-            kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', threads = args.threads)
-        else:
-            for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}'):
-                if os.path.isfile(os.path.join(f'resources/Data/FASTA/{args.hmm_db_name}', file)):
-                    kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                        args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', threads = args.threads)
-                    
-        df = kma_parser(kma_out + ".res")
-        hit_seqs = get_hit_sequences(df, to_list = True)
-        generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
-
-    # if input file is not a metagenome
-    else:
-        if args.hmm_validation:
-            for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
-                run_hmmsearch(args.input, hmm_file,
-                            hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-        else:
-        # se os modelos estiverem concatenados
-            if args.concat_hmm_models:
-                # pass
-                for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
-                    if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
-                        os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type)
-                        run_hmmsearch(args.input, hmm_file, 
-                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-                    else:
-                        run_hmmsearch(args.input, hmm_file, 
-                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-            else:
-                p = os.listdir(PathManager.hmm_database_path)
-                for thresh in p:
-                    path = os.path.join(PathManager.hmm_database_path, thresh)
-                    Path(path).mkdir(parents = True, exist_ok = True)
-                    for hmm_file in file_generator(path, full_path = True):
-                        run_hmmsearch(args.input, hmm_file, 
-                            path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-                    concat_hmmsearch_results(path, hmmsearch_results_path)
-
-        if args.expansion:
-            lista_dataframes = dict.fromkeys(config["thresholds"])
-            for file in file_generator(hmmsearch_results_path):
-                thresh = file.split("_")[-1].split(".")[0]
-                lista_dataframes[thresh] = read_hmmsearch_table(hmmsearch_results_path + file)
-
-            final_df = concat_df_byrow(df_dict = lista_dataframes)
-            rel_df = relevant_info_df(final_df)
-            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
-
-        else:
-            for file in file_generator(hmmsearch_results_path):
-                if args.input.split("/")[-1].split(".")[0] in file:
-                    dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
-            rel_df = relevant_info_df(dataframe)
-            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
-
-elif args.workflow == "database_construction":
-    if args.hmm_db_name is None:
-        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-    else:
-        print("HMM database construction workflow from user input started...\n")
-    time.sleep(2)
-    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
-        if args.overwrite:
-            if args.verbose:
-                print(f"Deleting previously created files from {args.hmm_db_name}\n")
-            try:
-                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-            except Exception as exc:
-                print(exc)
-                # pass
-        else:
-            ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
-                    f'[TIP] if yes, use --overwrite flag next time [y/n] ')
-            if ask in ["Y", "y", "yes", "YES"]:
+def main_pipeline(args):
+    ### Clean database ###
+    if args.clean:
+        paths = ["Data/FASTA/", "Alignments/", "Data/HMMs/"]
+        for path in paths:
+            path = f'resources/{path}{args.hmm_db_name}/'
+            if Path(path).exists():
+                shutil.rmtree(path)
                 if args.verbose:
-                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
-                try:
-                    # shutil.rmtree(f'resources/Data/FASTA/{args.hmm_db_name}/')
-                    # shutil.rmtree(f'resources/Alignments/{args.hmm_db_name}/')
-                    # shutil.rmtree(f'resources/Data/HMMs/{args.hmm_db_name}/')
-                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-                except Exception as exc:
-                    print(exc)
-                    # pass
+                    print(f'Deleted path {path}')
+        return
 
-    if args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
-        raise TypeError("Missing input sequences to build HMM database!")
-    time.sleep(2)
+    done = False
+    def animate():
+        for c in itertools.cycle(['|', '/', '-', '\\']):
+            if done:
+                break
+            sys.stdout.write('\rParsing input sequences IDs ' + c)
+            sys.stdout.flush()
+            time.sleep(0.1)
+        time.sleep(0.5)
+        sys.stdout.write('\nDone!\n')
 
-    if args.expansion:
-        Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
-        Path(f'resources/Data/Tables/{args.hmm_db_name}').mkdir(parents = True, exist_ok = True)
-        query_DB = build_upi_query_db("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
+    t = threading.Thread(target=animate)
+    t.start()
 
-        if config["alignment_method"] == "diamond":
-            ### FASTA to DMND
-            diamond_file = build_diamond_DB(query_DB, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
-            Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
-            aligned_TSV = run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
-            handle = DIAMOND_parser(aligned_TSV)
-            dic_enzymes = DIAMOND_iter_per_sim(handle)
-            if config["verbose"]:
-                print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-            save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/DIAMOND_results_per_sim.tsv')
-
-        elif config["alignment_method"] == "upimapi":
-            # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
-            aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
-            handle = UPIMAPI_parser(aligned_TSV)
-            dic_enzymes = UPIMAPI_iter_per_sim(handle)
-            if config["verbose"]:
-                print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
-            save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/UPIMAPI_results_per_sim.tsv')
-
-        elif config["alignment_method"] == "blast":
-            # blastdb_file = build_blast_DB(query_DB, "resources/Data/FASTA/DataBases/BLAST", args.input_type_db_const, verbose = config["verbose"])
-            Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
-            # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
-            aligned_TSV = f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv'
-            handle = BLAST_parser(aligned_TSV)
-            dic_enzymes = BLAST_iter_per_sim(handle)
-            if config["verbose"]:
-                print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
-            Path(f'resources/Data/Tables/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/BLAST_results_per_sim.tsv')
-
-        else:
-            raise ValueError("--align_method flag only ranges from 'diamond', 'upimapi' or 'blast'. Chose one from the list.")
-
-        from seq_download import get_fasta_sequences
-
-        Path(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
-        Path(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
-        for thresh in config["thresholds"]:
-            if config["verbose"]:
-                print(f'Retrieving sequences from {thresh} range\n')
-            try:
-                get_fasta_sequences(f'resources/Data/Tables/{args.hmm_db_name}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta')
-            except Exception as exc:
-                print(exc)
-                raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
-            ### run CDHIT
-            if config["verbose"]:
-                print(f'CDHIT run for {thresh} range\n')
-                Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
-            try:
-                run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta', 8)
-                handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta.clstr')
-                handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-                save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv')
-
-                from CDHIT_seq_download import fasta_retriever_from_cdhit
-                if config["verbose"]:
-                    print("Retrieving sequences divided by clusters from CDHIT\n")
-                fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
-                                            f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
-            except Exception as exc:
-                print(exc)
-                if config["verbose"]:
-                    print(f'[WARNING] Minimum cutoff of {thresh} of similarity not detected.\n')
-                time.sleep(2)
-                continue
-
-        ### add cluster per threshol to config
-        os.remove("config/config.yaml")
-
-        if config_format == "yaml":
-            files = get_tsv_files(config)
-            threshandclust = threshold2clusters(files)
-            print(threshandclust)
-            for thresh, cluster in threshandclust.items():
-                for c in range(len(cluster)):
-                    cluster[c] = str(cluster[c])
-                config[thresh] = cluster
-            newthresh = []
-            for thresh in config["thresholds"]:
-                if thresh not in threshandclust.keys():
-                    continue
-                else:
-                    newthresh.append(thresh)
-            config["thresholds"] = newthresh
-
-        with open("config/config.yaml", "w") as dump_file:
-            yaml.dump(config, dump_file)
-            dump_file.close()
-
-        snakemake.main(
-            f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
-            f'{" --unlock" if args.unlock else ""}')
-
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        for file in files:
-            if file.endswith(".dnd"):
-                delete_inter_files(file)
-
-        print("HMM database created!")
-        time.sleep(2)
-
+    if args.config_file is not None:
+        config, config_format = read_config(args.config_file)
     else:
-        if args.kegg:
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            # if given ID is Kegg Orthology
-            if args.kegg[0].startswith("K"):
-                if args.input_type_db_const == "nucleic":
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
-                else:
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+        write_config(args.input, args.output)
+        config, config_format = read_config("config/config.yaml")
 
-            # If given ID is an E.C. number
-            else:
-                if args.input_type_db_const == "nucleic":
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
-                else:
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
+    done = True
+    time.sleep(1)
 
-            # Only build HMMs if input is protein or nucleic
-            if args.input_type != "metagenome":
-                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
-                Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-                Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+    if args.hmm_db_name is None:
+        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+    else:
+        hmmsearch_results_path = sys.path[0].replace("\\", "/") + "/results/" + args.hmm_db_name + "/HMMsearch_results/"
+        Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
 
-                run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
+    st = time.time()
 
-                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
-                input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
-                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
+    # first only runs for if user flags --validation alone without input sequences, will validate the models inside database only
+    if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
 
-                for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
-                    try:
-                        if args.input_type_db_const == "nucleic":
-                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
-                        elif args.input_type_db_const == "protein":
-                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
-                    except Exception as exc:
-                        print(exc)
-                        if args.verbose:
-                            print(f'[WARNING] T-COFFEE for file {file} not working')
-                        continue
-
-                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
-                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
-                        f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-                    if args.consensus:
-                        run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-                                f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
-                        concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
-
-                concat_code_hmm(args.hmm_db_name, "KEGG_model")
-
-                # concat_hmm(os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/'), 
-                #            os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/concat_model'))
-
-        # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
-        if args.interpro:
-            # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
-            if args.input_type == "metagenome":
-                raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
-
-            # if given ID is a InterProt ID
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            if args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
-                raise ValueError("Give only 1 InterPro ID (IPR******)")
-            elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
-                filename = args.interpro[0]
-                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', interpro_ID = args.interpro, reviewed = args.curated, verbose = args.verbose)
-
-            # if given ID is a list of proteins from InterProt
-            elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
-                raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
-            elif args.interpro[0].startswith("A"):
-                filename = args.interpro[0]
-                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
-
-            # Start HMM construction
-            Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/').mkdir(parents = True, exist_ok = True)
-            Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-
-            run_CDHIT(InP_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc = 0.8)
-
-            seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
-            input_IDs = parse_fasta(InP_seqs, ip = True, verbose = args.verbose)
-            get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', InP_seqs, input_IDs, "InP")
-
-            for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
-                try:
-                    if args.input_type_db_const == "nucleic":
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
-                    elif args.input_type_db_const == "protein":
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln')
-                except Exception as exc:
-                    print(exc)
-                    if args.verbose:
-                        print(f'[WARNING] T-COFFEE for file {file} not working')
-
-            for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/'):
-                run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{msa}',
-                            f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-
-            concat_code_hmm(args.hmm_db_name, "InterPro_model")
-
-        # if a FASTA file with interest proteins/nucleiotides is given
-        if args.input_seqs_db_const:
-            # Will not build HMMs if input is a metagenome
-            if args.input_type == "metagenome":
-                Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
-
-            else:
-                # Start HMM construction
-                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/').mkdir(parents = True, exist_ok = True)
-                Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-                Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
-
-                if args.input_type_db_const == "nucleic":
-                    run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads, type_seq =  "nucleic")
-                    input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
-                else:
-                    run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads)
-                    input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
-
-                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta.clstr')
-                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', args.input_seqs_db_const, input_IDs, args.input_seqs_db_const.split("/")[-1].split(".")[0])
-
-                for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
-                    try:
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
-                    except Exception as exc:
-                        print(exc)
-                        if args.verbose:
-                            print(f'[WARNING] T-COFFEE for file {file} not working')
-
-                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
-                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
-                                f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-                    if args.consensus:
-                        run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-                                f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
-                        concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
-
-                concat_code_hmm(args.hmm_db_name, args.input_seqs_db_const.split("/")[-1].split(".")[0])
-
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        for file in files:
-            if file.endswith(".dnd"):
-                delete_inter_files(file)
-
-    if args.hmm_validation:
-        print("Starting HMM validation procedures...")
+        print("Starting HMM validation procedures...\n")
         time.sleep(2)
+
         if args.hmm_db_name is None:
             raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
         else:
             pathing = make_paths_dic(args.hmm_db_name)
         exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
-        to_remove = hmm_filtration(pathing)
-        remove_fp_models(to_remove, pathing)
+        to_remove = hmm_filtration(pathing, verbose = config["verbose"])
+        remove_fp_models(to_remove, pathing, config["verbose"])
         concat_final_model(pathing)
         time.sleep(2)
         print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
 
+    # runs if input sequences are given
+    if args.workflow == "annotation" and args.input is not None:
 
-elif args.workflow == "both":
-    if args.hmm_db_name is None:
-        raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-    else:
-        print("HMM database construction workflow from user input started...\n")
-    time.sleep(2)
-    if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
-        if args.overwrite:
-            if args.verbose:
-                print(f"Deleting previously created files from {args.hmm_db_name}\n")
-            dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-        else:
-            ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
-                    f'[TIP] if yes, use --overwrite flag next time [y/n] ')
-            if ask in ["Y", "y", "yes", "YES"]:
-                if args.verbose:
-                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
-                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
-
-    if args.expansion:
-        ### UPIMAPI run DIAMOND
-        Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
-        query_DB = build_upi_query_db("resources/Data/FASTA/DataBases", config = config)
-        aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_results/DIAMOND_results.out', args.input_seqs_db_const, args.threads)
-        handle = UPIMAPI_parser(aligned_TSV)
-        dic_enzymes = UPIMAPI_iter_per_sim(handle)
-        save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
-
-        from seq_download import get_fasta_sequences
-
-        Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
-        for thresh in config["thresholds"]:
-            get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
-
-            ### run CDHIT
-            run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
-            handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
-            handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
-            save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
-
-            from CDHIT_seq_download import fasta_retriever_from_cdhit
-            fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
-                                        f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
-
-        ### add cluster per threshol to config
-        os.remove("config/config.yaml")
-
-        if config_format == "yaml":
-            files = get_tsv_files(config)
-            threshandclust = threshold2clusters(files)
-            for thresh, cluster in threshandclust.items():
-                for c in range(len(cluster)):
-                    cluster[c] = str(cluster[c])
-                config[thresh] = cluster
-
-        with open("config/config.yaml", "w") as dump_file:
-            yaml.dump(config, dump_file)
-            dump_file.close()
-
-        snakemake.main(
-            f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
-            f'{" --unlock" if args.unlock else ""}')
-
-        print("HMM database created!\n")
-
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        for file in files:
-            if file.endswith(".dnd"):
-                delete_inter_files(file)
-                
+        print("Annotation workflow started...\n")
         time.sleep(2)
 
-    else:
-        if args.kegg:
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            # if given ID is Kegg Orthology
-            if args.kegg[0].startswith("K"):
-                if args.input_type_db_const == "nucleic":
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
-                else:
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+        # Path(hmmsearch_results_path).mkdir(parents = True, exist_ok = True)
+        if args.hmm_validation:
 
-            # If given ID is an E.C. number
+            if not os.path.exists(PathManager.validated_hmm_dir):
+                print("Starting HMM validation procedures...\n")
+                time.sleep(2)
+
+                if args.hmm_db_name is None:
+                    raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+                else:
+                    pathing = make_paths_dic(args.hmm_db_name)
+                exec_testing(thresholds = config["thresholds"], path_dictionary = pathing ,database = args.negative_db)
+                to_remove = hmm_filtration(pathing, verbose = config["verbose"])
+                remove_fp_models(to_remove, pathing, config["verbose"])
+                concat_final_model(pathing)
+                if args.verbose:
+                    print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
+                time.sleep(1)
             else:
-                if args.input_type_db_const == "nucleic":
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
-                else:
-                    KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
+                if args.verbose:
+                    print("Validated HMM already up, proceding to annotation...\n")
+                time.sleep(1)
+                
+        # if a metagenome is given, runs KMA
+        if args.input_type == "metagenome":
+            Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
+            if args.consensus:
+                kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                    args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', threads = args.threads)
+            else:
+                for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}'):
+                    if os.path.isfile(os.path.join(f'resources/Data/FASTA/{args.hmm_db_name}', file)):
+                        kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                            args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', threads = args.threads)
+                        
+            df = kma_parser(kma_out + ".res")
+            hit_seqs = get_hit_sequences(df, to_list = True)
+            generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
 
-            # Only build HMMs if input is protein or nucleic
-            if args.input_type != "metagenome":
-                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
+        # if input file is not a metagenome
+        else:
+            if args.hmm_validation:
+                for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
+                    run_hmmsearch(args.input, hmm_file,
+                                hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+            else:
+            # se os modelos estiverem concatenados
+                if args.concat_hmm_models:
+                    # pass
+                    for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
+                        if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
+                            os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type)
+                            run_hmmsearch(args.input, hmm_file, 
+                                hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                        else:
+                            run_hmmsearch(args.input, hmm_file, 
+                                hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                else:
+                    p = os.listdir(PathManager.hmm_database_path)
+                    for thresh in p:
+                        path = os.path.join(PathManager.hmm_database_path, thresh)
+                        Path(path).mkdir(parents = True, exist_ok = True)
+                        for hmm_file in file_generator(path, full_path = True):
+                            run_hmmsearch(args.input, hmm_file, 
+                                path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                        concat_hmmsearch_results(path, hmmsearch_results_path)
+
+            if args.expansion:
+                lista_dataframes = dict.fromkeys(config["thresholds"])
+                for file in file_generator(hmmsearch_results_path):
+                    thresh = file.split("_")[-1].split(".")[0]
+                    lista_dataframes[thresh] = read_hmmsearch_table(hmmsearch_results_path + file)
+
+                final_df = concat_df_byrow(df_dict = lista_dataframes)
+                rel_df = relevant_info_df(final_df)
+                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+
+            else:
+                for file in file_generator(hmmsearch_results_path):
+                    if args.input.split("/")[-1].split(".")[0] in file:
+                        dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
+                rel_df = relevant_info_df(dataframe)
+                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+
+    elif args.workflow == "database_construction":
+        if args.hmm_db_name is None:
+            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        else:
+            print("HMM database construction workflow from user input started...\n")
+        time.sleep(2)
+        if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
+            if args.overwrite:
+                if args.verbose:
+                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
+                try:
+                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
+                except Exception as exc:
+                    print(exc)
+                    # pass
+            else:
+                ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
+                        f'[TIP] if yes, use --overwrite flag next time [y/n] ')
+                if ask in ["Y", "y", "yes", "YES"]:
+                    if args.verbose:
+                        print(f"Deleting previously created files from {args.hmm_db_name}\n")
+                    try:
+                        dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
+                    except Exception as exc:
+                        print(exc)
+                        # pass
+
+        if args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
+            raise TypeError("Missing input sequences to build HMM database!")
+        time.sleep(2)
+
+        if args.expansion:
+            Path("resources/Data/FASTA/DataBases").mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/Tables/{args.hmm_db_name}').mkdir(parents = True, exist_ok = True)
+            query_db = build_upi_query_db("resources/Data/FASTA/DataBases", config = config, verbose = config["verbose"])
+
+            if config["alignment_method"] == "diamond":
+                ### FASTA to DMND
+                diamond_file = build_diamond_DB(query_db, "resources/Data/FASTA/", verbose = config["verbose"])  # ver a cena do overwrite para estes passos
+                Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_output/').mkdir(parents = True, exist_ok = True)
+                aligned_tsv = run_DIAMOND(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/diamond_output/out.tsv', diamond_file, args.threads)
+                handle = DIAMOND_parser(aligned_tsv)
+                dic_enzymes = DIAMOND_iter_per_sim(handle)
+                if config["verbose"]:
+                    print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
+                save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/DIAMOND_results_per_sim.tsv')
+
+            elif config["alignment_method"] == "upimapi":
+                # aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results', args.input_seqs_db_const, args.threads)
+                aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/{config["alignment_method"].upper()}/upimapi_results/UPIMAPI_results.tsv'
+                handle = UPIMAPI_parser(aligned_tsv)
+                dic_enzymes = UPIMAPI_iter_per_sim(handle)
+                if config["verbose"]:
+                    print(f'Saving IDs for the minimum cutoff values of {config["thresholds"]} percentages of similarity.\n')
+                save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/UPIMAPI_results_per_sim.tsv')
+
+            elif config["alignment_method"] == "blast":
+                # blastdb_file = build_blast_DB(query_DB, "resources/Data/FASTA/DataBases/BLAST", args.input_type_db_const, verbose = config["verbose"])
+                Path(f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results').mkdir(parents = True, exist_ok = True)
+                # run_BLAST(args.input_seqs_db_const, f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv', blastdb_file, 8)
+                aligned_tsv = f'resources/Alignments/{args.hmm_db_name}/BLAST/BLAST_results/test.tsv'
+                handle = BLAST_parser(aligned_tsv)
+                dic_enzymes = BLAST_iter_per_sim(handle)
+                if config["verbose"]:
+                    print(f'Saving IDs from the ranges of {config["thresholds"]} percentages of similarity.\n')
+                Path(f'resources/Data/Tables/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                save_as_tsv(dic_enzymes, f'resources/Data/Tables/{args.hmm_db_name}/BLAST_results_per_sim.tsv')
+
+            else:
+                raise ValueError("--align_method flag only ranges from 'diamond', 'upimapi' or 'blast'. Chose one from the list.")
+
+            Path(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/').mkdir(parents = True, exist_ok = True)
+            for thresh in config["thresholds"]:
+                if config["verbose"]:
+                    print(f'Retrieving sequences from {thresh} range\n')
+                try:
+                    get_fasta_sequences(f'resources/Data/Tables/{args.hmm_db_name}/{config["alignment_method"].upper()}_results_per_sim.tsv', f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta')
+                except Exception as exc:
+                    print(exc)
+                    raise FileNotFoundError(f'resources/Data/Tables/{config["alignment_method"].upper()} not found.')
+                ### run CDHIT
+                if config["verbose"]:
+                    print(f'CDHIT run for {thresh} range\n')
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}/').mkdir(parents = True, exist_ok = True)
+                try:
+                    run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/{config["alignment_method"].upper()}/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta', 8)
+                    handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/cd-hit_after_{config["alignment_method"]}_{thresh}.fasta.clstr')
+                    handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+                    save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv')
+
+                    if config["verbose"]:
+                        print("Retrieving sequences divided by clusters from CDHIT\n")
+                    fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_after{config["alignment_method"]}.tsv', 
+                                                f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+                except Exception as exc:
+                    print(exc)
+                    if config["verbose"]:
+                        print(f'[WARNING] Minimum cutoff of {thresh} of similarity not detected.\n')
+                    time.sleep(2)
+                    continue
+
+            ### add cluster per threshol to config
+            os.remove("config/config.yaml")
+
+            if config_format == "yaml":
+                files = get_tsv_files(config)
+                threshandclust = threshold2clusters(files)
+                print(threshandclust)
+                for thresh, cluster in threshandclust.items():
+                    for c in range(len(cluster)):
+                        cluster[c] = str(cluster[c])
+                    config[thresh] = cluster
+                newthresh = []
+                for thresh in config["thresholds"]:
+                    if thresh not in threshandclust.keys():
+                        continue
+                    else:
+                        newthresh.append(thresh)
+                config["thresholds"] = newthresh
+
+            with open("config/config.yaml", "w") as dump_file:
+                yaml.dump(config, dump_file)
+                dump_file.close()
+
+            snakemake.main(
+                f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile config/{args.config_file}'
+                f'{" --unlock" if args.unlock else ""}')
+
+            files = [f for f in os.listdir('.') if os.path.isfile(f)]
+            for file in files:
+                if file.endswith(".dnd"):
+                    delete_inter_files(file)
+
+            print("HMM database created!")
+            time.sleep(2)
+
+        else:
+            if args.kegg:
+                Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                # if given ID is Kegg Orthology
+                if args.kegg[0].startswith("K"):
+                    if args.input_type_db_const == "nucleic":
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
+                    else:
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+
+                # If given ID is an E.C. number
+                else:
+                    if args.input_type_db_const == "nucleic":
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
+                    else:
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
+
+                # Only build HMMs if input is protein or nucleic
+                if args.input_type != "metagenome":
+                    Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+
+                    run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
+
+                    seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
+                    input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
+                    get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
+
+                    for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+                        try:
+                            if args.input_type_db_const == "nucleic":
+                                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                            elif args.input_type_db_const == "protein":
+                                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
+                        except Exception as exc:
+                            print(exc)
+                            if args.verbose:
+                                print(f'[WARNING] T-COFFEE for file {file} not working')
+                            continue
+
+                    for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
+                        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
+                            f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                        if args.consensus:
+                            run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
+                                    f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
+                            concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
+
+                    concat_code_hmm(args.hmm_db_name, "KEGG_model")
+
+                    # concat_hmm(os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/'), 
+                    #            os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/concat_model'))
+
+            # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+            if args.interpro:
+                # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+                if args.input_type == "metagenome":
+                    raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
+
+                # if given ID is a InterProt ID
+                Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                if args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
+                    raise ValueError("Give only 1 InterPro ID (IPR******)")
+                elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
+                    filename = args.interpro[0]
+                    InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', interpro_ID = args.interpro, reviewed = args.curated, verbose = args.verbose)
+
+                # if given ID is a list of proteins from InterProt
+                elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
+                    raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
+                elif args.interpro[0].startswith("A"):
+                    filename = args.interpro[0]
+                    InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
+
+                # Start HMM construction
+                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
 
-                run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
+                run_CDHIT(InP_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc = 0.8)
 
-                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
-                input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
-                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
+                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
+                input_IDs = parse_fasta(InP_seqs, ip = True, verbose = args.verbose)
+                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', InP_seqs, input_IDs, "InP")
 
                 for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
                     try:
                         if args.input_type_db_const == "nucleic":
                             run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
                         elif args.input_type_db_const == "protein":
                             run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln')
                     except Exception as exc:
                         print(exc)
                         if args.verbose:
                             print(f'[WARNING] T-COFFEE for file {file} not working')
-                        continue
 
-                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
-                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
-                        f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-                    if args.consensus:
-                        run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-                                f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
-                        concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
+                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/'):
+                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{msa}',
+                                f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
 
-                concat_code_hmm(args.hmm_db_name, "KEGG_model")
+                concat_code_hmm(args.hmm_db_name, "InterPro_model")
 
-                # concat_hmm(os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/'), 
-                #            os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/concat_model'))
+            # if a FASTA file with interest proteins/nucleiotides is given
+            if args.input_seqs_db_const:
+                # Will not build HMMs if input is a metagenome
+                if args.input_type == "metagenome":
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+                    shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
 
-        # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
-        if args.interpro:
-            # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
-            if args.input_type == "metagenome":
-                raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
+                else:
+                    # Start HMM construction
+                    Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+                    shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
 
-            # if given ID is a InterProt ID
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            if args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
-                raise ValueError("Give only 1 InterPro ID (IPR******)")
-            elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
-                filename = args.interpro[0]
-                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', interpro_ID = args.interpro, reviewed = args.curated, verbose = args.verbose)
-
-            # if given ID is a list of proteins from InterProt
-            elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
-                raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
-            elif args.interpro[0].startswith("A"):
-                filename = args.interpro[0]
-                InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
-
-            # Start HMM construction
-            Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/').mkdir(parents = True, exist_ok = True)
-            Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
-            Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-
-            run_CDHIT(InP_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc = 0.8)
-
-            seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
-            input_IDs = parse_fasta(InP_seqs, ip = True, verbose = args.verbose)
-            get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', InP_seqs, input_IDs, "InP")
-
-            for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
-                try:
                     if args.input_type_db_const == "nucleic":
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
-                    elif args.input_type_db_const == "protein":
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln')
-                except Exception as exc:
-                    print(exc)
-                    if args.verbose:
-                        print(f'[WARNING] T-COFFEE for file {file} not working')
+                        run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads, type_seq =  "nucleic")
+                        input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
+                    else:
+                        run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads)
+                        input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
 
-            for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/'):
-                run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{msa}',
-                            f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                    seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta.clstr')
+                    get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', args.input_seqs_db_const, input_IDs, args.input_seqs_db_const.split("/")[-1].split(".")[0])
 
-            concat_code_hmm(args.hmm_db_name, "InterPro_model")
+                    for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+                        try:
+                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
+                        except Exception as exc:
+                            print(exc)
+                            if args.verbose:
+                                print(f'[WARNING] T-COFFEE for file {file} not working')
 
-        # if a FASTA file with interest proteins/nucleiotides is given
-        if args.input_seqs_db_const:
-            # Will not build HMMs if input is a metagenome
-            if args.input_type == "metagenome":
-                Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
+                    for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
+                        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
+                                    f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                        if args.consensus:
+                            run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
+                                    f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
+                            concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
 
+                    concat_code_hmm(args.hmm_db_name, args.input_seqs_db_const.split("/")[-1].split(".")[0])
+
+            files = [f for f in os.listdir('.') if os.path.isfile(f)]
+            for file in files:
+                if file.endswith(".dnd"):
+                    delete_inter_files(file)
+
+        if args.hmm_validation:
+            print("Starting HMM validation procedures...")
+            time.sleep(2)
+            if args.hmm_db_name is None:
+                raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
             else:
+                pathing = make_paths_dic(args.hmm_db_name)
+            exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+            to_remove = hmm_filtration(pathing)
+            remove_fp_models(to_remove, pathing)
+            concat_final_model(pathing)
+            time.sleep(2)
+            print("M-PARTY has concluded model validation! Will now switch to the newlly created models (in the validated_HMM folder\n")
+
+
+    elif args.workflow == "both":
+        if args.hmm_db_name is None:
+            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
+        else:
+            print("HMM database construction workflow from user input started...\n")
+        time.sleep(2)
+        if os.path.exists(os.path.join(sys.path[0], f'resources/Data/FASTA/{args.hmm_db_name}/')):
+            if args.overwrite:
+                if args.verbose:
+                    print(f"Deleting previously created files from {args.hmm_db_name}\n")
+                dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
+            else:
+                ask = input(f'{args.hmm_db_name} database already present. Wish to delete previous files?\n'
+                        f'[TIP] if yes, use --overwrite flag next time [y/n] ')
+                if ask in ["Y", "y", "yes", "YES"]:
+                    if args.verbose:
+                        print(f"Deleting previously created files from {args.hmm_db_name}\n")
+                    dir_remover(['resources/Data/FASTA', 'resources/Alignments', 'resources/Data/HMMs'], args.hmm_db_name)
+
+        if args.expansion:
+            ### UPIMAPI run DIAMOND
+            Path("resources/Data/FASTA/DataBases/").mkdir(parents = True, exist_ok = True)
+            query_DB = build_upi_query_db("resources/Data/FASTA/DataBases", config = config)
+            aligned_TSV = run_UPIMAPI(query_DB, f'resources/Alignments/{args.hmm_db_name}/BLAST/diamond_results/DIAMOND_results.out', args.input_seqs_db_const, args.threads)
+            handle = UPIMAPI_parser(aligned_TSV)
+            dic_enzymes = UPIMAPI_iter_per_sim(handle)
+            save_as_tsv(dic_enzymes, "resources/Data/Tables/diamond_results_per_sim.tsv")
+
+            Path(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/').mkdir(parents = True, exist_ok = True)
+            for thresh in config["thresholds"]:
+                get_fasta_sequences("resources/Data/Tables/UPIMAPI_results_per_sim.tsv", f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta')
+
+                ### run CDHIT
+                run_CDHIT(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/{thresh}.fasta', f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta')
+                handle = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/UPIMAPI/cd-hit90_after_diamond_{thresh}.fasta.clstr')
+                handle2 = counter(handle, tsv_ready = True, remove_duplicates = True)
+                save_as_tsv(handle2, f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv')
+
+                fasta_retriever_from_cdhit(f'resources/Data/Tables/{args.hmm_db_name}/CDHIT_clusters/cdhit_clusters_{thresh}_afterUPIMAPI.tsv', 
+                                            f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{thresh}')
+
+            ### add cluster per threshol to config
+            os.remove("config/config.yaml")
+
+            if config_format == "yaml":
+                files = get_tsv_files(config)
+                threshandclust = threshold2clusters(files)
+                for thresh, cluster in threshandclust.items():
+                    for c in range(len(cluster)):
+                        cluster[c] = str(cluster[c])
+                    config[thresh] = cluster
+
+            with open("config/config.yaml", "w") as dump_file:
+                yaml.dump(config, dump_file)
+                dump_file.close()
+
+            snakemake.main(
+                f'-s {args.snakefile} --printshellcmds --cores {config["threads"]} --configfile {args.config_file}'
+                f'{" --unlock" if args.unlock else ""}')
+
+            print("HMM database created!\n")
+
+            files = [f for f in os.listdir('.') if os.path.isfile(f)]
+            for file in files:
+                if file.endswith(".dnd"):
+                    delete_inter_files(file)
+                    
+            time.sleep(2)
+
+        else:
+            if args.kegg:
+                Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                # if given ID is Kegg Orthology
+                if args.kegg[0].startswith("K"):
+                    if args.input_type_db_const == "nucleic":
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
+                    else:
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+
+                # If given ID is an E.C. number
+                else:
+                    if args.input_type_db_const == "nucleic":
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
+                    else:
+                        KEGG_seqs = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
+
+                # Only build HMMs if input is protein or nucleic
+                if args.input_type != "metagenome":
+                    Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+
+                    run_CDHIT(KEGG_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads)
+
+                    seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{KEGG_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
+                    input_IDs = parse_fasta(KEGG_seqs, kegg = True, verbose = args.verbose)
+                    get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', KEGG_seqs, input_IDs, "KEGG")
+
+                    for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+                        try:
+                            if args.input_type_db_const == "nucleic":
+                                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                            elif args.input_type_db_const == "protein":
+                                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{file.split(".")[0]}.clustal_aln')
+                        except Exception as exc:
+                            print(exc)
+                            if args.verbose:
+                                print(f'[WARNING] T-COFFEE for file {file} not working')
+                            continue
+
+                    for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/'):
+                        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_KEGG/{msa}',
+                            f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                        if args.consensus:
+                            run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
+                                    f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
+                            concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
+
+                    concat_code_hmm(args.hmm_db_name, "KEGG_model")
+
+                    # concat_hmm(os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/'), 
+                    #            os.path.join(sys.path[1], f'resources/Data/HMMs/{args.hmm_db_name}/concat_model'))
+
+            # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+            if args.interpro:
+                # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+                if args.input_type == "metagenome":
+                    raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
+
+                # if given ID is a InterProt ID
+                Path(f'resources/Data/FASTA/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                if args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
+                    raise ValueError("Give only 1 InterPro ID (IPR******)")
+                elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
+                    filename = args.interpro[0]
+                    InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', interpro_ID = args.interpro, reviewed = args.curated, verbose = args.verbose)
+
+                # if given ID is a list of proteins from InterProt
+                elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
+                    raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
+                elif args.interpro[0].startswith("A"):
+                    filename = args.interpro[0]
+                    InP_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
+
                 # Start HMM construction
-                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/').mkdir(parents = True, exist_ok = True)
+                Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
                 Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
 
-                if args.input_type_db_const == "nucleic":
-                    run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads, type_seq =  "nucleic")
-                    input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
-                else:
-                    run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads)
-                    input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
+                run_CDHIT(InP_seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc = 0.8)
 
-                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta.clstr')
-                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', args.input_seqs_db_const, input_IDs, args.input_seqs_db_const.split("/")[-1].split(".")[0])
+                seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{InP_seqs.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
+                input_IDs = parse_fasta(InP_seqs, ip = True, verbose = args.verbose)
+                get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', InP_seqs, input_IDs, "InP")
 
                 for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
                     try:
-                        run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
-                    except Exception as exc: 
+                        if args.input_type_db_const == "nucleic":
+                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                        elif args.input_type_db_const == "protein":
+                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                    f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{file.split(".")[0]}.clustal_aln')
+                    except Exception as exc:
                         print(exc)
                         if args.verbose:
                             print(f'[WARNING] T-COFFEE for file {file} not working')
 
-                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
-                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
+                for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/'):
+                    run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee_InP/{msa}',
                                 f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
-                    if args.consensus:
-                        run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-                                f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
-                        concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
 
-                concat_code_hmm(args.hmm_db_name, args.input_seqs_db_const.split("/")[-1].split(".")[0])
+                concat_code_hmm(args.hmm_db_name, "InterPro_model")
 
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        for file in files:
-            if file.endswith(".dnd"):
-                delete_inter_files(file)
+            # if a FASTA file with interest proteins/nucleiotides is given
+            if args.input_seqs_db_const:
+                # Will not build HMMs if input is a metagenome
+                if args.input_type == "metagenome":
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+                    shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
 
-    if args.hmm_validation:
-        print("Starting HMM validation procedures...\n")
-        time.sleep(2)
-        if args.hmm_db_name is None:
-            raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
-        else:
-            pathing = make_paths_dic(args.hmm_db_name)
-        exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
-        to_remove = hmm_filtration(pathing)
-        remove_fp_models(to_remove, pathing)
-        concat_final_model(pathing)
-        time.sleep(2)
-        print("M-PARTY has concluded model validation! Will now switch to the newlly created models\n")
+                else:
+                    # Start HMM construction
+                    Path(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/HMMs/{args.hmm_db_name}/').mkdir(parents = True, exist_ok = True)
+                    Path(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/').mkdir(parents = True, exist_ok = True)
+                    shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
 
-    print("Annotation workflow started...\n")
-    time.sleep(2)
-
-    if args.input_type == "metagenome":
-        Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
-        Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
-        if args.consensus:
-            kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', threads = args.threads)
-        else:
-            for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}'):
-                if os.path.isfile(os.path.join(f'resources/Data/FASTA/{args.hmm_db_name}', file)):
-                    kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                        args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', threads = args.threads)
-                    
-        df = kma_parser(kma_out + ".res")
-        hit_seqs = get_hit_sequences(df, to_list = True)
-        generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
-
-    # if input file is not a metagenome
-    else:
-        if args.hmm_validation:
-            for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
-                run_hmmsearch(args.input, hmm_file,
-                            hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-        else:
-        # se os modelos estiverem concatenados
-            if args.concat_hmm_models:
-                # pass
-                for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
-                    if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
-                        os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type)
-                        run_hmmsearch(args.input, hmm_file, 
-                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
+                    if args.input_type_db_const == "nucleic":
+                        run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads, type_seq =  "nucleic")
+                        input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
                     else:
-                        run_hmmsearch(args.input, hmm_file, 
-                            hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
+                        run_CDHIT(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta', args.threads)
+                        input_IDs = parse_fasta(args.input_seqs_db_const, verbose = args.verbose)
+
+                    seqs = cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}.fasta.clstr')
+                    get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', args.input_seqs_db_const, input_IDs, args.input_seqs_db_const.split("/")[-1].split(".")[0])
+
+                    for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+                        try:
+                            run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
+                                        f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
+                        except Exception as exc: 
+                            print(exc)
+                            if args.verbose:
+                                print(f'[WARNING] T-COFFEE for file {file} not working')
+
+                    for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
+                        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
+                                    f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+                        if args.consensus:
+                            run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
+                                    f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
+                            concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
+
+                    concat_code_hmm(args.hmm_db_name, args.input_seqs_db_const.split("/")[-1].split(".")[0])
+
+            files = [f for f in os.listdir('.') if os.path.isfile(f)]
+            for file in files:
+                if file.endswith(".dnd"):
+                    delete_inter_files(file)
+
+        if args.hmm_validation:
+            print("Starting HMM validation procedures...\n")
+            time.sleep(2)
+            if args.hmm_db_name is None:
+                raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
             else:
-                p = os.listdir(PathManager.hmm_database_path)
-                for thresh in p:
-                    path = os.path.join(PathManager.hmm_database_path, thresh)
-                    Path(path).mkdir(parents = True, exist_ok = True)
-                    for hmm_file in file_generator(path, full_path = True):
-                        run_hmmsearch(args.input, hmm_file, 
-                            path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
-                            "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
-                            out_type = args.hmms_output_type)
-                    concat_hmmsearch_results(path, hmmsearch_results_path)
+                pathing = make_paths_dic(args.hmm_db_name)
+            exec_testing(thresholds = config["thresholds"], path_dictionary = pathing, database = args.negative_db)
+            to_remove = hmm_filtration(pathing)
+            remove_fp_models(to_remove, pathing)
+            concat_final_model(pathing)
+            time.sleep(2)
+            print("M-PARTY has concluded model validation! Will now switch to the newlly created models\n")
 
-        if args.expansion:
-            lista_dataframes = dict.fromkeys(config["thresholds"])
-            for file in file_generator(hmmsearch_results_path):
-                thresh = file.split("_")[-1].split(".")[0]
-                lista_dataframes[thresh] = read_hmmsearch_table(hmmsearch_results_path + file)
+        print("Annotation workflow started...\n")
+        time.sleep(2)
 
-            final_df = concat_df_byrow(df_dict = lista_dataframes)
-            rel_df = relevant_info_df(final_df)
-            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+        if args.input_type == "metagenome":
+            Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
+            Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
+            if args.consensus:
+                kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                    args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', threads = args.threads)
+            else:
+                for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}'):
+                    if os.path.isfile(os.path.join(f'resources/Data/FASTA/{args.hmm_db_name}', file)):
+                        kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                            args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', threads = args.threads)
+                        
+            df = kma_parser(kma_out + ".res")
+            hit_seqs = get_hit_sequences(df, to_list = True)
+            generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
 
+        # if input file is not a metagenome
         else:
-            for file in file_generator(hmmsearch_results_path):
-                if args.input.split("/")[-1].split(".")[0] in file:
-                    dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
-            rel_df = relevant_info_df(dataframe)
-            quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
-            hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
-            generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+            if args.hmm_validation:
+                for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
+                    run_hmmsearch(args.input, hmm_file,
+                                hmmsearch_results_path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+            else:
+            # se os modelos estiverem concatenados
+                if args.concat_hmm_models:
+                    # pass
+                    for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
+                        if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
+                            os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type)
+                            run_hmmsearch(args.input, hmm_file, 
+                                hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                        else:
+                            run_hmmsearch(args.input, hmm_file, 
+                                hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                else:
+                    p = os.listdir(PathManager.hmm_database_path)
+                    for thresh in p:
+                        path = os.path.join(PathManager.hmm_database_path, thresh)
+                        Path(path).mkdir(parents = True, exist_ok = True)
+                        for hmm_file in file_generator(path, full_path = True):
+                            run_hmmsearch(args.input, hmm_file, 
+                                path + "search_" + config["input_file"].split("/")[-1].split(".")[0] +
+                                "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type, verbose = args.verbose, eval = 0.00001,
+                                out_type = args.hmms_output_type)
+                        concat_hmmsearch_results(path, hmmsearch_results_path)
 
-elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
-    raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
+            if args.expansion:
+                lista_dataframes = dict.fromkeys(config["thresholds"])
+                for file in file_generator(hmmsearch_results_path):
+                    thresh = file.split("_")[-1].split(".")[0]
+                    lista_dataframes[thresh] = read_hmmsearch_table(hmmsearch_results_path + file)
+
+                final_df = concat_df_byrow(df_dict = lista_dataframes)
+                rel_df = relevant_info_df(final_df)
+                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+
+            else:
+                for file in file_generator(hmmsearch_results_path):
+                    if args.input.split("/")[-1].split(".")[0] in file:
+                        dataframe = read_hmmsearch_table(hmmsearch_results_path + file)
+                rel_df = relevant_info_df(dataframe)
+                quality_df, bs_thresh, eval_thresh = quality_check(rel_df, give_params = True)
+                hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
+                generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
+
+    elif args.workflow != "annotation" and args.workflow != "database_construction" and args.workflow != "both":
+        raise ValueError("-w worflow flag only ranges from 'annotation', 'database_construction' or 'both'. Chose one from the list.")
 
 
-et = time.time()
-elapsed_time = et - st
-elapsed_time = elapsed_time * 1000
-minutes_time = (elapsed_time * 1000) / 60
-print(f'Execution time: {elapsed_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
-if args.workflow == "database_construction":
-    if args.consensus:
-        print("Consensus sequences generated!")
+    et = time.time()
+    elapsed_time = et - st
+    elapsed_time = elapsed_time * 1000
+    minutes_time = (elapsed_time * 1000) / 60
+    print(f'Execution time: {elapsed_time:.4f} milliseconds and {minutes_time:.2f} minutes!')
+    if args.workflow == "database_construction":
+        if args.consensus:
+            print("Consensus sequences generated!")
+        else:
+            print("HMMs generated!")
+            print("Next step should be annotation with the just created HMM database.\nIf you need further guidance, refer to M-PARTY documentation in GitHub")
     else:
-        print("HMMs generated!")
-        print("Next step should be annotation with the just created HMM database.\n If you need further guidance, refer to M-PARTY documentation in GitHub")
-else:
-    print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')
-print("Thank you for using M-PARTY! ")
+        print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')
+    print("Thank you for using M-PARTY! ")
+
+
+if __name__ == "__main__":
+    # get CLI arguments
+    parser = get_parser()
+    args = parser.parse_args()
+    process_arguments(args)
+
+    # check arguments
+    check_config(args=args)
+
+    # initialize paths
+    declare_fixed_paths(args)
+
+    # start pipeline
+    main_pipeline(args)

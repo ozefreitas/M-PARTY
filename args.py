@@ -63,3 +63,7 @@ def get_parser():
     parser.add_argument("-v", "--version", action = "version", version = "M-PARTY {}".format(version))
 
     return parser
+
+def process_arguments(args):
+    if args.clean and args.hmm_db_name is None:
+        raise ValueError("You need to provide the name of the folder to be deleted")
