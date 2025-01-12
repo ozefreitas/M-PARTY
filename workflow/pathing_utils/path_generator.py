@@ -35,7 +35,11 @@ def dir_remover(parent_path_list: list, run_specific_dirname: str) -> None:
         parent_path_list (list): list of parent pathds
         run_specific_dirname (str): hmm_database_name argument, basically all files from a run are all assigned inside this dir
     """
-    shutil.rmtree(f'{parent_path_list}/{run_specific_dirname}/')
+    for path in parent_path_list:
+        path_to_remove = Path(path)
+        path_to_remove = path_to_remove / run_specific_dirname
+        if path_to_remove.exists() and path_to_remove.is_dir():
+            shutil.rmtree(path_to_remove)
 
 
 def check_results_directory(output: str) -> str:

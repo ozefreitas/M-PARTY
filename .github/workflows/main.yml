@@ -6,7 +6,8 @@ on:
       - main
       - refactor
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
@@ -61,7 +62,7 @@ jobs:
         run: docker run mparty bin/bash -c "cd "
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/positive_control.fasta --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
+        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/positive_control.fasta --kegg K21104 -w both --hmm_db_name KEGG_test_both -o Testing_KEGG_positive --output_type excel"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate same outputs
         run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
