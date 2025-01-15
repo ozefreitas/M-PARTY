@@ -150,6 +150,7 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         config_filename (str): Name to be given to the new config file
     """
     if args.workflow == "database_construction" and args.input == None:
+        print("OLA")
         seq_ids = []
     if args.input != None:
         file_stats = os.stat(input_file)
@@ -660,18 +661,20 @@ def main_pipeline(args):
         return
 
     done = False
-    def animate():
-        for c in itertools.cycle(['|', '/', '-', '\\']):
-            if done:
-                break
-            sys.stdout.write('\rParsing input sequences IDs ' + c)
-            sys.stdout.flush()
-            time.sleep(0.1)
-        time.sleep(0.5)
-        sys.stdout.write('\nDone!\n')
 
-    t = threading.Thread(target=animate)
-    t.start()
+    if args.verbose:
+        def animate():
+            for c in itertools.cycle(['|', '/', '-', '\\']):
+                if done:
+                    break
+                sys.stdout.write('\rParsing input sequences IDs ' + c)
+                sys.stdout.flush()
+                time.sleep(0.1)
+            time.sleep(0.5)
+            sys.stdout.write('\nDone!\n')
+
+        t = threading.Thread(target=animate)
+        t.start()
 
     if args.config_file is not None:
         config, config_format = read_config(args.config_file)
@@ -895,6 +898,8 @@ if __name__ == "__main__":
     # get CLI arguments
     parser = get_parser()
     args = parser.parse_args()
+    print(args)
+
     process_arguments(args)
 
     # check arguments
