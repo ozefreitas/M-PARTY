@@ -659,6 +659,8 @@ def main_pipeline(args):
                     print(f'Deleted path {path}')
         return
 
+    print("###################\n OLAAAAAAAAAAAA \n##################")
+
     done = False
     def animate():
         for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -687,11 +689,13 @@ def main_pipeline(args):
 
     st = time.time()
 
+    ### VALIDATION ###
     # first only runs for if user flags --validation alone without input sequences, will validate the models inside database only
     if args.hmm_validation and args.workflow != "database_construction" and args.workflow != "both" and args.input == None:
 
         validate_hmm(config=config)
 
+    ### ANNOTATION ###
     # runs if input sequences are given
     if args.workflow == "annotation" and args.input is not None:
 
@@ -782,9 +786,11 @@ def main_pipeline(args):
                 hited_seqs = get_match_ids(quality_df, to_list = True, only_relevant = True)
                 generate_output_files(quality_df, hited_seqs, args.input, config, bs_thresh, eval_thresh)
 
+    ### DATABASE CONSTRUCTION ###
     elif args.workflow == "database_construction":
         database_construction(config=config)
 
+    ### DATABASE CONSTRUCTION + ANNOTATION ###
     elif args.workflow == "both":
 
         database_construction(config=config)
@@ -819,7 +825,6 @@ def main_pipeline(args):
             else:
             # se os modelos estiverem concatenados
                 if args.concat_hmm_models:
-                    print("OLAAAAAAAAAAA")
                     # pass
                     for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
                         if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
