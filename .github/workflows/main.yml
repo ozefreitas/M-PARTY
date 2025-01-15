@@ -54,9 +54,6 @@ jobs:
 
       - name: Check base entrypoint
         run: docker run mparty bin/bash -c "ls"
-
-      - name: Print main script contents
-        run: docker run mparty bin/bash -c "cat m-party.py"
       
       - name: Check m-party version
         run: docker run mparty bin/bash -c "m-party --version"
