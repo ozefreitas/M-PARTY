@@ -56,7 +56,7 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
       
       - name: Check m-party version
-        run: docker run mparty bin/bash -c "m-party --version"
+        run: docker run mparty bin/bash -c "m-party.py --version"
 
   annotation:
     runs-on: ubuntu-latest
