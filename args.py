@@ -2,7 +2,7 @@ import argparse
 import os
 
 def get_parser():
-    version = "1.0.0"
+    version = "1.0.1"
 
     parser = argparse.ArgumentParser(description="M-PARTY's main script")
     parser.add_argument("-i", "--input", help = "input FASTA file containing\
