@@ -560,6 +560,7 @@ def expand_base_sequences(config):
     ### add cluster per threshol to config
     os.remove("config/config.yaml")
 
+    # 
     if config_format == "yaml":
         files = get_tsv_files(config)
         threshandclust = threshold2clusters(files)
@@ -680,7 +681,7 @@ def main_pipeline(args):
         config, config_format = read_config(args.config_file)
     else:
         write_config(args.input, args.output)
-        config, config_format = read_config("config/config.yaml")
+        config, config_format = read_config(f"{PathManager.config_path}/config.yaml")
     print("##############\nOOOOOOLLLLLLLAAAAAAAAAAAA\n###################")
     done = True
     time.sleep(1)
