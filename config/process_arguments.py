@@ -57,10 +57,14 @@ def check_config(args: dict):
         raise TypeError("Missing hmm database name! Make sure --hmm_db_name option is filled")
     elif args.workflow == "database_construction" and args.input_seqs_db_const is None and args.kegg is None and args.interpro is None:
         raise TypeError("Missing input sequences to build HMM database")
-    elif args.interpro is not None and args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
-        raise ValueError("Give only 1 InterPro ID (IPR******)")
-    elif args.interpro is not None and not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
-        raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
+    if args.interpro is not None:
+        # for interpro is only possible to run for aminoacids and so for HMM and not KMA and raw metagenomes
+        if args.input_type == "metagenome":
+            raise ValueError("Metagenomic samples cannot be annalyzed with proteins as database")
+        elif args.interpro[0].startswith("IPR") and len(args.interpro) > 1:
+            raise ValueError("Give only 1 InterPro ID (IPR******)")
+        elif not args.interpro[0].startswith("IPR") and not args.interpro[0].startswith("A"):
+            raise ValueError("Must input and IPR ID or protein ID from InterPro starting with 'A'")
     
 def write_yaml_json(config_type: str, out_dir: str, args_dict: dict, to_output: bool):
     if to_output:
