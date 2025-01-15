@@ -27,7 +27,7 @@ import snakemake
 import itertools
 import threading
 
-from cli_args import get_parser, process_arguments
+from .cli_args import get_parser, process_arguments
 from hmmsearch_run import run_hmmsearch
 from hmm_process import *
 from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
