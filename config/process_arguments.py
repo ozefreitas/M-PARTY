@@ -1,5 +1,6 @@
 import yaml
 import json
+from workflow.pathing_utils.fixed_paths import PathManager
 
 def get_arguments(args: dict, sequences: list, output_dir: str) -> dict:
     """Converts the arguments given by the CLI to a dictionary"""
@@ -70,7 +71,7 @@ def write_yaml_json(config_type: str, out_dir: str, args_dict: dict, to_output: 
     if to_output:
         config_filename = "parameters"
     else:
-        out_dir = "config"
+        out_dir = PathManager.config_path
         config_filename = "config"
     if config_type == "yaml":
         with open(f'{out_dir}/{config_filename}.yaml', "w") as file:

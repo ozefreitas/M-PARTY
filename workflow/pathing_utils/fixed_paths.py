@@ -11,7 +11,7 @@ class PathManager:
 
 def declare_fixed_paths(args: dict):
     PathManager.snakefile_path = PathManager.system_path + "/workflow/Snakefile"
-    PathManager.config_path = PathManager.system_path + "/config/"
+    PathManager.config_path = PathManager.system_path + "/config"
     PathManager.hmm_database_path = f'{PathManager.system_path}/resources/Data/HMMs/{args.hmm_db_name}/'
     PathManager.tcoffee_path = f'{PathManager.system_path}/resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'
     PathManager.clusters_path = f'{PathManager.system_path}/resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'

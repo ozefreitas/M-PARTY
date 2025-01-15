@@ -56,7 +56,7 @@ jobs:
           docker image ls -a
 
       - name: Check base entrypoint
-        run: docker run mparty bin/bash -c "ls"
+        run: docker run mparty bin/bash -c "ls /opt/conda/bin"
 
       - name: Print main script contents
         run: docker run mparty bin/bash -c "cat /opt/conda/bin/m-party.py"
