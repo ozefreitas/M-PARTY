@@ -150,7 +150,6 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         config_filename (str): Name to be given to the new config file
     """
     if args.workflow == "database_construction" and args.input == None:
-        print("OLA")
         seq_ids = []
     if args.input != None:
         file_stats = os.stat(input_file)
@@ -164,8 +163,11 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         check_results_directory(out_dir)
         arguments = get_arguments(args, seq_ids, out_dir)
 
-    Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
-    write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
+    try:
+        Path(PathManager.config_path).mkdir(parents = True, exist_ok = True)
+        write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
+    except Exception as exc:
+        raise Exception(exc)
 
 
 def file_generator(path: str, full_path: bool = False):
@@ -430,9 +432,14 @@ def database_construction(config):
             # if given ID is Kegg Orthology
             if args.kegg[0].startswith("K"):
                 if args.input_type_db_const == "nucleic":
-                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ko = args.kegg, verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / args.kegg[0] /".fasta", 
+                                                    type_seq = "nuc",
+                                                    ko = args.kegg, 
+                                                    verbose = args.verbose)
                 else:
-                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ko = args.kegg, verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', 
+                                                    ko = args.kegg, 
+                                                    verbose = args.verbose)
 
             # If given ID is an E.C. number
             else:
@@ -607,11 +614,11 @@ def build_hmms_from_seqs(sequences: list,
     input_ids = parse_fasta(sequences, kegg = True, verbose = args.verbose)
     CDHIT_parser.get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', sequences, input_ids, from_database)
 
-    for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/'):
+    for file in os.listdir(PathManager.clusters_path):
         try:
             if args.input_type_db_const == "nucleic":
-                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln', type_seq = "DNA")
+                run_tcoffee(PathManager.clusters_path / file, 
+                            PathManager.tcoffee_path / file.split(".")[0] / ".clustal_aln", type_seq = "DNA")
             elif args.input_type_db_const == "protein":
                 run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
                             f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
@@ -682,7 +689,7 @@ def main_pipeline(args):
     else:
         write_config(args.input, args.output)
         config, config_format = read_config(f"{PathManager.config_path}/config.yaml")
-    print("##############\nOOOOOOLLLLLLLAAAAAAAAAAAA\n###################")
+
     done = True
     time.sleep(1)
 
