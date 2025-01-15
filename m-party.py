@@ -659,8 +659,6 @@ def main_pipeline(args):
                     print(f'Deleted path {path}')
         return
 
-    print("###################\n OLAAAAAAAAAAAA \n##################")
-
     done = False
     def animate():
         for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -680,7 +678,7 @@ def main_pipeline(args):
     else:
         write_config(args.input, args.output)
         config, config_format = read_config("config/config.yaml")
-
+    print("##############\nOOOOOOLLLLLLLAAAAAAAAAAAA\n###################")
     done = True
     time.sleep(1)
 
