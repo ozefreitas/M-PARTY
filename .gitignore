@@ -38,3 +38,4 @@ logs/**
 /results/
 /output*/
 /test_*/
+*.dnd

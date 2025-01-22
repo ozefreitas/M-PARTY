@@ -427,26 +427,31 @@ def database_construction(config):
 
     else:
         # make necessary directories
-        dir_generator_from_list([PathManager.tcoffee_path, PathManager.clusters_path, PathManager.hmm_database_path])
+        dir_generator_from_list([PathManager.tcoffee_path, PathManager.cdhit_path / "clusters", PathManager.hmm_database_path])
         if args.kegg:
             # if given ID is Kegg Orthology
             if args.kegg[0].startswith("K"):
                 if args.input_type_db_const == "nucleic":
-                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / args.kegg[0] /".fasta", 
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
                                                     type_seq = "nuc",
                                                     ko = args.kegg, 
                                                     verbose = args.verbose)
                 else:
-                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', 
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
                                                     ko = args.kegg, 
                                                     verbose = args.verbose)
 
             # If given ID is an E.C. number
             else:
                 if args.input_type_db_const == "nucleic":
-                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', type_seq = "nuc", ec_number = args.kegg, verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
+                                                    type_seq = "nuc", 
+                                                    ec_number = args.kegg, 
+                                                    verbose = args.verbose)
                 else:
-                    kegg_sequences = get_kegg_genes(f'resources/Data/FASTA/{args.hmm_db_name}/{args.kegg[0]}.fasta', ec_number = args.kegg, verbose = args.verbose)
+                    kegg_sequences = get_kegg_genes(PathManager.fasta_type_dir / Path(args.kegg[0]).with_suffix(".fasta"), 
+                                                    ec_number = args.kegg, 
+                                                    verbose = args.verbose)
 
             # Only build HMMs if input is protein or nucleic
             if args.input_type != "metagenome":
@@ -460,12 +465,17 @@ def database_construction(config):
             # if given ID is a InterProt ID
             elif args.interpro[0].startswith("IPR") and len(args.interpro) == 1:
                 filename = args.interpro[0]
-                inp_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', interpro_ID = args.interpro, reviewed = args.curated, verbose = args.verbose)
+                inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(filename).with_suffix(".fasta"), 
+                                            interpro_ID = args.interpro, 
+                                            reviewed = args.curated, 
+                                            verbose = args.verbose)
 
             # if given ID is a list of proteins from InterProt
             elif args.interpro[0].startswith("A"):
                 filename = args.interpro[0]
-                inp_seqs = get_IP_sequences(f'resources/Data/FASTA/{args.hmm_db_name}/{filename}.fasta', protein = args.interpro, verbose = args.verbose)
+                inp_seqs = get_IP_sequences(PathManager.fasta_type_dir / Path(filename).with_suffix(".fasta"), 
+                                            protein = args.interpro, 
+                                            verbose = args.verbose)
 
             # Start HMM construction
             build_hmms_from_seqs(inp_seqs, "InP", ident_perc=0.8)
@@ -474,7 +484,7 @@ def database_construction(config):
         if args.input_seqs_db_const:
             # Will not build HMMs if input is a metagenome
             if args.input_type == "metagenome":
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/')
+                shutil.copyfile(args.input_seqs_db_const, PathManager.fasta_type_dir)
 
             else:
                 # Start HMM construction
@@ -605,36 +615,45 @@ def build_hmms_from_seqs(sequences: list,
                     type_seq: str = "AA", 
                     from_database: str = "KEGG", 
                     ident_perc: float = 0.7):
+    """Sequence that condenses the code responsible for building the hmm from the sequences received from the user.
 
-    CDHIT_parser.run_CDHIT(sequences, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{sequences.split("/")[-1].split(".")[0]}.fasta', args.threads, identperc=ident_perc, type_seq=type_seq)
+    Args:
+        sequences (list): a list of sequences. Required
+        type_seq (str, optional): the type of the given list of sequences. Defaults to "AA"
+        from_database (str, optional): The database the sequences come from. Defaults to "KEGG"
+        ident_perc (float, optional): The identity threshold to be used for CDHIT clustering. Defaults to 0.7
+    """
+    # filename = sequences.split("/")[-1].split(".")[0]
+    filename = sequences.stem
+    CDHIT_parser.run_CDHIT(sequences, PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), args.threads, identperc=ident_perc, type_seq=type_seq)
     if from_database == "KEGG":
-        seqs = CDHIT_parser.cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{sequences.split("/")[-1].split(".")[0]}.fasta.clstr', kegg = True)
+        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), kegg = True)
     elif from_database == "InP":
-        seqs = CDHIT_parser.cdhit_parser(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/{sequences.split("/")[-1].split(".")[0]}.fasta.clstr', ip = True)
+        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), ip = True)
     input_ids = parse_fasta(sequences, kegg = True, verbose = args.verbose)
-    CDHIT_parser.get_clustered_sequences(seqs, f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/', sequences, input_ids, from_database)
+    CDHIT_parser.get_clustered_sequences(seqs, PathManager.cdhit_path / "clusters", sequences, input_ids, from_database)
 
-    for file in os.listdir(PathManager.clusters_path):
+    for file in os.listdir(PathManager.cdhit_path / "clusters"):
         try:
             if args.input_type_db_const == "nucleic":
-                run_tcoffee(PathManager.clusters_path / file, 
-                            PathManager.tcoffee_path / file.split(".")[0] / ".clustal_aln", type_seq = "DNA")
+                run_tcoffee(PathManager.cdhit_path / "clusters" / file, 
+                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"), 
+                            type_seq = "DNA")
             elif args.input_type_db_const == "protein":
-                run_tcoffee(f'resources/Data/FASTA/{args.hmm_db_name}/CDHIT/clusters/{file}', 
-                            f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{file.split(".")[0]}.clustal_aln')
+                run_tcoffee(PathManager.cdhit_path / "clusters" / file,
+                            PathManager.tcoffee_path / Path(file.split(".")[0]).with_suffix(".clustal_aln"))
         except Exception as exc:
             print(exc)
             if args.verbose:
                 print(f'[WARNING] T-COFFEE for file {file} not working')
             continue
 
-    for msa in os.listdir(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/'):
-        run_hmmbuild(f'resources/Alignments/{args.hmm_db_name}/MultipleSequencesAlign/T_Coffee/{msa}',
-            f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm')
+    for msa in os.listdir(PathManager.tcoffee_path):
+        run_hmmbuild(PathManager.tcoffee_path / msa, PathManager.hmm_database_path / Path(msa.split(".")[0]).with_suffix(".hmm"))
         if args.consensus:
-            run_hmmemit(f'resources/Data/HMMs/{args.hmm_db_name}/{msa.split(".")[0]}.hmm', 
-                    f'resources/Data/Consensus/{args.hmm_db_name}/{msa.split(".")[0]}.fasta')
-            concat_fasta(f'resources/Data/Consensus/{args.hmm_db_name}/', f'resources/Data/Consensus/{args.hmm_db_name}/consensus')
+            run_hmmemit(PathManager.hmm_database_path /Path(msa.split(".")[0]).with_suffix(".hmm"), 
+                    PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta"))
+            concat_fasta(PathManager.consensus_path, PathManager.consensus_path / "consensus")
 
     concat_code_hmm(args.hmm_db_name, from_database + "_model")
 
