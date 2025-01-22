@@ -623,8 +623,11 @@ def build_hmms_from_seqs(sequences: list,
         from_database (str, optional): The database the sequences come from. Defaults to "KEGG"
         ident_perc (float, optional): The identity threshold to be used for CDHIT clustering. Defaults to 0.7
     """
-    # filename = sequences.split("/")[-1].split(".")[0]
-    filename = sequences.stem
+    if from_database == "KEGG" or from_database == "InP":
+        filename = sequences.stem
+    else:
+        filename = sequences.split("/")[-1].split(".")[0]
+    
     CDHIT_parser.run_CDHIT(sequences, PathManager.cdhit_path / Path(filename).with_suffix(".fasta"), args.threads, identperc=ident_perc, type_seq=type_seq)
     if from_database == "KEGG":
         seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), kegg = True)
