@@ -488,7 +488,7 @@ def database_construction(config):
 
             else:
                 # Start HMM construction
-                shutil.copyfile(args.input_seqs_db_const, f'resources/Data/FASTA/{args.hmm_db_name}/{args.input_seqs_db_const.split("/")[-1].split(".")[0]}')
+                shutil.copyfile(args.input_seqs_db_const, PathManager.fasta_type_dir / args.input_seqs_db_const.split("/")[-1].split(".")[0])
                 build_hmms_from_seqs(sequences=args.input_seqs_db_const,
                                 type_seq=args.input_type_db_const, 
                                 from_database=args.input_seqs_db_const.split("/")[-1].split(".")[0])
