@@ -46,7 +46,7 @@ from config.process_arguments import get_arguments, check_input_arguments, check
 import output_scripts.table_report_utils as table_report_utils
 import output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
-from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory
+from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory, file_generator
 
 
 def read_config(filename: str) -> tuple:
@@ -168,22 +168,6 @@ def write_config(input_file: str, out_dir: str, to_output: bool  = False):
         write_yaml_json(config_type="yaml", out_dir=out_dir, args_dict=arguments, to_output=to_output)
     except Exception as exc:
         raise Exception(exc)
-
-
-def file_generator(path: str, full_path: bool = False):
-    """Function that yield the name of all and only files inside a directory in the given path, for iteration purposes
-    Args:
-        path (str): Path for the folder to be analyzed
-
-    Yields:
-        str: Yield the name of each file inside the given directory
-    """
-    for file in os.listdir(path):
-        if os.path.isfile(os.path.join(path, file)):
-            if full_path:
-                yield os.path.join(path, file)
-            else:
-                yield file
 
 
 def table_report(dataframe: pd.DataFrame, path: str, type_format: str, db_name: str):
@@ -415,7 +399,7 @@ def database_construction(config):
                     if args.verbose:
                         print(f"Deleted previously created files from {args.hmm_db_name}\n")
                 except Exception as exc:
-                    raise(exc)
+                    raise FileNotFoundError(exc)
             else:
                 print("Database for that name is already present. If you wish to create a new database,\neither overwrite the existant or give a different HMM database name.")
                 quit("M-PARTY has finished its execution")
@@ -633,6 +617,8 @@ def build_hmms_from_seqs(sequences: list,
         seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), kegg = True)
     elif from_database == "InP":
         seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"), ip = True)
+    else:
+        seqs = CDHIT_parser.cdhit_parser(PathManager.cdhit_path / Path(filename).with_suffix(".fasta.clstr"))
     input_ids = parse_fasta(sequences, kegg = True, verbose = args.verbose)
     CDHIT_parser.get_clustered_sequences(seqs, PathManager.cdhit_path / "clusters", sequences, input_ids, from_database)
 
@@ -928,7 +914,6 @@ if __name__ == "__main__":
     # get CLI arguments
     parser = get_parser()
     args = parser.parse_args()
-    print(args)
 
     process_arguments(args)
 

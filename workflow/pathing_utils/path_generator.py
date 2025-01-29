@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+import os
 
 def generate_path(parent_path: str, run_specific_dirname: str, target_path: str, output_type: str, create_dir: bool = False) -> str:
     """_summary_
@@ -51,3 +52,18 @@ def check_results_directory(output: str) -> str:
         str: Path for the output folder
     """
     Path(output).mkdir(exist_ok=True, parents=True)
+
+def file_generator(path: str, full_path: bool = False):
+    """Function that yield the name of all and only files inside a directory in the given path, for iteration purposes
+    Args:
+        path (str): Path for the folder to be analyzed
+
+    Yields:
+        str: Yield the name of each file inside the given directory
+    """
+    for file in os.listdir(path):
+        if os.path.isfile(os.path.join(path, file)):
+            if full_path:
+                yield os.path.join(path, file)
+            else:
+                yield file

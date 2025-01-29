@@ -205,9 +205,6 @@ jobs:
       - name: Print M-PARTY's main script
         run: docker run mparty bin/bash -c "m-party.py -h"
 
-      - name: Database construction workflow with small FASTA protein file
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name protein_file_inputest --input_seqs_db_const M-PARTY/ci/KEGG_nuc_test.fasta --input_type_db_const nucleic -t 8 --verbose"
-      
       - name: Database construction workflowfor with KEGG KO
         run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_KO --kegg K21104 --verbose"
       
@@ -219,7 +216,10 @@ jobs:
 
       - name: Database construction workflowfor with InterPro individual protein IDs
         run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_Prots --interpro A0A000 A0A001 A0A002 --verbose"
-
+      
+      - name: Database construction workflow with small FASTA protein file
+        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name protein_file_inputest --input_seqs_db_const M-PARTY/ci/KEGG_nuc_test.fasta --input_type_db_const nucleic -t 8 --verbose"
+      
   clean:
     runs-on: ubuntu-latest
     needs: build
