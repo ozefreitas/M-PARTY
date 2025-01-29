@@ -20,7 +20,7 @@ def declare_fixed_paths(args: dict):
     PathManager.snakefile_path = PathManager.system_path / "workflow" / "Snakefile"
     PathManager.config_path = PathManager.system_path / "config"
     PathManager.fasta_type_dir = PathManager.system_path / "resources" / "Data" / "FASTA" / args.hmm_db_name
-    PathManager.hmm_database_path = PathManager.system_path / "resources" / "Data" / "HMMs"/ args.hmm_db_name
+    PathManager.hmm_database_path = PathManager.system_path / "resources" / "Data" / "HMMs" / args.hmm_db_name
     PathManager.hmmsearch_results_path = PathManager.system_path / 'results' / args.hmm_db_name / "HMMsearch_results"
     PathManager.tcoffee_path = PathManager.system_path / "resources" / "Alignments" / args.hmm_db_name / "MultipleSequencesAlign" /"T_Coffee"
     PathManager.cdhit_path = PathManager.system_path / "resources" / "Data" / "FASTA" / args.hmm_db_name / "CDHIT"

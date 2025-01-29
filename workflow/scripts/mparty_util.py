@@ -14,6 +14,7 @@ import fileinput
 from tqdm import tqdm
 from requests.exceptions import HTTPError
 from bs4 import BeautifulSoup
+from workflow.pathing_utils.fixed_paths import PathManager
 
 
 def get_clusters(tsv_file: str) -> list:
@@ -274,11 +275,11 @@ def concat_code_hmm(db_name: str, model_name: str):
 		db_name (str): name given by the user to his database.
 		model_name (str): name to give to the concatenated model.
 	"""
-	Path(f'resources/Data/HMMs/{db_name}/concat_model/').mkdir(parents = True, exist_ok = True)
-	with open(f'resources/Data/HMMs/{db_name}/concat_model/{model_name}.hmm', "w") as wf:
-		for hmm in os.listdir(f'resources/Data/HMMs/{db_name}/'):
-			if os.path.isfile(os.path.join(f'resources/Data/HMMs/{db_name}/', hmm)):
-				with open(os.path.join(f'resources/Data/HMMs/{db_name}/', hmm), "r") as rf:
+	Path(PathManager.hmm_database_path / "concat_model").mkdir(parents = True, exist_ok = True)
+	with open(PathManager.hmm_database_path / "concat_model" / Path(model_name).with_suffix(".hmm"), "w") as wf:
+		for hmm in os.listdir(PathManager.hmm_database_path):
+			if os.path.isfile(os.path.join(PathManager.hmm_database_path, hmm)):
+				with open(os.path.join(PathManager.hmm_database_path, hmm), "r") as rf:
 					lines = rf.readlines()
 					wf.writelines(lines)
 				rf.close()

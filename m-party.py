@@ -666,6 +666,7 @@ def build_hmms_from_seqs(sequences: list,
                     PathManager.consensus_path / Path(msa.split(".")[0]).with_suffix(".fasta"))
             concat_fasta(PathManager.consensus_path, PathManager.consensus_path / "consensus")
 
+    # concat hmm models to a single file
     concat_code_hmm(args.hmm_db_name, from_database + "_model")
 
 
@@ -704,7 +705,7 @@ def annotation(config):
         if args.input_type == "metagenome":
             dir_generator_from_list([PathManager.tables_path / 'kma_hits', PathManager.databases_path / 'kma_db' / 'KEGG_cons'])
             if args.consensus:
-                kma_out = run_KMA(PathManager.consensus_path / Path("consensus").with_suffix("fasta"), 
+                kma_out = run_KMA(PathManager.consensus_path / Path("consensus").with_suffix(".fasta"), 
                                 PathManager.databases_path / 'kma_db',
                                 args.input, 
                                 PathManager.tables_path / 'kma_hits' / args.input.split(".")[0], 
@@ -726,7 +727,7 @@ def annotation(config):
         else:
             if args.hmm_validation:
                 for hmm_file in file_generator(PathManager.validated_hmm_dir, full_path = True):
-                    hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix(args.hmms_output_type)
+                    hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
                     run_hmmsearch(args.input, 
                                 hmm_file,
                                 PathManager.hmmsearch_results_path / hmmserach_out_file,
@@ -758,7 +759,7 @@ def annotation(config):
                     for thresh in p:
                         path = os.path.join(PathManager.hmm_database_path, thresh)
                         Path(path).mkdir(parents = True, exist_ok = True)
-                        hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix(args.hmms_output_type)
+                        hmmserach_out_file = Path(f'search_{config["input_file"].split("/")[-1].split(".")[0]}_{hmm_file.split("/")[-1].split(".")[0]}').with_suffix("." + args.hmms_output_type)
                         for hmm_file in file_generator(path, full_path = True):
                             run_hmmsearch(args.input, 
                                         hmm_file, 
