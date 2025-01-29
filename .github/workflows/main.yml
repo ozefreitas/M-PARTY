@@ -242,7 +242,13 @@ jobs:
         run: docker run mparty bin/bash -c "m-party.py -w database_construction --kegg K21104 --hmm_db_name PET_hydrolase"
       
       - name: Check error raise for clean data
-        run: docker run mparty bin/bash -c "m-party.py --clean"
+        run: |
+          if docker run mparty bin/bash -c "m-party.py --clean"; then
+            echo "Error: Command was expected to fail but it succeeded."
+            exit 1
+          else
+            echo "Success: Command failed as expected."
+          fi
 
       - name: Clean data
         run: docker run mparty bin/bash -c "m-party.py --clean --hmm_db_name PET_hydrolase"
