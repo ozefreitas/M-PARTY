@@ -752,11 +752,13 @@ def annotation(config):
                                         eval = 0.00001,
                                         out_type = args.hmms_output_type)
                         else:
-                            run_hmmsearch(args.input, hmm_file, 
-                                PathManager.hmmsearch_results_path / hmmserach_out_file, 
-                                verbose = args.verbose, 
-                                eval = 0.00001,
-                                out_type = args.hmms_output_type)
+                            PathManager.hmmsearch_results_path.mkdir(parents = True, exist_ok = True)
+                            run_hmmsearch(args.input, 
+                                        hmm_file, 
+                                        PathManager.hmmsearch_results_path / hmmserach_out_file, 
+                                        verbose = args.verbose, 
+                                        eval = 0.00001,
+                                        out_type = args.hmms_output_type)
                 else:
                     p = os.listdir(PathManager.hmm_database_path)
                     for thresh in p:

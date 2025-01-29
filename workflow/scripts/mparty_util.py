@@ -279,7 +279,6 @@ def concat_code_hmm(db_name: str, model_name: str):
 	with open(PathManager.hmm_database_path / "concat_model" / Path(model_name).with_suffix(".hmm"), "w") as wf:
 		for hmm in os.listdir(PathManager.hmm_database_path):
 			if os.path.isfile(os.path.join(PathManager.hmm_database_path, hmm)):
-				print(os.path.join(PathManager.hmm_database_path, hmm))
 				with open(os.path.join(PathManager.hmm_database_path, hmm), "r") as rf:
 					lines = rf.readlines()
 					wf.writelines(lines)
