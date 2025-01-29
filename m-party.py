@@ -410,6 +410,9 @@ def check_db_existance(config) -> bool:
                     quit("M-PARTY has finished execution.")
                 else:
                     return False
+    else:
+        return True
+
 
 
 def database_construction(config):
