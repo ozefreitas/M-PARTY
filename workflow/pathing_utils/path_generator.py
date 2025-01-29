@@ -1,6 +1,6 @@
 from pathlib import Path
 import shutil
-import os
+import os   
 
 def generate_path(parent_path: str, run_specific_dirname: str, target_path: str, output_type: str, create_dir: bool = False) -> str:
     """_summary_

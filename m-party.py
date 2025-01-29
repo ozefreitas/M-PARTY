@@ -729,16 +729,20 @@ def main_pipeline(args):
 
         # if a metagenome is given, runs KMA
         if args.input_type == "metagenome":
-            Path(f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/').mkdir(parents = True, exist_ok = True)
-            Path(f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/KEGG_cons/').mkdir(parents = True, exist_ok = True)
+            Path(PathManager.tables_path / 'kma_hits/').mkdir(parents = True, exist_ok = True)
+            Path(PathManager.databases_path / 'kma_db' / 'KEGG_cons').mkdir(parents = True, exist_ok = True)
             if args.consensus:
-                kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                    args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', threads = args.threads)
+                kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/Consensus/consensus.fasta', 
+                                f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                                args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split(".")[0]}', 
+                                threads = args.threads)
             else:
                 for file in os.listdir(f'resources/Data/FASTA/{args.hmm_db_name}'):
                     if os.path.isfile(os.path.join(f'resources/Data/FASTA/{args.hmm_db_name}', file)):
-                        kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
-                            args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', threads = args.threads)
+                        kma_out = run_KMA(f'resources/Data/FASTA/{args.hmm_db_name}/{file}', 
+                                        f'resources/Data/FASTA/DataBases/{args.hmm_db_name}/kma_db/',
+                                        args.input, f'resources/Data/Tables/{args.hmm_db_name}/kma_hits/{args.input.split("/")[-1].split(".")[0]}', 
+                                        threads = args.threads)
                         
             df = kma_parser(kma_out + ".res")
             hit_seqs = get_hit_sequences(df, to_list = True)
@@ -756,7 +760,7 @@ def main_pipeline(args):
             # if models have been concatenated
                 if args.concat_hmm_models:
                     print(PathManager.hmm_database_path)
-                    for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
+                    for hmm_file in file_generator(PathManager.hmm_database_path / "concat_model", full_path = True):
                         if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
                             os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
@@ -843,7 +847,7 @@ def main_pipeline(args):
             # se os modelos estiverem concatenados
                 if args.concat_hmm_models:
                     # pass
-                    for hmm_file in file_generator(PathManager.hmm_database_path + "concat_model/", full_path = True):
+                    for hmm_file in file_generator(PathManager.hmm_database_path / "concat_model", full_path = True):
                         if os.path.exists(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
                                 "_" + hmm_file.split("/")[-1].split(".")[0] + "." + args.hmms_output_type):
                             os.remove(hmmsearch_results_path + "search_" + args.input.split("/")[-1].split(".")[0] +
