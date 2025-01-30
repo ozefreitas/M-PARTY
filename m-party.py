@@ -28,23 +28,23 @@ import itertools
 import threading
 
 from workflow.pathing_utils.cli_args import get_parser, process_arguments
-from hmmsearch_run import run_hmmsearch
-from hmm_process import *
-from hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
-import UPIMAPI_parser
-from seq_download import get_fasta_sequences
-from CDHIT_seq_download import fasta_retriever_from_cdhit
-import CDHIT_parser
-from mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, ask_for_overwrite
-import BLAST_parser
-import DIAMOND_parser
-from command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
-from InterPro_retriever import get_IP_sequences
-from KEGG_retriever import get_kegg_genes
-from KMA_parser import run_KMA, kma_parser, get_hit_sequences
+from workflow.scripts.hmmsearch_run import run_hmmsearch
+from workflow.scripts.hmm_process import *
+from workflow.scripts.hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
+import workflow.scripts.UPIMAPI_parser
+from workflow.scripts.seq_download import get_fasta_sequences
+from workflow.scripts.CDHIT_seq_download import fasta_retriever_from_cdhit
+import workflow.scripts.CDHIT_parser
+from workflow.scripts.mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, ask_for_overwrite
+import workflow.scripts.BLAST_parser
+import workflow.scripts.DIAMOND_parser
+from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
+from workflow.scripts.InterPro_retriever import get_IP_sequences
+from workflow.scripts.KEGG_retriever import get_kegg_genes
+from workflow.scripts.KMA_parser import run_KMA, kma_parser, get_hit_sequences
 from config.process_arguments import get_arguments, check_input_arguments, check_config, write_yaml_json
-import output_scripts.table_report_utils as table_report_utils
-import output_scripts.text_report_utils as text_report_utils
+import workflow.scripts.output_scripts.table_report_utils as table_report_utils
+import workflow.scripts.output_scripts.text_report_utils as text_report_utils
 from workflow.pathing_utils.fixed_paths import PathManager, declare_fixed_paths
 from workflow.pathing_utils.path_generator import dir_generator_from_list, generate_path, dir_remover, check_results_directory, file_generator
 
@@ -875,8 +875,7 @@ def main_pipeline(args):
         print(f'M-PARTY has stoped running! Results are displayed in the {args.output} folder :)')
     print("Thank you for using M-PARTY! ")
 
-
-if __name__ == "__main__":
+def main():
     # get CLI arguments
     parser = get_parser()
     args = parser.parse_args()
@@ -891,3 +890,5 @@ if __name__ == "__main__":
 
     # start pipeline
     main_pipeline(args)
+
+main()
