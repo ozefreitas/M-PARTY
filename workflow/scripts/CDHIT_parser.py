@@ -1,6 +1,6 @@
 import re
 import pandas as pd
-from command_run import run_command
+from workflow.scripts.command_run import run_command
 
 
 def run_CDHIT(input: str, output: str, threads: int, type_seq: str = "AA", identperc: float = 0.7):

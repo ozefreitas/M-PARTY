@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from command_run import run_command
+from workflow.scripts.command_run import run_command
 import os
 
 

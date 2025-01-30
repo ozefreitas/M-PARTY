@@ -2,26 +2,24 @@ from setuptools import setup
 
 setup(
     name="m-party",
-    version="1.0.0",
-    py_modules=["m-party"],
-    install_requires=["upimapi", 
+    version="0.3.0",
+    py_modules=["m_party"],
+    install_requires=[
                     "pyyaml", 
-                    "hmmer", 
-                    "t-coffee", 
-                    "cd-hit", 
+                    "hmmer",
                     "pandas", 
                     "openpyxl", 
                     "snakemake", 
                     "clint", 
-                    "blast", 
+                    "biopython", 
                     "diamond", 
                     "muscle", 
                     "beautifulsoup4", 
                     "kma", 
-                    "tqdm"],
+                    "tqdm", ],
     entry_points={
         "console_scripts": [
-            "m-party=m-party:main",
+            "m-party=m_party:main",
         ],
     },
 )

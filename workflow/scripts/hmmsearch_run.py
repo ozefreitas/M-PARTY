@@ -1,4 +1,4 @@
-from command_run import run_command
+from workflow.scripts.command_run import run_command
 
 def run_hmmsearch(sequences_file: str, hmm_file: str, output_file: str, verbose: bool = True, eval: float = 10.0, out_type = "out"):
     """Simplified run function for hmmsearch.

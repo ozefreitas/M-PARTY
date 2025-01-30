@@ -1,4 +1,4 @@
-from command_run import run_command
+from workflow.scripts.command_run import run_command
 import pandas as pd
 
 

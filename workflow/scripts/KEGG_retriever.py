@@ -4,7 +4,7 @@ import re
 from tqdm import tqdm
 import math
 import time
-from mparty_util import get_soup, retry
+from workflow.scripts.mparty_util import get_soup, retry
 
 
 def find_between(string: str, first: str, last: str):

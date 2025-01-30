@@ -1,4 +1,4 @@
-from command_run import docker_run_tcoffee
+from workflow.scripts.command_run import docker_run_tcoffee
 import sys
 
 path = sys.path[0]

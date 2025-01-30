@@ -1,5 +1,5 @@
 import pandas as pd
-from hmm_process import *
+from workflow.scripts.hmm_process import *
 
 def write_excel(outdir: str, dataframe: pd.DataFrame, ids_per_model: dict) -> None:
     writer = pd.ExcelWriter(outdir + "report_table.xlsx", engine = "openpyxl")

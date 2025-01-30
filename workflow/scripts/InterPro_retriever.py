@@ -3,7 +3,7 @@ from requests.exceptions import HTTPError
 import re
 import time
 from tqdm import tqdm
-from mparty_util import get_soup
+from workflow.scripts.mparty_util import get_soup
 
 
 def get_IP_sequences(filepath: str, interpro_ID: str = None, reviewed: bool = False, protein: list = [], verbose: bool = False) -> str:

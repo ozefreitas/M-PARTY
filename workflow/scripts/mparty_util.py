@@ -5,10 +5,10 @@ from clint.textui import progress
 import pandas as pd
 import requests
 import shutil
-from command_run import run_command
+from workflow.scripts.command_run import run_command
 import os
 import time
-from hmm_vali import delete_inter_files
+from workflow.scripts.hmm_vali import delete_inter_files
 from pathlib import Path
 import fileinput
 from tqdm import tqdm

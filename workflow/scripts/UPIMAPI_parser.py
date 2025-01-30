@@ -1,8 +1,8 @@
 import pandas as pd
 import re
-from command_run import run_command
-from mparty_util import save_as_tsv
-from seq_download import get_fasta_sequences2
+from workflow.scripts.command_run import run_command
+from workflow.scripts.mparty_util import save_as_tsv
+from workflow.scripts.seq_download import get_fasta_sequences2
 
 
 def run_UPIMAPI(query: str, outpath: str, upi_database: str, threads: int) -> str:

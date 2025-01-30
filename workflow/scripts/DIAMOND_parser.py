@@ -1,7 +1,7 @@
 import pandas as pd
 import re
-from command_run import run_command
-from mparty_util import compress_fasta, return_fasta_content
+from workflow.scripts.command_run import run_command
+from workflow.scripts.mparty_util import compress_fasta, return_fasta_content
 
 def build_diamond_DB(input_fasta: str, output_path: str, verbose: bool = False) -> str:
 	"""Builds a dmnd database file from a fasta file to run with DIAMOND.
