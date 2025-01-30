@@ -1,0 +1,41 @@
+name: Update Bioconda Recipe
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  update-meta:
+    runs-on: ubuntu-latest
+
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+  
+        - name: Get release version
+          id: get_version
+          run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+  
+        - name: Download release tarball
+          run: wget -O release.tar.gz https://github.com/ozefreitas/M-PARTY/archive/refs/tags/v${{ env.version }}.tar.gz
+  
+        - name: Compute SHA-256 checksum
+          id: compute_sha
+          run: echo "sha256=$(sha256sum release.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+  
+        - name: Update meta.yaml
+          run: |
+            sed -i "s/{% set version = \".*\" %}/{% set version = \"${{ env.version }}\" %}/" meta.yaml
+            sed -i "s/{% set sha256 = \".*\" %}/{% set sha256 = \"${{ env.sha256 }}\" %}/" meta.yaml
+        
+        - name: print new meta.yaml
+          run: cat meta.yaml
+  
+        # - name: Commit and push changes
+        #   run: |
+        #     git config --global user.name "github-actions[bot]"
+        #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        #     git add meta.yaml
+        #     git commit -m "Update meta.yaml to version ${{ env.version }}"
+        #     git push
