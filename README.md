@@ -1,5 +1,5 @@
 # M-PARTY - Mining Protein dAtabases foR Targueted enzYmes
-#### Version 1.0.0
+#### Version 0.3.0
 
 
 <br>
