@@ -38,21 +38,21 @@ def cdhit_parser(txtfile: str, ip: bool = False, kegg: bool = False) -> dict:
         else:
             try:
                 if ip:
-                    target_seq = re.findall(">.*?\|", line)
-                    clean = re.sub(">", "", target_seq[0])
-                    clean = re.sub("\|*", "", clean)
+                    target_seq = re.findall(r">.*?\|", line)
+                    clean = re.sub(r">", "", target_seq[0])
+                    clean = re.sub(r"\|*", "", clean)
                 if kegg:
-                    target_seq = re.findall(">.*\.\.\.", line)
-                    clean = re.sub(">", "", target_seq[0])
-                    clean = re.sub("\.\.\..*", "", clean) 
+                    target_seq = re.findall(r">.*\.\.\.", line)
+                    clean = re.sub(r">", "", target_seq[0])
+                    clean = re.sub(r"\.\.\..*", "", clean) 
                 if ip == False and kegg == False:     
                     try:              
-                        target_seq = re.findall("\|.*\|", line)
-                        clean = re.sub("\|", "", target_seq[0])
+                        target_seq = re.findall(r"\|.*\|", line)
+                        clean = re.sub(r"\|", "", target_seq[0])
                     except:
-                        target_seq = re.findall(">.*.", line)
-                        clean = re.sub(">", "", target_seq[0])
-                        clean = re.sub("\.\.\..*", "", clean) 
+                        target_seq = re.findall(r">.*.", line)
+                        clean = re.sub(r">", "", target_seq[0])
+                        clean = re.sub(r"\.\.\..*", "", clean) 
             except:
                 continue
             seqs_by_cluster[cluster].append(clean)

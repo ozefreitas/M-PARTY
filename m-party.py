@@ -815,11 +815,12 @@ def main_pipeline(args):
             for c in itertools.cycle(['|', '/', '-', '\\']):
                 if done:
                     break
-                sys.stdout.write('\rParsing input sequences IDs ' + c)
+                sys.stdout.write('\rParsing input sequences IDs: ' + c)
                 sys.stdout.flush()
                 time.sleep(0.1)
             time.sleep(0.5)
-            sys.stdout.write('\nDone!\n')
+            sys.stdout.flush()
+            sys.stdout.write('\rParsing input sequences IDs: Done!\n')
 
         t = threading.Thread(target=animate)
         t.start()
