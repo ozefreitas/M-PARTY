@@ -42,8 +42,8 @@ def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame, search: bool = False, expansio
         for perc in range(60, 91, 5):
             for _, seq in seq_id.iterrows():
                 if seq["pident"] >= perc:
-                    ident = re.findall("\|.*\|", seq["qseqid"])
-                    ident = re.sub("\|", "", ident[0])
+                    ident = re.findall(r"\|.*\|", seq["qseqid"])
+                    ident = re.sub(r"\|", "", ident[0])
                     if perc not in target_enzymes.keys():
                         target_enzymes[perc] = [ident]
                     else:
@@ -55,16 +55,16 @@ def UPIMAPI_iter_per_sim(dataframe: pd.DataFrame, search: bool = False, expansio
             for _, seq in seq_id.iterrows():
                 if seq["pident"] >= cutoff:
                     if search:
-                        ident = re.findall("\|.*\|", seq["qseqid"])
-                        ident = re.sub("\|", "", ident[0])
+                        ident = re.findall(r"\|.*\|", seq["qseqid"])
+                        ident = re.sub(r"\|", "", ident[0])
                     else:
                         ident = seq["sseqid"]
                     target_enzymes.append(ident)
         else:
             for _, seq in seq_id.iterrows():
                 if search:
-                    ident = re.findall("\|.*\|", seq["qseqid"])
-                    ident = re.sub("\|", "", ident[0])
+                    ident = re.findall(r"\|.*\|", seq["qseqid"])
+                    ident = re.sub(r"\|", "", ident[0])
                 else:
                     ident = seq["sseqid"]
                 target_enzymes.append(ident)

@@ -6,7 +6,7 @@ M-PARTY - Mining Protein dAtasets for Target EnzYmes
 
 by José Freitas
 
-Set 2024
+Dec 2024
 """
 
 import sys
@@ -722,9 +722,9 @@ def annotation(config):
                                         PathManager.tables_path / 'kma_hits' / Path(args.input.split("/")[-1].split(".")[0]), 
                                         threads = args.threads)
                         
-            df = kma_parser(kma_out + ".res")
+            df = kma_parser(kma_out.with_suffix(".res"))
             hit_seqs = get_hit_sequences(df, to_list = True)
-            generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out + ".fsa")
+            generate_output_files(df, hit_seqs, kma_out, config, kma = True, kma_alignfile = kma_out.with_suffix(".fsa"))
 
         # if input file is not a metagenome
         else:

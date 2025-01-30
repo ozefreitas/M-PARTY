@@ -62,8 +62,8 @@ def DIAMOND_iter_per_sim(dataframe: pd.DataFrame, expasion: bool = False, cut_of
         for perc in range(60, 91, 5):
             for index, seq in seq_id.iterrows():
                 if seq["pident"] >= perc:
-                    ident = re.findall("\|.*\|", seq["qseqid"])
-                    ident = re.sub("\|", "", ident[0])
+                    ident = re.findall(r"\|.*\|", seq["qseqid"])
+                    ident = re.sub(r"\|", "", ident[0])
                     if perc not in target_enzymes.keys():
                         target_enzymes[perc] = [ident]
                     else:
