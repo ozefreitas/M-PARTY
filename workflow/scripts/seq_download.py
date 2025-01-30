@@ -23,8 +23,8 @@ def get_fasta_sequences(tsv_file: str, out_folder: str, seq_proc: bool = False):
             for uni_id in list(content):
             # muda a seq para o codigo que o uniprot aceite como ID
                 if seq_proc:
-                    code = re.findall("\|.*\|", uni_id)
-                    clean = re.sub("\|", "", code[0])
+                    code = re.findall(r"\|.*\|", uni_id)
+                    clean = re.sub(r"\|", "", code[0])
                 else:
                     clean = uni_id
                 try:
