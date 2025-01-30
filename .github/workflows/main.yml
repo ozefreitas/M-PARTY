@@ -20,13 +20,21 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Determine the branch name
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "GIT_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+          else
+            echo "GIT_BRANCH=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           tags: mparty:latest
-          build-args: GIT_BRANCH=${{ github.ref_name }}  # Pass branch name dynamically
+          build-args: GIT_BRANCH=${{ env.GIT_BRANCH }}  # Pass branch name dynamically
           outputs: type=docker, dest=/tmp/mparty.tar
 
       - name: Upload artifact

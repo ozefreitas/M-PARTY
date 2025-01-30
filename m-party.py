@@ -772,7 +772,7 @@ def annotation(config):
                                         verbose = args.verbose, 
                                         eval = 0.00001,
                                         out_type = args.hmms_output_type)
-                        concat_hmmsearch_results(path, PathManager.hmmsearch_results_path)
+                        BLAST_parser.concat_hmmsearch_results(path, PathManager.hmmsearch_results_path)
 
             if args.expansion:
                 lista_dataframes = dict.fromkeys(config["thresholds"])
