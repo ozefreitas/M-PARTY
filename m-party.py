@@ -31,13 +31,13 @@ from workflow.pathing_utils.cli_args import get_parser, process_arguments
 from workflow.scripts.hmmsearch_run import run_hmmsearch
 from workflow.scripts.hmm_process import *
 from workflow.scripts.hmm_vali import concat_final_model, file_generator, exec_testing, hmm_filtration, remove_fp_models, make_paths_dic, delete_inter_files
-import workflow.scripts.UPIMAPI_parser
+import workflow.scripts.UPIMAPI_parser as UPIMAPI_parser
 from workflow.scripts.seq_download import get_fasta_sequences
 from workflow.scripts.CDHIT_seq_download import fasta_retriever_from_cdhit
 import workflow.scripts.CDHIT_parser as CDHIT_parser
 from workflow.scripts.mparty_util import build_upi_query_db, threshold2clusters, get_tsv_files, save_as_tsv, concat_code_hmm, compress_fasta, return_fasta_content, check_id, ask_for_overwrite
-import workflow.scripts.BLAST_parser
-import workflow.scripts.DIAMOND_parser
+import workflow.scripts.BLAST_parser as BLAST_parser
+import workflow.scripts.DIAMOND_parser as DIAMOND_parser
 from workflow.scripts.command_run import run_tcoffee, run_hmmbuild, run_hmmemit, concat_fasta
 from workflow.scripts.InterPro_retriever import get_IP_sequences
 from workflow.scripts.KEGG_retriever import get_kegg_genes
