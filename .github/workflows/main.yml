@@ -66,10 +66,10 @@ jobs:
         run: docker run mparty bin/bash -c "ls /opt/conda/bin"
 
       - name: Print main script contents
-        run: docker run mparty bin/bash -c "cat /opt/conda/bin/m-party.py"
+        run: docker run mparty bin/bash -c "cat /opt/conda/bin/m_party.py"
       
       - name: Check m-party version
-        run: docker run mparty bin/bash -c "m-party.py --version"
+        run: docker run mparty bin/bash -c "m_party.py --version"
 
   annotation:
     runs-on: ubuntu-latest
@@ -93,19 +93,19 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
 
       - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "m-party.py -h"
+        run: docker run mparty bin/bash -c "m_party.py -h"
 
       - name: Print M-PARTY's path
         run: docker run mparty bin/bash -c "cd "
 
       - name: Annotation workflow by FASTA input, report text creation and excel table format
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/positive_control.fasta --kegg K21104 -w both --hmm_db_name KEGG_test_both -o Testing_KEGG_positive --output_type excel"
+        run: docker run mparty bin/bash -c "m_party.py -i M-PARTY/ci/positive_control.fasta --kegg K21104 -w both --hmm_db_name KEGG_test_both -o Testing_KEGG_positive --output_type excel"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate same outputs
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
+        run: docker run mparty bin/bash -c "m_party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt"
 
       - name: Annotation workflow with gut metagenome proteins (negative dataset), generate config file
-        run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt --display_config"
+        run: docker run mparty bin/bash -c "m_party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome --kegg K21104 -w both --hmm_db_name KEGG_test_both --verbose -o Testing_KEGG_positive --output_type excel -rt --display_config"
 
   # validation:
   #   runs-on: ubuntu-latest
@@ -129,10 +129,10 @@ jobs:
   #       run: docker run mparty bin/bash -c "ls"
 
   #     - name: Print M-PARTY's main script
-  #       run: docker run mparty bin/bash -c "m-party.py -h"
+  #       run: docker run mparty bin/bash -c "m_party.py -h"
 
   #     - name: Validation workflow alone
-  #       run: docker run mparty bin/bash -c "m-party.py --validation --hmm_db_name PE"
+  #       run: docker run mparty bin/bash -c "m_party.py --validation --hmm_db_name PE"
 
   # annotation_validation:
   #   runs-on: ubuntu-latest
@@ -156,10 +156,10 @@ jobs:
   #       run: docker run mparty bin/bash -c "ls"
 
   #     - name: Print M-PARTY's main script
-  #       run: docker run mparty bin/bash -c "m-party.py -h"
+  #       run: docker run mparty bin/bash -c "m_party.py -h"
       
   #     - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation script
-  #       run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
+  #       run: docker run mparty bin/bash -c "m_party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE"
 
   # annotation_validation_swapdb:
   #   runs-on: ubuntu-latest
@@ -183,10 +183,10 @@ jobs:
   #       run: docker run mparty bin/bash -c "ls"
 
   #     - name: Print M-PARTY's main script
-  #       run: docker run mparty bin/bash -c "m-party.py -h"
+  #       run: docker run mparty bin/bash -c "m_party.py -h"
 
   #     - name: Annotation workflow with gut metagenome proteins (negative dataset), add model validation workflow with POLYMERASE as CONTROL
-  #       run: docker run mparty bin/bash -c "m-party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
+  #       run: docker run mparty bin/bash -c "m_party.py -i M-PARTY/ci/gut_metagenome_proteins.fasta -it metagenome -o output_results -rt --output_type excel --validation --hmm_db_name PE --negative_db M-PARTY/ci/polymerase_DB.fasta"
 
   db_construction:
     runs-on: ubuntu-latest
@@ -210,22 +210,22 @@ jobs:
         run: docker run mparty bin/bash -c "ls"
 
       - name: Print M-PARTY's main script
-        run: docker run mparty bin/bash -c "m-party.py -h"
+        run: docker run mparty bin/bash -c "m_party.py -h"
 
       - name: Database construction workflowfor with KEGG KO
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_KO --kegg K21104 --verbose"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --hmm_db_name test_KEGG_KO --kegg K21104 --verbose"
       
       - name: Database construction workflowfor with KEGG EC number
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_EC --kegg 3.1.1.101 1.14.12.15 1.18.1.- 1.3.1.53 --verbose"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --hmm_db_name test_KEGG_EC --kegg 3.1.1.101 1.14.12.15 1.18.1.- 1.3.1.53 --verbose"
 
       - name: Database construction workflowfor with InterPro IPR
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_IPR --interpro IPR000006 --verbose"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --hmm_db_name test_KEGG_IPR --interpro IPR000006 --verbose"
 
       - name: Database construction workflowfor with InterPro individual protein IDs
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name test_KEGG_Prots --interpro A0A000 A0A001 A0A002 --verbose"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --hmm_db_name test_KEGG_Prots --interpro A0A000 A0A001 A0A002 --verbose"
       
       - name: Database construction workflow with small FASTA protein file
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --hmm_db_name protein_file_inputest --input_seqs_db_const M-PARTY/ci/KEGG_nuc_test.fasta --input_type_db_const nucleic -t 8 --verbose"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --hmm_db_name protein_file_inputest --input_seqs_db_const M-PARTY/ci/KEGG_nuc_test.fasta --input_type_db_const nucleic -t 8 --verbose"
       
   clean:
     runs-on: ubuntu-latest
@@ -246,11 +246,11 @@ jobs:
           docker image ls -a
 
       - name: Simpler database construction pipeline
-        run: docker run mparty bin/bash -c "m-party.py -w database_construction --kegg K21104 --hmm_db_name PET_hydrolase"
+        run: docker run mparty bin/bash -c "m_party.py -w database_construction --kegg K21104 --hmm_db_name PET_hydrolase"
       
       - name: Check error raise for clean data
         run: |
-          if docker run mparty bin/bash -c "m-party.py --clean"; then
+          if docker run mparty bin/bash -c "m_party.py --clean"; then
             echo "Error: Command was expected to fail but it succeeded."
             exit 1
           else
@@ -258,4 +258,4 @@ jobs:
           fi
 
       - name: Clean data
-        run: docker run mparty bin/bash -c "m-party.py --clean --hmm_db_name PET_hydrolase"
+        run: docker run mparty bin/bash -c "m_party.py --clean --hmm_db_name PET_hydrolase"

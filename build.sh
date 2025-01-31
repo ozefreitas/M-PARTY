@@ -12,7 +12,7 @@ cp -r workflow $BIN_FOLDER/
 # cp workflow/Snakefile $BIN_FOLDER/workflow
 cp -r config $BIN_FOLDER/
 # cp -r results $BIN_FOLDER/
-cp m-party.py $BIN_FOLDER/
+cp m_party.py $BIN_FOLDER/
 # ls -lt $INSTALL_FOLDER
 
 echo "print bin folder"
@@ -24,5 +24,5 @@ ls -la $BIN_FOLDER/workflow
 echo "print config folder"
 ls -la $BIN_FOLDER/config
 
-chmod u+x $BIN_FOLDER/m-party.py
-ln -s $BIN_FOLDER/m-party.py $BIN_FOLDER/m-party
+chmod u+x $BIN_FOLDER/m_party.py
+ln -s $BIN_FOLDER/m_party.py $BIN_FOLDER/m-party

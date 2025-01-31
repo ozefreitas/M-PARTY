@@ -9,4 +9,4 @@ RUN conda update -n base -c defaults -y conda \
 && bash M-PARTY/ci/ci_build.sh \
 && conda clean --all -y
 
-CMD [ "python", "bin/m-party.py" ]
+CMD [ "python", "bin/m_party.py" ]
